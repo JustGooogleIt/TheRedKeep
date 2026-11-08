@@ -62,7 +62,7 @@ uv run redkeep refresh                    # builds the event library from live m
 uv run redkeep analyze --sample allweather  # needs MASSIVE_API_KEY for prices and holdings
 ```
 
-`redkeep app` turns a snapshot and analyses into data for the prototype, and `node prototype/check.js` then confirms the prototype's model gives the engine's numbers.
+`redkeep app` turns a snapshot, and any analyses, into data for the prototype, and `node prototype/check.js` then confirms the prototype's model gives the engine's numbers. Without analyses (so without the Massive key), the prototype shows the snapshot's events against its own illustrative portfolios, and says so.
 
 ## Docs
 

@@ -8,7 +8,7 @@ factor data (FRED, Massive) ──► jump windows, past events, AI prior ──
 holdings (Massive) ──► look-through and exposures ──► impacts, priced-in moves, swing, simulation
 ```
 
-`refresh` builds the shared event library and saves a dated snapshot. `analyze` runs a portfolio against the latest snapshot in a few seconds. `app` feeds a snapshot and analyses into the prototype, which then offers a switch between its illustrative data and the backend's.
+`refresh` builds the shared event library and saves a dated snapshot. `analyze` runs a portfolio against the latest snapshot in a few seconds. `app` feeds a snapshot, and any analyses, into the prototype, which then offers a switch between its illustrative data and the backend's. With no analyses the prototype shows the snapshot's events against its own illustrative portfolios and labels their exposures as illustrative: that needs only the Anthropic key.
 
 ## Setup
 
@@ -17,7 +17,7 @@ Python 3.12 or newer and [uv](https://docs.astral.sh/uv/):
 ```bash
 cd backend
 uv sync                      # creates .venv with the locked dependencies
-uv run pytest                # 47 offline tests, a few seconds
+uv run pytest                # the offline tests, a few seconds
 ```
 
 The tests need no keys and no network: they use market responses copied from the live APIs (with made-up values) and seeded synthetic prices. One test runs the prototype's own model in Node on an export and checks it gives the engine's numbers; it skips itself when Node isn't installed.
@@ -46,6 +46,7 @@ uv run redkeep analyze --holdings "VTI:300000, TLT:400000, NVDA:120sh"
 uv run redkeep analyze --sample qqq --what-if tariffs-china=yes --horizon 12
 uv run redkeep app --analysis out/analysis-allweather-latest.json out/analysis-qqq-latest.json \
                    --out ../prototype/src/live.js      # then: python3 ../prototype/build.py
+uv run redkeep app --out ../prototype/src/live.js      # events only: the prototype keeps its illustrative portfolios
 uv run redkeep serve                                   # the API on http://127.0.0.1:8000 (docs at /docs)
 ```
 

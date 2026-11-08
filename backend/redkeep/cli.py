@@ -124,11 +124,13 @@ def cmd_analyze(s: Settings, args) -> int:
 def cmd_app(s: Settings, args) -> int:
     from .appdata import export
 
-    snap = json.loads(Path(args.snapshot).read_text()) if args.snapshot else json.loads((s.out_dir / "library-latest.json").read_text())
+    snap = json.loads(Path(args.snapshot or s.out_dir / "library-latest.json").read_text())
     analyses = [json.loads(Path(p).read_text()) for p in args.analysis]
     out = Path(args.out)
     out.write_text(export(snap, analyses))
-    print(f"Wrote {out}")
+    with_what = (f"{len(analyses)} portfolio analys{'is' if len(analyses) == 1 else 'es'}" if analyses else
+                 "no portfolio analyses (the app keeps its illustrative portfolios and labels their exposures as such)")
+    print(f"Wrote {out}: {len(snap['events'])} events from the snapshot of {snap['as_of']}, {with_what}")
     return 0
 
 
@@ -152,10 +154,11 @@ def main(argv: list[str] | None = None) -> int:
     a.add_argument("--snapshot", help="library snapshot (default: the latest)")
     a.add_argument("--horizon", type=float, help="months (default 6)")
     a.add_argument("--what-if", action="append", metavar="EVENT=yes|no")
-    x = sub.add_parser("app", help="export a snapshot and analyses for the prototype app")
-    x.add_argument("--snapshot")
-    x.add_argument("--analysis", nargs="+", required=True)
-    x.add_argument("--out", required=True)
+    x = sub.add_parser("app", help="export a snapshot, and any portfolio analyses, for the prototype app")
+    x.add_argument("--snapshot", help="library snapshot (default: the latest)")
+    x.add_argument("--analysis", nargs="*", default=[], metavar="FILE",
+                   help="analyses from `redkeep analyze`; without any, the app keeps its illustrative portfolios")
+    x.add_argument("--out", required=True, help="where to write live.js")
     v = sub.add_parser("serve", help="run the API")
     v.add_argument("--host", default="127.0.0.1")
     v.add_argument("--port", type=int, default=8000)
