@@ -530,6 +530,13 @@ Ground rules: time-based splits only (fit on the past, test on the future), poin
 
 The app's replay screen shows the saved run for whatever portfolio is open, and `check.js` confirms that its numbers are the engine's on stocks. A test reruns a synthetic episode with every price after one day reshuffled and checks that no evening up to that day changes.
 
+**What the first run found.** On November 8, 2026 the replay found 2,159 Polymarket and 143 Kalshi markets listed during the episode, and FRED data for 7 of the 10 factors.
+
+- Three of the six events matched a market: the tariff pause, the May cut and the recession. The emergency cut was only bounded (0 to 14%), which gives no odds path.
+- No market priced the universal tariffs or China's retaliation the evening before. One market could have priced the April 2 announcement: Polymarket's general-tariff market, at 50% on April 1. It reached the judge only once candidates were limited to markets listed before an event happened, and the judge then called it an overlap, not a match: it counted only an April 2 announcement and set no 10% minimum. By the rules of [6.3](#63-matching-events-to-markets) such a market is shown but not used.
+- So the scorecard has one call. The pause was at 31% the evening before; the call was +1.2% for stocks, and they rose 9.5%. Its signs were right on all 6 factors with a reading.
+- Over the ten days, the events times their odds changes explain 28% of the daily factor moves' sum of squares (70 day-factors, correlation 0.57), 35% for stocks, with the right sign on 22 of 30 big moves. The misses are April 3 and 4, the announcement and China's answer, which no matched market priced.
+
 **Ground truth for jumps.** When a market resolves, its odds jump to 0 or 1, so the realized jump is the factor move in the resolution window divided by the odds change (`1 − q` or `−q`). The same data sets each source's weight (6.5): weights are fitted on an earlier period and evaluated on a later one, so the evals stay honest.
 
 ---
