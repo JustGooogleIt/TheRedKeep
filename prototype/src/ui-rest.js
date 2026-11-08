@@ -280,16 +280,16 @@ function ReplayView({ P, tw }) {
 }
 
 /* ---------- tweaks ---------- */
-const DEFAULT_TWEAKS = { odds: 'market', knock: true, horizon: 6, tiers: 'ABCD', topN: 12, sims: 4000, noise: false, theme: 'auto', accent: 'dragon', heading: 'serif', density: 'comfortable', hero: 'dragon', glow: 'normal', citadel: true, view: 'macro', rotate: true, labels: 'top', links: true };
+const DEFAULT_TWEAKS = { odds: 'market', knock: true, horizon: 6, tiers: 'ABCD', topN: 12, sims: 4000, noise: false, theme: 'auto', accent: 'dragon', heading: 'serif', density: 'comfortable', hero: true, dragon: true, glow: 'normal', citadel: true, view: 'macro', rotate: true, labels: 'top', links: true };
 const TWEAK_OPTS = {
   odds: ['market', 'calibrated'], knock: [true, false], horizon: [3, 6, 12], tiers: ['ABCD', 'ABC', 'AB'], topN: [8, 12, 'all'], sims: [2000, 4000, 10000], noise: [false, true],
-  theme: ['auto', 'light', 'dark'], accent: ['dragon', 'ember', 'teal', 'steel'], heading: ['serif', 'sans'], density: ['comfortable', 'compact'], hero: ['dragon', 'image', 'off'], glow: ['normal', 'bright'], citadel: [true, false],
+  theme: ['auto', 'light', 'dark'], accent: ['dragon', 'ember', 'teal', 'steel'], heading: ['serif', 'sans'], density: ['comfortable', 'compact'], hero: [true, false], dragon: [true, false], glow: ['normal', 'bright'], citadel: [true, false],
   view: ['macro', 'mine', 'flat'], rotate: [true, false], labels: ['top', 'all', 'none'], links: [true, false],
 };
 function cleanTweaks(t) {
   const o = {}; if (!t || typeof t !== 'object') return o;
-  // Earlier versions saved the hero as on or off; on now opens on the dragon scene.
-  if (typeof t.hero === 'boolean') t = { ...t, hero: t.hero ? 'dragon' : 'off' };
+  // One earlier version saved the hero as 'dragon', 'image' or 'off'; the image is the hero again.
+  if (typeof t.hero === 'string') t = { ...t, hero: t.hero !== 'off' };
   for (const k in TWEAK_OPTS) if (TWEAK_OPTS[k].includes(t[k])) o[k] = t[k];
   return o;
 }
@@ -324,9 +324,10 @@ function TweaksSheet({ tw, setTw, onClose }) {
           ${Row('Accent', null, 'accent', [['dragon', 'Dragon'], ['ember', 'Ember'], ['teal', 'Teal'], ['steel', 'Steel']])}
           ${Row('Headings', null, 'heading', [['serif', 'Serif'], ['sans', 'Sans']])}
           ${Row('Density', null, 'density', [['comfortable', 'Roomy'], ['compact', 'Compact']])}
-          ${Row('Hero', 'Scroll scene, still image or none', 'hero', [['dragon', 'Dragon'], ['image', 'Image'], ['off', 'Off']])}
-          ${tw.hero === 'dragon' && Row('Dragon glow', null, 'glow', [['normal', 'Normal'], ['bright', 'Bright']])}
-          ${tw.hero === 'dragon' && Row('Castle behind the dragon', 'A faint citadel in the numbers', 'citadel', [[true, 'On'], [false, 'Off']])}
+          ${Row('Hero image', null, 'hero', [[true, 'On'], [false, 'Off']])}
+          ${Row('Dragon story', 'The scroll story between the hero and the engine', 'dragon', [[true, 'On'], [false, 'Off']])}
+          ${tw.dragon && Row('Dragon glow', null, 'glow', [['normal', 'Normal'], ['bright', 'Bright']])}
+          ${tw.dragon && Row('Castle behind the dragon', 'A faint citadel in the numbers', 'citadel', [[true, 'On'], [false, 'Off']])}
         </div>
         <div className="tw-group"><span className="label">Map</span>
           ${Row('View', null, 'view', [['macro', 'Macro'], ['mine', 'Mine'], ['flat', '2D']])}
@@ -396,8 +397,12 @@ function App() {
   const [tweaksOpen, setTweaksOpen] = useState(false);
   const [aiOK, setAiOK] = useState(false);
   const heroRef = useRef(null);
-  const heroOn = tw.hero !== 'off';
-  const pastHero = useScrolledPast(heroRef, 36, heroOn && tw.hero);
+  // "Bare" means nothing sits above the app but the nav: no hero image and no dragon story.
+  const bare = !tw.hero && !tw.dragon, bareRef = useRef(bare); bareRef.current = bare;
+  const pastHero = useScrolledPast(heroRef, 36, tw.hero);
+  // Over the dragon story the nav goes back to dark glass, as it is over the hero image.
+  const dragonRef = useRef(null);
+  const overDragon = useUnderNav(dragonRef, 40, tw.dragon);
 
   useEffect(() => { saveState({ holdings, sampleId, tweaks: tw, tab }); }, [holdings, sampleId, tw, tab]);
   useEffect(() => { let on = true; getSample().then(s => { if (on) setAiOK(!!s); }); return () => { on = false; }; }, []);
@@ -445,19 +450,19 @@ function App() {
     setTab(k);
     requestAnimationFrame(() => {
       const el = document.getElementById('app'); if (!el) return;
-      // With the hero on, land just past it; without it the nav sits in the flow above the app.
-      const navOffset = heroRef.current ? 0 : 64;
+      // The app's intro leaves room for the floating nav, except on a bare page, where the nav sits in the flow above it.
+      const navOffset = bareRef.current ? 64 : 0;
       window.scrollTo({ top: Math.max(0, el.getBoundingClientRect().top + window.scrollY - navOffset), behavior: REDUCED ? 'auto' : 'smooth' });
     });
   }, []);
   const selEv = sel ? S.byId[sel] : null;
   const hasLive = Object.keys(liveOdds).length > 0;
 
-  return html`<div className=${cls('app', !heroOn && 'no-hero')} data-accent=${tw.accent} data-heading=${tw.heading} data-density=${tw.density}>
+  return html`<div className=${cls('app', bare && 'no-hero')} data-accent=${tw.accent} data-heading=${tw.heading} data-density=${tw.density}>
     <${Banner} />
-    <${Nav} tab=${tab} goTab=${goTab} live=${live} setLive=${setLive} openTweaks=${() => setTweaksOpen(true)} solid=${!heroOn || pastHero} />
-    ${tw.hero === 'dragon' ? html`<${DragonScene} tw=${tw} goTab=${goTab} heroRef=${heroRef} />`
-      : tw.hero === 'image' ? html`<${Hero} tw=${tw} goTab=${goTab} heroRef=${heroRef} />` : null}
+    <${Nav} tab=${tab} goTab=${goTab} live=${live} setLive=${setLive} openTweaks=${() => setTweaksOpen(true)} solid=${(!tw.hero || pastHero) && !overDragon} />
+    ${tw.hero && html`<${Hero} tw=${tw} goTab=${goTab} heroRef=${heroRef} />`}
+    ${tw.dragon && html`<${DragonScene} tw=${tw} rootRef=${dragonRef} />`}
     <div className="wrap" id="app">
       <${Intro} tab=${tab} />
       <div className="layout">

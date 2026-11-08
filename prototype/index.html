@@ -164,60 +164,68 @@ a { color: var(--accent); }
 .hero-sub { font: 500 18px/1.5 var(--f-body); color: rgba(255, 255, 255, .86); margin: 16px auto 0; max-width: 54ch; text-wrap: pretty; }
 .hero-cta { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 26px; }
 
-/* ---------- dragon scroll scene (ui-dragon.js). Every rule is scoped to .dragon. ----------
-   A tall section with a sticky full-viewport stage; scrolling its length drives the scene.
-   The palette is the Crimson Flight study's; type and buttons are the site's. */
-.dragon { position: relative; height: 440vh; margin-top: calc(-1 * var(--nav-h)); background: #13040A; color: #F6E9E4; }
+/* ---------- dragon story (ui-dragon.js), between the hero and the app. Every rule is scoped to .dragon. ----------
+   Modelled on the manifesto on castle.tech: a sticky full-viewport stage with the text gliding
+   up over the drawing and lighting up word by word. The palette is the Crimson Flight study's;
+   the type is the site's. The custom properties place the dragon and the text (shares of the
+   stage); ui-dragon.js reads them on every resize, and sets the section's height to match. */
+.dragon { --dragon-x: .6; --dragon-y: .57; --story-start: .84; --story-end: .54; --story-light: .78;
+  position: relative; height: 340vh; background: #13040A; color: #F6E9E4; }
 .dragon .dragon-stage { position: sticky; top: 0; height: 100vh; height: 100svh; overflow: hidden; background: #16050D; }
 .dragon .dragon-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
-.dragon .dragon-shade { position: absolute; inset: 0; pointer-events: none; background: linear-gradient(180deg, #13040A70, transparent 27%, transparent 73%, #13040A90), radial-gradient(ellipse, transparent 40%, #13040A66); }
-.dragon .dragon-intro, .dragon .dragon-end { position: absolute; left: 8%; right: 8%; max-width: 780px; pointer-events: none; will-change: opacity, transform; }
-.dragon .dragon-intro { top: 23%; }
-.dragon .dragon-end { top: 28%; opacity: 0; visibility: hidden; }
-.dragon .dragon-eyebrow { font: 500 11px/1.6 var(--f-mono); letter-spacing: .16em; text-transform: uppercase; color: #E48B9E; margin: 0 0 22px; }
-.dragon .dragon-h { font-family: var(--f-display); font-weight: 400; font-size: clamp(46px, 6.7vw, 104px); line-height: 1.02; letter-spacing: -.03em; color: #FFF4EF; margin: 0; text-wrap: balance; text-shadow: 0 2px 25px #16020D; }
-.dragon h2.dragon-h { font-size: clamp(44px, 6vw, 90px); }
-.dragon .dragon-sub { font: 400 17px/1.55 var(--f-body); color: #D9B9BD; margin: 22px 0 0; max-width: 46ch; text-wrap: pretty; text-shadow: 0 1px 2px #16020D, 0 0 16px #16020D; }
-.dragon .dragon-cta { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 30px; pointer-events: auto; }
+/* A little darker on the left, where the text runs; the dragon keeps its colour. */
+.dragon .dragon-shade { position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(90deg, #13040AB3 0%, #13040A80 26%, #13040A1F 44%, #13040A00 54%),
+    linear-gradient(180deg, #13040A80, #13040A00 18%, #13040A00 82%, #13040A99); }
+/* The column is moved by script; the mask fades it in at the bottom and out under the nav. */
+.dragon .dragon-copy { position: absolute; inset: 0; overflow: hidden; pointer-events: none;
+  -webkit-mask-image: linear-gradient(180deg, transparent 8%, #000 24%, #000 80%, transparent 90%);
+  mask-image: linear-gradient(180deg, transparent 8%, #000 24%, #000 80%, transparent 90%); }
+.dragon .dragon-col { position: absolute; top: 0; left: 8%; width: min(520px, 38%); will-change: transform; }
+.dragon .dragon-p { font: 500 21px/1.5 var(--f-mono); letter-spacing: -.03em; color: #F6E9E4; margin: 0 0 1.5em; text-wrap: pretty; text-shadow: 0 1px 2px #16020D, 0 0 18px #16020D; }
+.dragon .dragon-p.big { font-family: var(--f-display); font-weight: 400; font-size: clamp(40px, 4.6vw, 68px); line-height: 1.04; letter-spacing: -.02em; color: #FFF4EF; margin: .5em 0 .85em; width: 140%; text-wrap: balance; text-shadow: 0 2px 26px #16020D; }
+.dragon .dragon-p:last-child { margin-bottom: 0; }
+.dragon .dragon-p b { font-weight: inherit; color: #FF5A78; }
 .dragon .dragon-hud { position: absolute; inset: 0; pointer-events: none; font: 500 10px/1.5 var(--f-mono); letter-spacing: .2em; text-transform: uppercase; }
-.dragon .dragon-chapter { position: absolute; bottom: 41px; left: 4%; display: flex; gap: 24px; color: #C3A0A9; }
-.dragon .dragon-chapter b { font-weight: 500; color: #F23B61; white-space: nowrap; }
-.dragon .dragon-hint { position: absolute; bottom: 39px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 18px; font-size: 9px; color: #D0A8B2; white-space: nowrap; }
-.dragon .dragon-hint i { display: block; width: 42px; height: 1px; background: #894A5D; }
-.dragon .dragon-rail { position: absolute; right: 4%; bottom: 43px; width: 120px; height: 2px; background: #69404E; }
+.dragon .dragon-chapter { position: absolute; bottom: 41px; left: 4%; right: calc(4% + 150px); display: flex; gap: 24px; color: #C3A0A9; white-space: nowrap; }
+.dragon .dragon-chapter b { font-weight: 500; color: #F23B61; }
+.dragon .dragon-chapter span { overflow: hidden; text-overflow: ellipsis; }
+.dragon .dragon-rail { position: absolute; right: 4%; bottom: 47px; width: 120px; height: 2px; background: #69404E; }
 .dragon .dragon-rail i { display: block; height: 100%; background: #EF3458; transform-origin: 0 50%; transform: scaleX(0); }
-/* Narrower: the chapter and rail move up a row so the scroll hint gets its own line. */
-@media (max-width: 1100px) {
-  .dragon .dragon-chapter { bottom: 70px; right: calc(4% + 144px); }
-  .dragon .dragon-hint { bottom: 27px; }
-  .dragon .dragon-rail { bottom: 75px; }
+/* Narrower landscape screens: the dragon moves in a little and the column widens. */
+@media (max-width: 1180px) and (min-aspect-ratio: 1/1) {
+  .dragon { --dragon-x: .58; }
+  .dragon .dragon-col { left: 7%; width: 42%; }
+  .dragon .dragon-p { font-size: 18px; }
+}
+/* Tall screens (phones, tablets held upright): the dragon flies in the upper half and the
+   story reads underneath it, centred, like subtitles. */
+@media (max-aspect-ratio: 1/1) {
+  .dragon { --dragon-x: .5; --dragon-y: .36; --story-start: .97; --story-end: .72; --story-light: .92; }
+  .dragon .dragon-shade { background: linear-gradient(180deg, #13040A99, #13040A00 16%, #13040A00 44%, #13040AC7 60%, #13040AEB 76%, #13040AF2); }
+  .dragon .dragon-copy { -webkit-mask-image: linear-gradient(180deg, transparent 50%, #000 61%, #000 87%, transparent 93%);
+    mask-image: linear-gradient(180deg, transparent 50%, #000 61%, #000 87%, transparent 93%); }
+  .dragon .dragon-col { left: max(8%, calc(50% - 310px)); width: min(84%, 620px); text-align: center; }
+  .dragon .dragon-p { font-size: clamp(16px, 2.6vw, 23px); }
+  .dragon .dragon-p.big { width: auto; font-size: clamp(36px, 6.4vw, 60px); }
 }
 @media (max-width: 650px) {
-  .dragon .dragon-intro, .dragon .dragon-end { left: 7%; right: 7%; }
-  .dragon .dragon-intro { top: 15%; }
-  .dragon .dragon-eyebrow { font-size: 8px; letter-spacing: .12em; margin-bottom: 14px; }
-  .dragon .dragon-h { font-size: 42px; letter-spacing: -.02em; }
-  .dragon h2.dragon-h { font-size: 40px; }
-  .dragon .dragon-sub { font-size: 14px; line-height: 1.5; margin-top: 14px; }
-  .dragon .dragon-cta { margin-top: 18px; }
-  .dragon .dragon-cta .btn { padding: 11px 14px; font-size: 13px; }
+  .dragon .dragon-col { left: 6%; width: 88%; }
+  .dragon .dragon-p { font-size: 16px; line-height: 1.5; letter-spacing: -.02em; }
+  .dragon .dragon-p.big { font-size: 36px; }
   .dragon .dragon-hud { font-size: 8px; }
-  .dragon .dragon-chapter { left: 6%; right: calc(6% + 86px); gap: 12px; }
-  .dragon .dragon-rail { right: 6%; width: 70px; }
+  .dragon .dragon-chapter { left: 6%; right: calc(6% + 86px); gap: 12px; bottom: 30px; }
+  .dragon .dragon-rail { right: 6%; width: 70px; bottom: 33px; }
 }
-/* Short windows, such as a phone held sideways: tighter copy that clears the nav, and a one-row HUD. */
-@media (max-height: 620px) and (min-width: 651px) {
-  .dragon .dragon-intro, .dragon .dragon-end { top: calc(var(--nav-h) + 16px); }
-  .dragon .dragon-eyebrow { margin-bottom: 10px; }
-  .dragon .dragon-h, .dragon h2.dragon-h { font-size: clamp(34px, 5vw, 56px); }
-  .dragon .dragon-sub { font-size: 14px; margin-top: 10px; }
-  .dragon .dragon-cta { margin-top: 14px; }
-  .dragon .dragon-cta .btn { padding: 10px 14px; font-size: 13px; }
-}
-@media (max-height: 620px) and (min-width: 651px) and (max-width: 1100px) {
-  .dragon .dragon-chapter { bottom: 24px; }
-  .dragon .dragon-rail { bottom: 30px; }
-  .dragon .dragon-hint { display: none; }
+/* Short windows, such as a phone held sideways: smaller type and a lower HUD. */
+@media (max-height: 560px) and (min-aspect-ratio: 1/1) {
+  .dragon { --story-end: .56; }
+  .dragon .dragon-copy { -webkit-mask-image: linear-gradient(180deg, transparent 16%, #000 30%, #000 80%, transparent 88%);
+    mask-image: linear-gradient(180deg, transparent 16%, #000 30%, #000 80%, transparent 88%); }
+  .dragon .dragon-p { font-size: 15px; }
+  .dragon .dragon-p.big { font-size: clamp(30px, 4.4vw, 44px); }
+  .dragon .dragon-chapter { bottom: 20px; }
+  .dragon .dragon-rail { bottom: 26px; }
 }
 
 /* ---------- page ---------- */
@@ -1366,6 +1374,21 @@ function useScrolledPast(ref, offset, enabled) {
   return past;
 }
 
+// True while the element passes under the floating nav, that is, it spans the line `offset` px from the top.
+function useUnderNav(ref, offset, enabled) {
+  const [under, setUnder] = useState(false);
+  useEffect(() => {
+    if (!enabled) { setUnder(false); return undefined; }
+    let raf = 0;
+    const check = () => { raf = 0; const el = ref.current; if (el) { const b = el.getBoundingClientRect(); setUnder(b.top <= offset && b.bottom > offset); } };
+    const on = () => { if (!raf) raf = requestAnimationFrame(check); };
+    check();
+    window.addEventListener('scroll', on, { passive: true }); window.addEventListener('resize', on);
+    return () => { cancelAnimationFrame(raf); window.removeEventListener('scroll', on); window.removeEventListener('resize', on); };
+  }, [enabled, offset]);
+  return under;
+}
+
 function Nav({ tab, goTab, live, setLive, openTweaks, solid }) {
   const T = (k, long, short) => html`<button role="tab" aria-selected=${tab === k} className=${cls('tab', tab === k && 'on')} onClick=${() => goTab(k)}><span className="t-long">${long}</span><span className="t-short">${short}</span></button>`;
   return html`<header className=${cls('nav', solid && 'scrolled')}><div className="nav-in">
@@ -2016,16 +2039,33 @@ function AnalysisView(p) {
 }
 
 /* ==========================================================================
-   UI · Part 3: the dragon scroll scene at the top of the page.
-   Ported from the Crimson Flight study (scene.js). Each frame paints a
+   UI · Part 3: the dragon story between the hero and the engine.
+   Modelled on the manifesto on castle.tech, where a short text lights up word
+   by word over knights drawn in dark green. Here the drawing is the Crimson
+   Flight dragon, ported from its study (scene.js): each frame paints a
    low-resolution colour scene into an offscreen buffer, then prints it as a
    fixed grid of digits. A clock drives the wingbeats, body lift, tail wave and
-   flame flicker, so they keep moving when scrolling stops; scroll drives the
-   fire's growth and the scene's progression. Everything the component touches
-   is reached through refs, and every frame, observer and listener it starts is
-   stopped when it unmounts.
+   flame flicker, so they keep moving when scrolling stops; scroll moves the
+   story along, grows the fire and brings the dragon up out of the dark.
+   Everything the component touches is reached through refs, and every frame,
+   observer and listener it starts is stopped when it unmounts.
    ========================================================================== */
-const DRAGON_CHAPTERS = ['What could move your portfolio', 'Net of what’s already priced in', 'Hedging against dragons'];
+// The story, in three chapters. {braces} mark the words that light up in crimson.
+// Every claim matches DESIGN.md: look-through (6.1), priced in (3, 4.2), the event graph (4.4),
+// the market quorum (4.6) and ranking by swing (4.3).
+const DRAGON_STORY = [
+  { ch: 0, text: 'Tariffs. Recessions. A surprise from the Fed. Every portfolio has {dragons}, and none of them show up on your statement.' },
+  { ch: 0, text: 'You don’t really own QQQ. You own a hundred companies, a bet on interest rates and a quiet exposure to China.' },
+  { ch: 0, big: true, text: 'Here be dragons.' },
+  { ch: 1, text: 'Up close, every dragon is {made} {of} {numbers}: the odds that it comes, how hard it hits, and how much of that the market already expects.' },
+  { ch: 1, text: 'If markets give tariffs a 40% chance, 40% of the damage is already in the price. The Red Keep counts only {the} {surprise}.' },
+  { ch: 1, text: 'Dragons rarely fly alone. Tariffs make a recession likelier, so it follows the chain and counts each blow once.' },
+  { ch: 1, text: 'It trusts a number only when two markets agree.' },
+  { ch: 1, text: 'And it ranks every dragon by how far it could still {swing} you, not by how loud its headline is.' },
+  { ch: 2, text: 'Every castle needs a {keep}: the tallest tower, the one you climb to see what’s coming.' },
+  { ch: 2, big: true, text: 'This one watches for dragons.' },
+];
+const DRAGON_CHAPTERS = ['What you really own', 'Made of numbers', 'The keep'];
 const DRAGON_STILL_PHASE = 0;          // the wing pose shown when motion is reduced
 const DRAGON_DIGITS = '0123456789'.split('');
 // The faint castle behind the dragon: the area of citadel.png that scene.js samples, which leaves out
@@ -2034,7 +2074,8 @@ const DRAGON_CITADEL = typeof RK_CITADEL === 'string' ? RK_CITADEL : 'citadel.we
 const clamp01 = x => Math.max(0, Math.min(1, x));
 
 /* Owns the two canvases. The drawing below follows scene.js line for line;
-   only its globals became arguments (progress, clock, wing phase, glow, image). */
+   only its globals became arguments (progress, clock, wing phase, brightness, image),
+   plus where the dragon sits (cx, cy, as shares of the width and height; scene.js uses .5 and .57). */
 function makeDragonPainter(canvas) {
   const ctx = canvas.getContext('2d', { alpha: false });
   const buffer = document.createElement('canvas'), b = buffer.getContext('2d', { willReadFrequently: true });
@@ -2131,7 +2172,7 @@ function makeDragonPainter(canvas) {
     return { x, y: y - 62 * size };
   }
 
-  function paint({ p, clock, phase, boost, citadel }) {
+  function paint({ p, clock, phase, bright, citadel, cx = .5, cy = .57 }) {
     if (!cols || !rows) return;
     b.globalAlpha = 1; b.fillStyle = '#12050c'; b.fillRect(0, 0, cols, rows);
     const sky = b.createLinearGradient(0, 0, 0, rows);
@@ -2150,7 +2191,7 @@ function makeDragonPainter(canvas) {
     b.fillStyle = veil; b.fillRect(0, rows * .35, cols, rows * .18);
     // One finely articulated dragon holds the center while scrolling brings it closer.
     const size = Math.min(cols / 340, rows / 205) * (1 + p * .055);
-    const x = cols * (.50 + Math.sin(p * 2) * .012), y = rows * .57 - Math.sin(clock * 2.65 - .4) * 1.25;
+    const x = cols * (cx + Math.sin(p * 2) * .012), y = rows * cy - Math.sin(clock * 2.65 - .4) * 1.25;
     const mouth = dragon(x, y, size, phase);
     const fire = clamp01((p - .08) / .77);
     if (fire > 0) {
@@ -2184,7 +2225,6 @@ function makeDragonPainter(canvas) {
     const pix = b.getImageData(0, 0, cols, rows).data;
     ctx.fillStyle = '#11040b'; ctx.fillRect(0, 0, W, H);
     ctx.font = `${cell + 1}px "Courier New",monospace`; ctx.textBaseline = 'top';
-    const bright = boost ? 1.35 : 1;
     for (let r = 0; r < rows; r++) {
       for (let c = 0; c < cols; c++) {
         const k = (r * cols + c) * 4, R = pix[k], G = pix[k + 1], B = pix[k + 2];
@@ -2201,33 +2241,65 @@ function makeDragonPainter(canvas) {
   return { resize, paint };
 }
 
-/* The scene: a tall scroll section with a sticky, full-viewport stage. */
-function DragonScene({ tw, goTab, heroRef }) {
-  const own = useRef(null); const rootRef = heroRef || own;
-  const stageRef = useRef(null), canvasRef = useRef(null), introRef = useRef(null), endRef = useRef(null), hudRef = useRef(null);
+/* One paragraph of the story, split into words so each can light up in turn. */
+function storyWords(text) {
+  const out = [];
+  text.split(' ').forEach((tok, i) => {
+    const m = tok.match(/^([^{]*)\{([^}]+)\}(.*)$/);
+    if (i) out.push(' ');
+    out.push(m ? html`<span className="dragon-w" key=${i}>${m[1]}<b>${m[2]}</b>${m[3]}</span>` : html`<span className="dragon-w" key=${i}>${tok}</span>`);
+  });
+  return out;
+}
+
+/* The story: a tall section whose sticky, full-viewport stage holds the dragon, with the
+   text gliding up over it. Scrolling the section's length runs the story from 0 to 1.
+   The composition lives in the stylesheet as custom properties on .dragon, so each layout
+   (wide, tall, short) sets its own; they are read again on every resize. All are shares
+   of the stage: the dragon's centre, where the text column's top starts, where its last line
+   ends, and the line that words light up as they rise past. */
+const STORY_LOOK = { '--dragon-x': .5, '--dragon-y': .57, '--story-start': .84, '--story-end': .54, '--story-light': .78 };   // fallbacks
+const STORY_DIM = .12;     // opacity of a word that has not lit up yet, as on castle.tech
+function storyLook(el) {
+  const cs = getComputedStyle(el), o = {};
+  for (const k in STORY_LOOK) { const v = parseFloat(cs.getPropertyValue(k)); o[k] = Number.isFinite(v) ? v : STORY_LOOK[k]; }
+  return { x: o['--dragon-x'], y: o['--dragon-y'], start: o['--story-start'], end: o['--story-end'], light: o['--story-light'] };
+}
+
+function DragonScene({ tw, rootRef: outerRef }) {
+  // The app may pass its own ref for the section (it uses it to darken the nav over the story).
+  const ownRef = useRef(null), rootRef = outerRef || ownRef;
+  const stageRef = useRef(null), canvasRef = useRef(null), colRef = useRef(null);
   const barRef = useRef(null), chapterNoRef = useRef(null), chapterNameRef = useRef(null);
   const look = useRef(null); look.current = { boost: tw.glow === 'bright', citadel: tw.citadel !== false };
   const redraw = useRef(null);
   useEffect(() => { if (redraw.current) redraw.current(); }, [tw.glow, tw.citadel]);
 
   useEffect(() => {
-    const root = rootRef.current, stage = stageRef.current, canvas = canvasRef.current;
-    const intro = introRef.current, end = endRef.current, hud = hudRef.current, bar = barRef.current;
-    const chapterNo = chapterNoRef.current, chapterName = chapterNameRef.current;
-    if (!root || !stage || !canvas || !canvas.getContext) return undefined;
+    const root = rootRef.current, stage = stageRef.current, canvas = canvasRef.current, col = colRef.current;
+    const bar = barRef.current, chapterNo = chapterNoRef.current, chapterName = chapterNameRef.current;
+    if (!root || !stage || !canvas || !col || !canvas.getContext) return undefined;
     const painter = makeDragonPainter(canvas);
     const mq = typeof matchMedia === 'function' ? matchMedia('(prefers-reduced-motion: reduce)') : null;
     let reduce = !!(mq && mq.matches);
-    let raf = 0, visible = true, dirty = true, progress = 0, goal = 0, overhang = 0, paintedAt = -1, chapter = 0, img = null;
+    let raf = 0, visible = true, dirty = true, progress = 0, goal = 0, paintedAt = -1, chapter = 0, img = null;
+    let stageH = 0, travel = 1, lines = [], at = storyLook(root);
 
     const size = () => painter.resize(stage.clientWidth || window.innerWidth, stage.clientHeight || window.innerHeight);
-    // All layout reads happen here, once per frame, before anything is written.
-    function measure() {
-      const top = root.getBoundingClientRect().top, h = stage.clientHeight;
-      goal = clamp01(-top / Math.max(1, root.offsetHeight - h));
-      // Until the section reaches the top of the window, the foot of the stage hangs below the fold.
-      overhang = Math.max(0, Math.min(top, top + h - window.innerHeight));
+    // Where each paragraph sits in the column, and how far the column travels. The section is
+    // exactly as tall as that travel, so the text moves at the speed of the page.
+    function layout() {
+      at = storyLook(root);
+      stageH = stage.clientHeight || window.innerHeight;
+      lines = Array.from(col.children, el => {
+        const words = Array.from(el.children);
+        return { top: el.offsetTop, h: el.offsetHeight, ch: +el.dataset.ch || 0, words, shown: words.map(() => -1), k: -1 };
+      });
+      travel = Math.max(1, col.offsetHeight + (at.start - at.end) * stageH);
+      root.style.height = Math.round(stageH + travel) + 'px';
     }
+    // All layout reads happen here, once per frame, before anything is written.
+    const measure = () => { goal = clamp01(-root.getBoundingClientRect().top / travel); };
     // The castle backdrop is optional: load it the first time it is switched on.
     const citadel = () => {
       if (!look.current.citadel) return null;
@@ -2236,18 +2308,29 @@ function DragonScene({ tw, goTab, heroRef }) {
     };
     function paint(now) {
       const p = progress, clock = reduce ? 0 : now / 1000;
-      painter.paint({ p, clock, phase: reduce ? DRAGON_STILL_PHASE : clock * 2.65 + p * .6, boost: look.current.boost, citadel: citadel() });
+      // The dragon comes up out of the dark over the first half of the story, to the study's own brightness.
+      const t = clamp01(p / .5), rise = .78 + .22 * t * t * (3 - 2 * t);
+      painter.paint({ p, clock, phase: reduce ? DRAGON_STILL_PHASE : clock * 2.65 + p * .6, bright: (look.current.boost ? 1.35 : 1) * rise, citadel: citadel(), cx: at.x, cy: at.y });
     }
-    // The copy, chapter marker and progress rail follow the same eased progress as the canvas.
+    // The text, chapter marker and progress rail follow the same eased progress as the canvas.
     function place() {
-      const p = progress, a = 1 - clamp01(p / .21), z = clamp01((p - .80) / .15);
-      intro.style.opacity = a; intro.style.visibility = a > .02 ? 'visible' : 'hidden';
-      intro.style.transform = reduce ? '' : `translateY(${-p * 110}px)`;
-      end.style.opacity = z; end.style.visibility = z > .02 ? 'visible' : 'hidden';
-      end.style.transform = reduce ? '' : `translateY(${(1 - z) * 25}px)`;
-      hud.style.transform = overhang ? `translateY(${-overhang}px)` : '';
+      const p = progress, y = at.start * stageH - p * travel;
+      col.style.transform = `translate3d(0,${y.toFixed(1)}px,0)`;
+      let n = lines.length ? lines[0].ch : 0;
+      for (const L of lines) {
+        const top = y + L.top;
+        // The chapter is the one being read: its paragraph has risen a fifth of the stage past the light line.
+        if (top < (at.light - .2) * stageH) n = L.ch;
+        // Words light up in reading order as their paragraph rises past the light line.
+        const k = reduce ? L.words.length : clamp01((at.light * stageH - top) / Math.max(L.h * 1.15, .2 * stageH)) * L.words.length;
+        if (k === L.k) continue;
+        L.k = k;
+        L.words.forEach((w, i) => {
+          const o = clamp01(k - i);
+          if (o !== L.shown[i]) { L.shown[i] = o; w.style.opacity = o >= 1 ? '' : (STORY_DIM + (1 - STORY_DIM) * o).toFixed(3); }
+        });
+      }
       bar.style.transform = `scaleX(${p})`;
-      const n = p < .30 ? 0 : p < .78 ? 1 : 2;
       if (n !== chapter) { chapter = n; chapterNo.textContent = `0${n + 1} / 03`; chapterName.textContent = DRAGON_CHAPTERS[n]; }
     }
     function frame(now) {
@@ -2261,16 +2344,20 @@ function DragonScene({ tw, goTab, heroRef }) {
     function schedule() { if (!raf && visible) raf = requestAnimationFrame(frame); }
     function stop() { if (raf) cancelAnimationFrame(raf); raf = 0; }
     // Repaint at once after a resize, because resizing clears the canvas.
-    const onResize = () => { size(); measure(); if (reduce) progress = goal; paint(reduce ? 0 : performance.now()); place(); };
+    const onResize = () => { size(); layout(); measure(); if (reduce) progress = goal; paint(reduce ? 0 : performance.now()); place(); };
+    // The text reflows (a font arrives, the width changes): only the story's layout needs redoing.
+    const onReflow = () => { layout(); measure(); place(); };
     const onScroll = () => { if (reduce) schedule(); };   // the running loop reads the scroll position itself
-    const onMotionPref = () => { reduce = !!(mq && mq.matches); stop(); dirty = true; schedule(); };
-    const ro = typeof ResizeObserver === 'function' ? new ResizeObserver(onResize) : null;
+    const onMotionPref = () => { reduce = !!(mq && mq.matches); stop(); lines.forEach(L => { L.k = -1; }); dirty = true; schedule(); };
+    const ro = typeof ResizeObserver === 'function'
+      ? new ResizeObserver(entries => { if (entries.some(e => e.target === stage)) onResize(); else onReflow(); })
+      : null;
     const io = typeof IntersectionObserver === 'function'
       ? new IntersectionObserver(entries => { visible = entries[entries.length - 1].isIntersecting; if (visible) { dirty = true; schedule(); } else stop(); })
       : null;
 
-    size(); measure(); progress = goal; paint(reduce ? 0 : performance.now()); place();
-    if (ro) ro.observe(stage); else window.addEventListener('resize', onResize);
+    size(); layout(); measure(); progress = goal; paint(reduce ? 0 : performance.now()); place();
+    if (ro) { ro.observe(stage); ro.observe(col); } else window.addEventListener('resize', onResize);
     if (io) io.observe(root);
     window.addEventListener('scroll', onScroll, { passive: true });
     if (mq) { if (mq.addEventListener) mq.addEventListener('change', onMotionPref); else mq.addListener(onMotionPref); }
@@ -2286,27 +2373,17 @@ function DragonScene({ tw, goTab, heroRef }) {
     };
   }, []);
 
-  return html`<section className="dragon" ref=${rootRef}>
+  return html`<section className="dragon" ref=${rootRef} aria-label="Why The Red Keep starts with the dragons">
     <div className="dragon-stage" ref=${stageRef}>
       <canvas className="dragon-canvas" ref=${canvasRef} role="img" aria-label="A slender dragon drawn in crimson numbers beats its wings and breathes a plume of fire upward that grows as you scroll."></canvas>
       <div className="dragon-shade" aria-hidden="true"></div>
-      <div className="dragon-intro" ref=${introRef}>
-        <p className="dragon-eyebrow">Scenario Analysis Engine · Ashwin’s take-home for Castle</p>
-        <h1 className="dragon-h">Hedging against dragons.</h1>
-        <p className="dragon-sub">Find the events that could move your portfolio in the next ${tw.horizon} months, and see how much of each one the market has already priced in.</p>
-        <div className="dragon-cta">
-          <button className="btn btn-light btn-lg" onClick=${() => goTab('analysis')}>Explore the engine</button>
-          <button className="btn btn-outline-light btn-lg" onClick=${() => goTab('replay')}>Replay April 2025</button>
+      <div className="dragon-copy">
+        <div className="dragon-col" ref=${colRef}>
+          ${DRAGON_STORY.map((b, i) => html`<p key=${i} className=${cls('dragon-p', b.big && 'big')} data-ch=${b.ch}>${storyWords(b.text)}</p>`)}
         </div>
       </div>
-      <div className="dragon-end" ref=${endRef}>
-        <p className="dragon-eyebrow">The first Red Keep had thick walls and no plan for dragons.</p>
-        <h2 className="dragon-h">This one starts with the dragons.</h2>
-        <div className="dragon-cta"><button className="btn btn-light btn-lg" onClick=${() => goTab('analysis')}>Explore the engine</button></div>
-      </div>
-      <div className="dragon-hud" ref=${hudRef} aria-hidden="true">
+      <div className="dragon-hud" aria-hidden="true">
         <div className="dragon-chapter"><b ref=${chapterNoRef}>01 / 03</b><span ref=${chapterNameRef}>${DRAGON_CHAPTERS[0]}</span></div>
-        <div className="dragon-hint"><span>Scroll</span><i></i><span>↓</span></div>
         <div className="dragon-rail"><i ref=${barRef}></i></div>
       </div>
     </div>
@@ -2595,16 +2672,16 @@ function ReplayView({ P, tw }) {
 }
 
 /* ---------- tweaks ---------- */
-const DEFAULT_TWEAKS = { odds: 'market', knock: true, horizon: 6, tiers: 'ABCD', topN: 12, sims: 4000, noise: false, theme: 'auto', accent: 'dragon', heading: 'serif', density: 'comfortable', hero: 'dragon', glow: 'normal', citadel: true, view: 'macro', rotate: true, labels: 'top', links: true };
+const DEFAULT_TWEAKS = { odds: 'market', knock: true, horizon: 6, tiers: 'ABCD', topN: 12, sims: 4000, noise: false, theme: 'auto', accent: 'dragon', heading: 'serif', density: 'comfortable', hero: true, dragon: true, glow: 'normal', citadel: true, view: 'macro', rotate: true, labels: 'top', links: true };
 const TWEAK_OPTS = {
   odds: ['market', 'calibrated'], knock: [true, false], horizon: [3, 6, 12], tiers: ['ABCD', 'ABC', 'AB'], topN: [8, 12, 'all'], sims: [2000, 4000, 10000], noise: [false, true],
-  theme: ['auto', 'light', 'dark'], accent: ['dragon', 'ember', 'teal', 'steel'], heading: ['serif', 'sans'], density: ['comfortable', 'compact'], hero: ['dragon', 'image', 'off'], glow: ['normal', 'bright'], citadel: [true, false],
+  theme: ['auto', 'light', 'dark'], accent: ['dragon', 'ember', 'teal', 'steel'], heading: ['serif', 'sans'], density: ['comfortable', 'compact'], hero: [true, false], dragon: [true, false], glow: ['normal', 'bright'], citadel: [true, false],
   view: ['macro', 'mine', 'flat'], rotate: [true, false], labels: ['top', 'all', 'none'], links: [true, false],
 };
 function cleanTweaks(t) {
   const o = {}; if (!t || typeof t !== 'object') return o;
-  // Earlier versions saved the hero as on or off; on now opens on the dragon scene.
-  if (typeof t.hero === 'boolean') t = { ...t, hero: t.hero ? 'dragon' : 'off' };
+  // One earlier version saved the hero as 'dragon', 'image' or 'off'; the image is the hero again.
+  if (typeof t.hero === 'string') t = { ...t, hero: t.hero !== 'off' };
   for (const k in TWEAK_OPTS) if (TWEAK_OPTS[k].includes(t[k])) o[k] = t[k];
   return o;
 }
@@ -2639,9 +2716,10 @@ function TweaksSheet({ tw, setTw, onClose }) {
           ${Row('Accent', null, 'accent', [['dragon', 'Dragon'], ['ember', 'Ember'], ['teal', 'Teal'], ['steel', 'Steel']])}
           ${Row('Headings', null, 'heading', [['serif', 'Serif'], ['sans', 'Sans']])}
           ${Row('Density', null, 'density', [['comfortable', 'Roomy'], ['compact', 'Compact']])}
-          ${Row('Hero', 'Scroll scene, still image or none', 'hero', [['dragon', 'Dragon'], ['image', 'Image'], ['off', 'Off']])}
-          ${tw.hero === 'dragon' && Row('Dragon glow', null, 'glow', [['normal', 'Normal'], ['bright', 'Bright']])}
-          ${tw.hero === 'dragon' && Row('Castle behind the dragon', 'A faint citadel in the numbers', 'citadel', [[true, 'On'], [false, 'Off']])}
+          ${Row('Hero image', null, 'hero', [[true, 'On'], [false, 'Off']])}
+          ${Row('Dragon story', 'The scroll story between the hero and the engine', 'dragon', [[true, 'On'], [false, 'Off']])}
+          ${tw.dragon && Row('Dragon glow', null, 'glow', [['normal', 'Normal'], ['bright', 'Bright']])}
+          ${tw.dragon && Row('Castle behind the dragon', 'A faint citadel in the numbers', 'citadel', [[true, 'On'], [false, 'Off']])}
         </div>
         <div className="tw-group"><span className="label">Map</span>
           ${Row('View', null, 'view', [['macro', 'Macro'], ['mine', 'Mine'], ['flat', '2D']])}
@@ -2711,8 +2789,12 @@ function App() {
   const [tweaksOpen, setTweaksOpen] = useState(false);
   const [aiOK, setAiOK] = useState(false);
   const heroRef = useRef(null);
-  const heroOn = tw.hero !== 'off';
-  const pastHero = useScrolledPast(heroRef, 36, heroOn && tw.hero);
+  // "Bare" means nothing sits above the app but the nav: no hero image and no dragon story.
+  const bare = !tw.hero && !tw.dragon, bareRef = useRef(bare); bareRef.current = bare;
+  const pastHero = useScrolledPast(heroRef, 36, tw.hero);
+  // Over the dragon story the nav goes back to dark glass, as it is over the hero image.
+  const dragonRef = useRef(null);
+  const overDragon = useUnderNav(dragonRef, 40, tw.dragon);
 
   useEffect(() => { saveState({ holdings, sampleId, tweaks: tw, tab }); }, [holdings, sampleId, tw, tab]);
   useEffect(() => { let on = true; getSample().then(s => { if (on) setAiOK(!!s); }); return () => { on = false; }; }, []);
@@ -2760,19 +2842,19 @@ function App() {
     setTab(k);
     requestAnimationFrame(() => {
       const el = document.getElementById('app'); if (!el) return;
-      // With the hero on, land just past it; without it the nav sits in the flow above the app.
-      const navOffset = heroRef.current ? 0 : 64;
+      // The app's intro leaves room for the floating nav, except on a bare page, where the nav sits in the flow above it.
+      const navOffset = bareRef.current ? 64 : 0;
       window.scrollTo({ top: Math.max(0, el.getBoundingClientRect().top + window.scrollY - navOffset), behavior: REDUCED ? 'auto' : 'smooth' });
     });
   }, []);
   const selEv = sel ? S.byId[sel] : null;
   const hasLive = Object.keys(liveOdds).length > 0;
 
-  return html`<div className=${cls('app', !heroOn && 'no-hero')} data-accent=${tw.accent} data-heading=${tw.heading} data-density=${tw.density}>
+  return html`<div className=${cls('app', bare && 'no-hero')} data-accent=${tw.accent} data-heading=${tw.heading} data-density=${tw.density}>
     <${Banner} />
-    <${Nav} tab=${tab} goTab=${goTab} live=${live} setLive=${setLive} openTweaks=${() => setTweaksOpen(true)} solid=${!heroOn || pastHero} />
-    ${tw.hero === 'dragon' ? html`<${DragonScene} tw=${tw} goTab=${goTab} heroRef=${heroRef} />`
-      : tw.hero === 'image' ? html`<${Hero} tw=${tw} goTab=${goTab} heroRef=${heroRef} />` : null}
+    <${Nav} tab=${tab} goTab=${goTab} live=${live} setLive=${setLive} openTweaks=${() => setTweaksOpen(true)} solid=${(!tw.hero || pastHero) && !overDragon} />
+    ${tw.hero && html`<${Hero} tw=${tw} goTab=${goTab} heroRef=${heroRef} />`}
+    ${tw.dragon && html`<${DragonScene} tw=${tw} rootRef=${dragonRef} />`}
     <div className="wrap" id="app">
       <${Intro} tab=${tab} />
       <div className="layout">

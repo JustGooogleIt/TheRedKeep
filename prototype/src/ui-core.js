@@ -118,6 +118,21 @@ function useScrolledPast(ref, offset, enabled) {
   return past;
 }
 
+// True while the element passes under the floating nav, that is, it spans the line `offset` px from the top.
+function useUnderNav(ref, offset, enabled) {
+  const [under, setUnder] = useState(false);
+  useEffect(() => {
+    if (!enabled) { setUnder(false); return undefined; }
+    let raf = 0;
+    const check = () => { raf = 0; const el = ref.current; if (el) { const b = el.getBoundingClientRect(); setUnder(b.top <= offset && b.bottom > offset); } };
+    const on = () => { if (!raf) raf = requestAnimationFrame(check); };
+    check();
+    window.addEventListener('scroll', on, { passive: true }); window.addEventListener('resize', on);
+    return () => { cancelAnimationFrame(raf); window.removeEventListener('scroll', on); window.removeEventListener('resize', on); };
+  }, [enabled, offset]);
+  return under;
+}
+
 function Nav({ tab, goTab, live, setLive, openTweaks, solid }) {
   const T = (k, long, short) => html`<button role="tab" aria-selected=${tab === k} className=${cls('tab', tab === k && 'on')} onClick=${() => goTab(k)}><span className="t-long">${long}</span><span className="t-short">${short}</span></button>`;
   return html`<header className=${cls('nav', solid && 'scrolled')}><div className="nav-in">

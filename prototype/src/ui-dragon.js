@@ -1,14 +1,31 @@
 /* ==========================================================================
-   UI · Part 3: the dragon scroll scene at the top of the page.
-   Ported from the Crimson Flight study (scene.js). Each frame paints a
+   UI · Part 3: the dragon story between the hero and the engine.
+   Modelled on the manifesto on castle.tech, where a short text lights up word
+   by word over knights drawn in dark green. Here the drawing is the Crimson
+   Flight dragon, ported from its study (scene.js): each frame paints a
    low-resolution colour scene into an offscreen buffer, then prints it as a
    fixed grid of digits. A clock drives the wingbeats, body lift, tail wave and
-   flame flicker, so they keep moving when scrolling stops; scroll drives the
-   fire's growth and the scene's progression. Everything the component touches
-   is reached through refs, and every frame, observer and listener it starts is
-   stopped when it unmounts.
+   flame flicker, so they keep moving when scrolling stops; scroll moves the
+   story along, grows the fire and brings the dragon up out of the dark.
+   Everything the component touches is reached through refs, and every frame,
+   observer and listener it starts is stopped when it unmounts.
    ========================================================================== */
-const DRAGON_CHAPTERS = ['What could move your portfolio', 'Net of what’s already priced in', 'Hedging against dragons'];
+// The story, in three chapters. {braces} mark the words that light up in crimson.
+// Every claim matches DESIGN.md: look-through (6.1), priced in (3, 4.2), the event graph (4.4),
+// the market quorum (4.6) and ranking by swing (4.3).
+const DRAGON_STORY = [
+  { ch: 0, text: 'Tariffs. Recessions. A surprise from the Fed. Every portfolio has {dragons}, and none of them show up on your statement.' },
+  { ch: 0, text: 'You don’t really own QQQ. You own a hundred companies, a bet on interest rates and a quiet exposure to China.' },
+  { ch: 0, big: true, text: 'Here be dragons.' },
+  { ch: 1, text: 'Up close, every dragon is {made} {of} {numbers}: the odds that it comes, how hard it hits, and how much of that the market already expects.' },
+  { ch: 1, text: 'If markets give tariffs a 40% chance, 40% of the damage is already in the price. The Red Keep counts only {the} {surprise}.' },
+  { ch: 1, text: 'Dragons rarely fly alone. Tariffs make a recession likelier, so it follows the chain and counts each blow once.' },
+  { ch: 1, text: 'It trusts a number only when two markets agree.' },
+  { ch: 1, text: 'And it ranks every dragon by how far it could still {swing} you, not by how loud its headline is.' },
+  { ch: 2, text: 'Every castle needs a {keep}: the tallest tower, the one you climb to see what’s coming.' },
+  { ch: 2, big: true, text: 'This one watches for dragons.' },
+];
+const DRAGON_CHAPTERS = ['What you really own', 'Made of numbers', 'The keep'];
 const DRAGON_STILL_PHASE = 0;          // the wing pose shown when motion is reduced
 const DRAGON_DIGITS = '0123456789'.split('');
 // The faint castle behind the dragon: the area of citadel.png that scene.js samples, which leaves out
@@ -17,7 +34,8 @@ const DRAGON_CITADEL = typeof RK_CITADEL === 'string' ? RK_CITADEL : 'citadel.we
 const clamp01 = x => Math.max(0, Math.min(1, x));
 
 /* Owns the two canvases. The drawing below follows scene.js line for line;
-   only its globals became arguments (progress, clock, wing phase, glow, image). */
+   only its globals became arguments (progress, clock, wing phase, brightness, image),
+   plus where the dragon sits (cx, cy, as shares of the width and height; scene.js uses .5 and .57). */
 function makeDragonPainter(canvas) {
   const ctx = canvas.getContext('2d', { alpha: false });
   const buffer = document.createElement('canvas'), b = buffer.getContext('2d', { willReadFrequently: true });
@@ -114,7 +132,7 @@ function makeDragonPainter(canvas) {
     return { x, y: y - 62 * size };
   }
 
-  function paint({ p, clock, phase, boost, citadel }) {
+  function paint({ p, clock, phase, bright, citadel, cx = .5, cy = .57 }) {
     if (!cols || !rows) return;
     b.globalAlpha = 1; b.fillStyle = '#12050c'; b.fillRect(0, 0, cols, rows);
     const sky = b.createLinearGradient(0, 0, 0, rows);
@@ -133,7 +151,7 @@ function makeDragonPainter(canvas) {
     b.fillStyle = veil; b.fillRect(0, rows * .35, cols, rows * .18);
     // One finely articulated dragon holds the center while scrolling brings it closer.
     const size = Math.min(cols / 340, rows / 205) * (1 + p * .055);
-    const x = cols * (.50 + Math.sin(p * 2) * .012), y = rows * .57 - Math.sin(clock * 2.65 - .4) * 1.25;
+    const x = cols * (cx + Math.sin(p * 2) * .012), y = rows * cy - Math.sin(clock * 2.65 - .4) * 1.25;
     const mouth = dragon(x, y, size, phase);
     const fire = clamp01((p - .08) / .77);
     if (fire > 0) {
@@ -167,7 +185,6 @@ function makeDragonPainter(canvas) {
     const pix = b.getImageData(0, 0, cols, rows).data;
     ctx.fillStyle = '#11040b'; ctx.fillRect(0, 0, W, H);
     ctx.font = `${cell + 1}px "Courier New",monospace`; ctx.textBaseline = 'top';
-    const bright = boost ? 1.35 : 1;
     for (let r = 0; r < rows; r++) {
       for (let c = 0; c < cols; c++) {
         const k = (r * cols + c) * 4, R = pix[k], G = pix[k + 1], B = pix[k + 2];
@@ -184,33 +201,65 @@ function makeDragonPainter(canvas) {
   return { resize, paint };
 }
 
-/* The scene: a tall scroll section with a sticky, full-viewport stage. */
-function DragonScene({ tw, goTab, heroRef }) {
-  const own = useRef(null); const rootRef = heroRef || own;
-  const stageRef = useRef(null), canvasRef = useRef(null), introRef = useRef(null), endRef = useRef(null), hudRef = useRef(null);
+/* One paragraph of the story, split into words so each can light up in turn. */
+function storyWords(text) {
+  const out = [];
+  text.split(' ').forEach((tok, i) => {
+    const m = tok.match(/^([^{]*)\{([^}]+)\}(.*)$/);
+    if (i) out.push(' ');
+    out.push(m ? html`<span className="dragon-w" key=${i}>${m[1]}<b>${m[2]}</b>${m[3]}</span>` : html`<span className="dragon-w" key=${i}>${tok}</span>`);
+  });
+  return out;
+}
+
+/* The story: a tall section whose sticky, full-viewport stage holds the dragon, with the
+   text gliding up over it. Scrolling the section's length runs the story from 0 to 1.
+   The composition lives in the stylesheet as custom properties on .dragon, so each layout
+   (wide, tall, short) sets its own; they are read again on every resize. All are shares
+   of the stage: the dragon's centre, where the text column's top starts, where its last line
+   ends, and the line that words light up as they rise past. */
+const STORY_LOOK = { '--dragon-x': .5, '--dragon-y': .57, '--story-start': .84, '--story-end': .54, '--story-light': .78 };   // fallbacks
+const STORY_DIM = .12;     // opacity of a word that has not lit up yet, as on castle.tech
+function storyLook(el) {
+  const cs = getComputedStyle(el), o = {};
+  for (const k in STORY_LOOK) { const v = parseFloat(cs.getPropertyValue(k)); o[k] = Number.isFinite(v) ? v : STORY_LOOK[k]; }
+  return { x: o['--dragon-x'], y: o['--dragon-y'], start: o['--story-start'], end: o['--story-end'], light: o['--story-light'] };
+}
+
+function DragonScene({ tw, rootRef: outerRef }) {
+  // The app may pass its own ref for the section (it uses it to darken the nav over the story).
+  const ownRef = useRef(null), rootRef = outerRef || ownRef;
+  const stageRef = useRef(null), canvasRef = useRef(null), colRef = useRef(null);
   const barRef = useRef(null), chapterNoRef = useRef(null), chapterNameRef = useRef(null);
   const look = useRef(null); look.current = { boost: tw.glow === 'bright', citadel: tw.citadel !== false };
   const redraw = useRef(null);
   useEffect(() => { if (redraw.current) redraw.current(); }, [tw.glow, tw.citadel]);
 
   useEffect(() => {
-    const root = rootRef.current, stage = stageRef.current, canvas = canvasRef.current;
-    const intro = introRef.current, end = endRef.current, hud = hudRef.current, bar = barRef.current;
-    const chapterNo = chapterNoRef.current, chapterName = chapterNameRef.current;
-    if (!root || !stage || !canvas || !canvas.getContext) return undefined;
+    const root = rootRef.current, stage = stageRef.current, canvas = canvasRef.current, col = colRef.current;
+    const bar = barRef.current, chapterNo = chapterNoRef.current, chapterName = chapterNameRef.current;
+    if (!root || !stage || !canvas || !col || !canvas.getContext) return undefined;
     const painter = makeDragonPainter(canvas);
     const mq = typeof matchMedia === 'function' ? matchMedia('(prefers-reduced-motion: reduce)') : null;
     let reduce = !!(mq && mq.matches);
-    let raf = 0, visible = true, dirty = true, progress = 0, goal = 0, overhang = 0, paintedAt = -1, chapter = 0, img = null;
+    let raf = 0, visible = true, dirty = true, progress = 0, goal = 0, paintedAt = -1, chapter = 0, img = null;
+    let stageH = 0, travel = 1, lines = [], at = storyLook(root);
 
     const size = () => painter.resize(stage.clientWidth || window.innerWidth, stage.clientHeight || window.innerHeight);
-    // All layout reads happen here, once per frame, before anything is written.
-    function measure() {
-      const top = root.getBoundingClientRect().top, h = stage.clientHeight;
-      goal = clamp01(-top / Math.max(1, root.offsetHeight - h));
-      // Until the section reaches the top of the window, the foot of the stage hangs below the fold.
-      overhang = Math.max(0, Math.min(top, top + h - window.innerHeight));
+    // Where each paragraph sits in the column, and how far the column travels. The section is
+    // exactly as tall as that travel, so the text moves at the speed of the page.
+    function layout() {
+      at = storyLook(root);
+      stageH = stage.clientHeight || window.innerHeight;
+      lines = Array.from(col.children, el => {
+        const words = Array.from(el.children);
+        return { top: el.offsetTop, h: el.offsetHeight, ch: +el.dataset.ch || 0, words, shown: words.map(() => -1), k: -1 };
+      });
+      travel = Math.max(1, col.offsetHeight + (at.start - at.end) * stageH);
+      root.style.height = Math.round(stageH + travel) + 'px';
     }
+    // All layout reads happen here, once per frame, before anything is written.
+    const measure = () => { goal = clamp01(-root.getBoundingClientRect().top / travel); };
     // The castle backdrop is optional: load it the first time it is switched on.
     const citadel = () => {
       if (!look.current.citadel) return null;
@@ -219,18 +268,29 @@ function DragonScene({ tw, goTab, heroRef }) {
     };
     function paint(now) {
       const p = progress, clock = reduce ? 0 : now / 1000;
-      painter.paint({ p, clock, phase: reduce ? DRAGON_STILL_PHASE : clock * 2.65 + p * .6, boost: look.current.boost, citadel: citadel() });
+      // The dragon comes up out of the dark over the first half of the story, to the study's own brightness.
+      const t = clamp01(p / .5), rise = .78 + .22 * t * t * (3 - 2 * t);
+      painter.paint({ p, clock, phase: reduce ? DRAGON_STILL_PHASE : clock * 2.65 + p * .6, bright: (look.current.boost ? 1.35 : 1) * rise, citadel: citadel(), cx: at.x, cy: at.y });
     }
-    // The copy, chapter marker and progress rail follow the same eased progress as the canvas.
+    // The text, chapter marker and progress rail follow the same eased progress as the canvas.
     function place() {
-      const p = progress, a = 1 - clamp01(p / .21), z = clamp01((p - .80) / .15);
-      intro.style.opacity = a; intro.style.visibility = a > .02 ? 'visible' : 'hidden';
-      intro.style.transform = reduce ? '' : `translateY(${-p * 110}px)`;
-      end.style.opacity = z; end.style.visibility = z > .02 ? 'visible' : 'hidden';
-      end.style.transform = reduce ? '' : `translateY(${(1 - z) * 25}px)`;
-      hud.style.transform = overhang ? `translateY(${-overhang}px)` : '';
+      const p = progress, y = at.start * stageH - p * travel;
+      col.style.transform = `translate3d(0,${y.toFixed(1)}px,0)`;
+      let n = lines.length ? lines[0].ch : 0;
+      for (const L of lines) {
+        const top = y + L.top;
+        // The chapter is the one being read: its paragraph has risen a fifth of the stage past the light line.
+        if (top < (at.light - .2) * stageH) n = L.ch;
+        // Words light up in reading order as their paragraph rises past the light line.
+        const k = reduce ? L.words.length : clamp01((at.light * stageH - top) / Math.max(L.h * 1.15, .2 * stageH)) * L.words.length;
+        if (k === L.k) continue;
+        L.k = k;
+        L.words.forEach((w, i) => {
+          const o = clamp01(k - i);
+          if (o !== L.shown[i]) { L.shown[i] = o; w.style.opacity = o >= 1 ? '' : (STORY_DIM + (1 - STORY_DIM) * o).toFixed(3); }
+        });
+      }
       bar.style.transform = `scaleX(${p})`;
-      const n = p < .30 ? 0 : p < .78 ? 1 : 2;
       if (n !== chapter) { chapter = n; chapterNo.textContent = `0${n + 1} / 03`; chapterName.textContent = DRAGON_CHAPTERS[n]; }
     }
     function frame(now) {
@@ -244,16 +304,20 @@ function DragonScene({ tw, goTab, heroRef }) {
     function schedule() { if (!raf && visible) raf = requestAnimationFrame(frame); }
     function stop() { if (raf) cancelAnimationFrame(raf); raf = 0; }
     // Repaint at once after a resize, because resizing clears the canvas.
-    const onResize = () => { size(); measure(); if (reduce) progress = goal; paint(reduce ? 0 : performance.now()); place(); };
+    const onResize = () => { size(); layout(); measure(); if (reduce) progress = goal; paint(reduce ? 0 : performance.now()); place(); };
+    // The text reflows (a font arrives, the width changes): only the story's layout needs redoing.
+    const onReflow = () => { layout(); measure(); place(); };
     const onScroll = () => { if (reduce) schedule(); };   // the running loop reads the scroll position itself
-    const onMotionPref = () => { reduce = !!(mq && mq.matches); stop(); dirty = true; schedule(); };
-    const ro = typeof ResizeObserver === 'function' ? new ResizeObserver(onResize) : null;
+    const onMotionPref = () => { reduce = !!(mq && mq.matches); stop(); lines.forEach(L => { L.k = -1; }); dirty = true; schedule(); };
+    const ro = typeof ResizeObserver === 'function'
+      ? new ResizeObserver(entries => { if (entries.some(e => e.target === stage)) onResize(); else onReflow(); })
+      : null;
     const io = typeof IntersectionObserver === 'function'
       ? new IntersectionObserver(entries => { visible = entries[entries.length - 1].isIntersecting; if (visible) { dirty = true; schedule(); } else stop(); })
       : null;
 
-    size(); measure(); progress = goal; paint(reduce ? 0 : performance.now()); place();
-    if (ro) ro.observe(stage); else window.addEventListener('resize', onResize);
+    size(); layout(); measure(); progress = goal; paint(reduce ? 0 : performance.now()); place();
+    if (ro) { ro.observe(stage); ro.observe(col); } else window.addEventListener('resize', onResize);
     if (io) io.observe(root);
     window.addEventListener('scroll', onScroll, { passive: true });
     if (mq) { if (mq.addEventListener) mq.addEventListener('change', onMotionPref); else mq.addListener(onMotionPref); }
@@ -269,27 +333,17 @@ function DragonScene({ tw, goTab, heroRef }) {
     };
   }, []);
 
-  return html`<section className="dragon" ref=${rootRef}>
+  return html`<section className="dragon" ref=${rootRef} aria-label="Why The Red Keep starts with the dragons">
     <div className="dragon-stage" ref=${stageRef}>
       <canvas className="dragon-canvas" ref=${canvasRef} role="img" aria-label="A slender dragon drawn in crimson numbers beats its wings and breathes a plume of fire upward that grows as you scroll."></canvas>
       <div className="dragon-shade" aria-hidden="true"></div>
-      <div className="dragon-intro" ref=${introRef}>
-        <p className="dragon-eyebrow">Scenario Analysis Engine · Ashwin’s take-home for Castle</p>
-        <h1 className="dragon-h">Hedging against dragons.</h1>
-        <p className="dragon-sub">Find the events that could move your portfolio in the next ${tw.horizon} months, and see how much of each one the market has already priced in.</p>
-        <div className="dragon-cta">
-          <button className="btn btn-light btn-lg" onClick=${() => goTab('analysis')}>Explore the engine</button>
-          <button className="btn btn-outline-light btn-lg" onClick=${() => goTab('replay')}>Replay April 2025</button>
+      <div className="dragon-copy">
+        <div className="dragon-col" ref=${colRef}>
+          ${DRAGON_STORY.map((b, i) => html`<p key=${i} className=${cls('dragon-p', b.big && 'big')} data-ch=${b.ch}>${storyWords(b.text)}</p>`)}
         </div>
       </div>
-      <div className="dragon-end" ref=${endRef}>
-        <p className="dragon-eyebrow">The first Red Keep had thick walls and no plan for dragons.</p>
-        <h2 className="dragon-h">This one starts with the dragons.</h2>
-        <div className="dragon-cta"><button className="btn btn-light btn-lg" onClick=${() => goTab('analysis')}>Explore the engine</button></div>
-      </div>
-      <div className="dragon-hud" ref=${hudRef} aria-hidden="true">
+      <div className="dragon-hud" aria-hidden="true">
         <div className="dragon-chapter"><b ref=${chapterNoRef}>01 / 03</b><span ref=${chapterNameRef}>${DRAGON_CHAPTERS[0]}</span></div>
-        <div className="dragon-hint"><span>Scroll</span><i></i><span>↓</span></div>
         <div className="dragon-rail"><i ref=${barRef}></i></div>
       </div>
     </div>

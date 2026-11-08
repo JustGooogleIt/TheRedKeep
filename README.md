@@ -43,7 +43,7 @@ Events are ranked by that two-way **swing**, not by how scary the headline sound
 
 ![The prototype's live analysis for the tech-heavy sample portfolio](docs/assets/prototype.png)
 
-A playable prototype on illustrative data. It opens on a scroll scene, a dragon drawn in crimson numbers whose fire grows as you scroll. Start from a famous portfolio (Ray Dalio's All Weather, Warren Buffett's 90/10, Harry Browne's Permanent Portfolio, a Yale-style mix) or build your own, see the events that could move it, open any event to see its evidence and a hedge size, and replay the April 2025 tariff shock one day at a time.
+A playable prototype on illustrative data. Under the hero image, a short story about the engine lights up word by word over a dragon drawn in crimson numbers, and its fire grows as you scroll. Start from a famous portfolio (Ray Dalio's All Weather, Warren Buffett's 90/10, Harry Browne's Permanent Portfolio, a Yale-style mix) or build your own, see the events that could move it, open any event to see its evidence and a hedge size, and replay the April 2025 tariff shock one day at a time.
 
 - **Run it.** Clone the repo and open [`prototype/index.html`](prototype/index.html) in a browser. It loads React and fonts from public CDNs, so there is nothing to install.
 - **Change it.** Edit the sources in [`prototype/src/`](prototype/src/), then rebuild with `python3 prototype/build.py`.
