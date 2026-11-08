@@ -1,10 +1,12 @@
 """The AI prior: Claude's structured starting estimate of ``q`` and ``δ`` (DESIGN.md 4.5 and 8).
 
-It is always the weakest reading. Its errors, ``τ_AI``, will come from
-backtests on resolved events (E3 and E6); until then they are set wide:
-0.8 typical moves per factor for the jump, and one unit of log-odds for the
-probability. The prior's probability is only used when no market fits: the AI
-never produces a final number when market evidence exists.
+It is a starting estimate. Its errors, ``τ_AI``, will come from backtests on
+resolved events (E3 and E6); until then they are set wide: for the jump, 0.8
+typical moves per factor and half the estimated move, added in quadrature (a
+big estimated move is uncertain in size, not only in sign); for the
+probability, one unit of log-odds. The prior's probability is only used when
+no market fits: the AI never produces a final number when market evidence
+exists.
 
 Like the judge, each call is logged and cached by its exact request.
 """
@@ -28,6 +30,7 @@ from ..matching.judge import FALLBACK_BETA, JudgeRefused
 
 PRIOR_VERSION = "prior-v1"
 TAU_DELTA = 0.8
+TAU_SHARE = 0.5  # of the estimated move, added in quadrature to TAU_DELTA
 TAU_LOGIT = 1.0
 
 SYSTEM = """\
@@ -111,8 +114,9 @@ class AIPrior:
 
 def delta_reading(p: Prior) -> DeltaReading:
     m = p.moves.model_dump()
-    return DeltaReading(kind="ai", name="AI prior", detail=p.move_reasoning,
-                        delta=np.array([float(m[k]) for k in KEYS]), sigma=np.full(len(KEYS), TAU_DELTA))
+    delta = np.array([float(m[k]) for k in KEYS])
+    return DeltaReading(kind="ai", name="AI prior", detail=p.move_reasoning, delta=delta,
+                        sigma=np.sqrt(TAU_DELTA**2 + (TAU_SHARE * delta) ** 2))
 
 
 def odds_reading(p: Prior) -> OddsReading:

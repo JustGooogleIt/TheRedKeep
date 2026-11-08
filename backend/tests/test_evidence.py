@@ -106,6 +106,8 @@ def test_past_events_measure_the_move_on_the_day():
     expected = (levels["SPY"][d0] / levels["SPY"][date(2025, 4, 2)] - 1) * 100 / fd.typical[index("eq")] / 0.5
     assert r.delta[index("eq")] == pytest.approx(expected, rel=1e-9)
     assert r.kind == "past" and not r.market and r.sigma[index("eq")] > 0.3
+    # One past event can't pin the jump's size: its error is at least half the move it measured.
+    assert r.sigma[index("eq")] > 0.5 * abs(r.delta[index("eq")]) > 1.5
 
 
 def test_market_odds_error_grows_with_spread_and_shrinks_with_volume():
@@ -191,6 +193,9 @@ def test_ai_prior_request_and_readings(tmp_path):
     ai.estimate(spec, date(2026, 11, 8), np.full(NF, 2.0))
     assert len(calls) == 1 and calls[0]["fallbacks"] == "default"
     d = prior.delta_reading(got)
-    assert d.delta[index("oil")] == 2.0 and d.kind == "ai" and np.all(d.sigma == prior.TAU_DELTA)
+    assert d.delta[index("oil")] == 2.0 and d.kind == "ai"
+    # Wide errors that grow with the estimated move: 0.8 typical moves and half the move, in quadrature.
+    assert d.sigma[index("oil")] == pytest.approx(np.hypot(prior.TAU_DELTA, 1.0))
+    assert np.all(d.sigma >= prior.TAU_DELTA) and d.sigma[index("usd")] < d.sigma[index("vix")]
     o = prior.odds_reading(got)
     assert o.kind == "ai" and not o.market and o.q == 0.12

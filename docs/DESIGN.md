@@ -343,9 +343,9 @@ In Castle's terms, the gap between event and contract is **basis risk**: the cha
 - **A bonus.** trade[XYZ] has run HIP-4 event contracts since 10 September 2026 on the same API, so some odds and prices share one clock.
 - **Access.** We only read public data. Trading on trade.xyz is closed to US, UK and Canadian persons.
 
-**Past similar events.** The AI proposes analog dates with reasons, for example the May 2019 tariff escalation. We run a standard event study of factor moves around them (MacKinlay 1997) and scale by how comparable each analog is.
+**Past similar events.** The AI proposes analog dates with reasons, for example the May 2019 tariff escalation. We run a standard event study of factor moves around them (MacKinlay 1997) and scale by how comparable each analog is. No past event is quite the same, so the reading's error includes a model error of half the move it measured (with a floor of 0.3 typical moves): one quiet analog day can't pin a jump's size, and it shouldn't outweigh two market readings. Backtests (E3) will measure this error.
 
-**AI prior.** A structured estimate of `q` and `δ` with stated reasoning, used as the starting point. Its weight comes from its measured error.
+**AI prior.** A structured estimate of `q` and `δ` with stated reasoning, used as the starting point. Its weight comes from its measured error. Until backtests (E3, E6) measure it, the jump's error is 0.8 typical moves per factor and half the estimated move, added in quadrature, so a big estimated move is uncertain in size as well as sign.
 
 ### 6.5 Fusion and tiers
 
