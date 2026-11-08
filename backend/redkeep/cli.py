@@ -9,7 +9,7 @@ import sys
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
-from .config import ANTHROPIC_KEY_NAMES, Settings
+from .config import ANTHROPIC_KEY_NAMES, ROOT, Settings
 from .portfolio import parse_holdings, samples
 
 
@@ -301,6 +301,14 @@ def print_jumps(rep: dict) -> None:
                       f"signs {x['clear_signs_right']} of {x['clear_moves']}")
 
 
+def _shown(path: Path) -> str:
+    """A path as a saved result names it: relative to the backend folder when it is inside it."""
+    try:
+        return str(path.resolve().relative_to(ROOT))
+    except ValueError:
+        return str(path)
+
+
 def cmd_funnel(s: Settings, args) -> int:
     """The event discovery funnel (DESIGN.md 6.2, milestone M4) and its eval (E0)."""
     from .funnel import e0, run
@@ -321,7 +329,7 @@ def cmd_funnel(s: Settings, args) -> int:
             print(f"No labels in {path}: run `redkeep funnel label` first", file=sys.stderr)
             return 1
         rep = {"kind": "redkeep.funnel.e0", "version": 1, "as_of": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-               "labels_file": str(path), **e0.study(rows)}
+               "labels_file": _shown(path), **e0.study(rows)}
         print_e0(rep)
         out = save(finite(rep), s.out_dir, "funnel-e0")
         sheet = run.check_sheet(e0.split(rows)[1], {x["key"]: x["p"] for x in rep["scores"]},

@@ -1,0 +1,120 @@
+{
+ "kind": "redkeep.funnel.e0",
+ "version": 1,
+ "as_of": "2026-11-08T14:11:32+00:00",
+ "labels_file": "data/funnel/labels.jsonl",
+ "labels": 1994,
+ "even_sample": 1994,
+ "train": {
+  "markets": 1405,
+  "groups": 936,
+  "material": 234
+ },
+ "test": {
+  "markets": 589,
+  "groups": 399,
+  "material": 103
+ },
+ "targets": {
+  "recall": 0.97,
+  "precision": 0.9
+ },
+ "thresholds": {
+  "drop": 0.2760222533280554,
+  "keep": 0.7169750277398151
+ },
+ "operating": {
+  "markets": 589,
+  "material": 103,
+  "dropped": 331,
+  "kept": 33,
+  "to_claude": 225,
+  "recall": 0.9611650485436893,
+  "recall_screen_alone": 0.3106796116504854,
+  "precision_kept": 0.9696969696969697,
+  "material_dropped": 4
+ },
+ "average_precision": 0.7778367661683895,
+ "auc": 0.9301210595708977,
+ "tops": [
+  {
+   "top": 0.1,
+   "kept": 59,
+   "recall": 0.4854368932038835,
+   "precision": 0.847457627118644
+  },
+  {
+   "top": 0.2,
+   "kept": 118,
+   "recall": 0.7572815533980582,
+   "precision": 0.6610169491525424
+  },
+  {
+   "top": 0.3,
+   "kept": 177,
+   "recall": 0.883495145631068,
+   "precision": 0.5141242937853108
+  },
+  {
+   "top": 0.5,
+   "kept": 294,
+   "recall": 0.9611650485436893,
+   "precision": 0.336734693877551
+  }
+ ],
+ "moves": {
+  "eq": {
+   "moves": 48,
+   "sign_right": 40
+  },
+  "rates": {
+   "moves": 33,
+   "sign_right": 26
+  },
+  "infl": {
+   "moves": 26,
+   "sign_right": 21
+  },
+  "usd": {
+   "moves": 36,
+   "sign_right": 29
+  },
+  "oil": {
+   "moves": 38,
+   "sign_right": 34
+  },
+  "credit": {
+   "moves": 21,
+   "sign_right": 21
+  },
+  "vix": {
+   "moves": 45,
+   "sign_right": 39
+  },
+  "china": {
+   "moves": 13,
+   "sign_right": 9
+  },
+  "chips": {
+   "moves": 17,
+   "sign_right": 15
+  },
+  "gold": {
+   "moves": 44,
+   "sign_right": 37
+  }
+ },
+ "cost_per_1000": {
+  "claude_every_market": {
+   "tokens_in": 383308.42527582747,
+   "tokens_out": 152311.93580742227,
+   "seconds": 1185.522840622368
+  },
+  "screen": {
+   "seconds": 0.08464283531413769,
+   "tokens_in": 146425.12001198842,
+   "tokens_out": 58183.67666667234,
+   "claude_seconds": 452.8737506621949
+  }
+ }
+}
