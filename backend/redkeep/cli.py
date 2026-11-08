@@ -10,7 +10,7 @@ import sys
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
-from .config import ANTHROPIC_KEY_NAMES, Settings
+from .config import ANTHROPIC_KEY_NAMES, ROOT, Settings
 from .portfolio import parse_holdings, samples
 
 
@@ -396,6 +396,14 @@ def print_jumps(rep: dict) -> None:
                       f"signs {x['clear_signs_right']} of {x['clear_moves']}")
 
 
+def _shown(path: Path) -> str:
+    """A path as a saved result names it: relative to the backend folder when it is inside it."""
+    try:
+        return str(path.resolve().relative_to(ROOT))
+    except ValueError:
+        return str(path)
+
+
 def cmd_funnel(s: Settings, args) -> int:
     """The event discovery funnel (DESIGN.md 6.2, milestone M4) and its eval (E0)."""
     from .funnel import e0, run
@@ -416,7 +424,7 @@ def cmd_funnel(s: Settings, args) -> int:
             print(f"No labels in {path}: run `redkeep funnel label` first", file=sys.stderr)
             return 1
         rep = {"kind": "redkeep.funnel.e0", "version": 1, "as_of": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-               "labels_file": str(path), **e0.study(rows)}
+               "labels_file": _shown(path), **e0.study(rows)}
         print_e0(rep)
         out = save(finite(rep), s.out_dir, "funnel-e0")
         sheet = run.check_sheet(e0.split(rows)[1], {x["key"]: x["p"] for x in rep["scores"]},
@@ -472,7 +480,9 @@ def print_funnel(rep: dict) -> None:
     print(f"\nFunnel: {cat['listed']:,} markets listed, {cat['after_filters']:,} after the cheap filters. The screen "
           f"(taught by {rep['labels']:,} of Claude's labels) dropped {sc['dropped']:,} and kept {sc['kept']:,}; "
           f"Claude's label decided {sc['claude']:,}; {sc['unsure_unchecked']:,} unsure markets weren't checked "
-          f"(Claude read {sc['sent_to_claude']:,} of the {sc['band']:,} in the band).")
+          f"(Claude read {sc['sent_to_claude']:,} of the {sc['band']:,} in the band"
+          + (f"; {sc['not_labeled']:,} of those came back unlabeled, even when asked again" if sc.get("not_labeled") else "")
+          + ").")
     mat = [g for g in rep["groups"] if g["material"]]
     print(f"Material: {rep['material_markets']:,} markets in {len(mat):,} groups. The biggest movers:")
     for g in mat[:25]:

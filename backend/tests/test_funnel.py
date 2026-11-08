@@ -72,10 +72,13 @@ def rule_moves(title: str) -> dict[str, int]:
 
 
 class FakeClaude:
-    """Labels each market by the template it came from; counts calls."""
+    """Labels each market by the template it came from; counts calls. It can leave some markets out of every reply
+    (``drop``), leave some out only the first time it's asked (``flaky``), and add a label for an id it wasn't asked
+    about (``invent``)."""
 
-    def __init__(self, drop=(), refuse=False):
+    def __init__(self, drop=(), refuse=False, flaky=(), invent=False):
         self.calls, self.drop, self.refuse = 0, set(drop), refuse
+        self.flaky, self.invent, self.seen = set(flaky), invent, set()
         self.beta = SimpleNamespace(messages=SimpleNamespace(parse=self.parse))
 
     def parse(self, *, model, messages, output_format, **kw):
@@ -84,11 +87,15 @@ class FakeClaude:
         req = json.loads(messages[0]["content"])
         out = []
         for m in req["markets"]:
-            if m["id"] in self.drop:
+            if m["id"] in self.drop or (m["id"] in self.flaky and m["id"] not in self.seen):
+                self.seen.add(m["id"])
                 continue
             mv = rule_moves(m["title"])
             out.append(MarketLabel(id=m["id"], macro=bool(mv), moves=Moves(**{k: mv.get(k, 0) for k in KEYS}),
                                    reason="Rule-based stand-in."))
+        if self.invent:
+            out.append(MarketLabel(id="polymarket:not-asked", macro=True, moves=Moves(**{k: 1 for k in KEYS}),
+                                   reason="An id nobody asked about."))
         usage = SimpleNamespace(model_dump=lambda: {"input_tokens": 4000, "output_tokens": 800})
         return SimpleNamespace(stop_reason="refusal" if self.refuse else "end_turn", parsed_output=LabelBatch(labels=out),
                                usage=usage, model=model)
@@ -117,15 +124,29 @@ def test_the_labeler_batches_caches_and_counts(tmp_path):
     fake = FakeClaude(drop={ms[3].key})
     lab = Labeler(fake, model="test", log_dir=tmp_path, batch=40, workers=2)
     rows, usage, missing = lab.label(ms)
-    assert fake.calls == 3 and usage.calls == 3 and missing == 1 and len(rows) == 94
-    assert usage.tokens_in == 3 * 4000 and sum(r.tokens_in for r in rows) == pytest.approx(3 * 4000)
+    # Three batches, and the one with the dropped market asks again for it alone: it stays unlabeled, and is counted.
+    assert fake.calls == 4 and usage.calls == 4 and missing == 1 and len(rows) == 94
+    assert usage.tokens_in == 4 * 4000 and sum(r.tokens_in for r in rows) == pytest.approx(4 * 4000)
     fed = next(r for r in rows if r.title.startswith("Will the Fed cut"))
     assert fed.material and fed.moves[index("rates")] == -1 and fed.text.startswith(fed.title)
     again, usage2, _ = Labeler(fake, model="test", log_dir=tmp_path, batch=40).label(ms)
-    assert fake.calls == 3 and usage2.cached == 3 and [r.moves for r in again] == [r.moves for r in rows]
+    assert fake.calls == 4 and usage2.cached == 4 and [r.moves for r in again] == [r.moves for r in rows]
     # A refused batch is counted and skipped, not fatal.
     _, u, missing = Labeler(FakeClaude(refuse=True), model="test", batch=40).label(ms[:10])
     assert u.refused == 1 and missing == 10
+
+
+def test_a_market_left_out_of_a_reply_is_asked_about_again(tmp_path):
+    ms = catalogue()[:50]
+    fake = FakeClaude(flaky={ms[5].key, ms[45].key}, invent=True)
+    rows, usage, missing = Labeler(fake, model="test", log_dir=tmp_path, batch=40, workers=1).label(ms)
+    # Two batches, each short of one market the first time; the second ask gets it. The invented id is ignored.
+    assert fake.calls == 4 and usage.calls == 4 and missing == 0
+    assert sorted(r.key for r in rows) == sorted(m.key for m in ms)
+    # Both answers are cached under their own requests, so a rerun asks nothing and gets the same labels.
+    again, u2, missing2 = Labeler(FakeClaude(drop={m.key for m in ms}), model="test", log_dir=tmp_path,
+                                  batch=40).label(ms)
+    assert u2.calls == 0 and u2.cached == 4 and missing2 == 0 and [r.moves for r in again] == [r.moves for r in rows]
 
 
 def test_the_labels_file_adds_only_new_markets(tmp_path):
