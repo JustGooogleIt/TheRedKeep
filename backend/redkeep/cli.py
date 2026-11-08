@@ -303,7 +303,7 @@ def print_baseline(rep: dict) -> None:
         if j.get("ai_error_scale"):
             print(f"  Claude's error bars would cover 80% of the realized jumps at {j['ai_error_scale']:.2f} times their width.")
         bm = j.get("by_material")
-        if bm:
+        if bm and bm["material_markets"]:
             print(f"  On the {bm['material_markets']} markets Claude's funnel label calls material: "
                   + ", ".join(f"{name} {_share(bm['material'][k]['explained_share']).strip()}"
                               for k, name in (("market", "the market"), ("ai", "Claude"), ("engine", "the engine"))))
