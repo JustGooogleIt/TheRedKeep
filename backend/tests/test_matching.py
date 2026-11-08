@@ -48,6 +48,23 @@ def test_retrieval_finds_fed_markets_on_both_venues(gamma_events, kalshi_events)
     assert all("Fed" in m.title or "Fed" in m.event_title for m, _ in got)  # the recession market is cut off
 
 
+def test_a_lone_market_is_not_crowded_out_by_big_groups():
+    spec = SPEC["fed-hike-dec"]
+    ladder = [mk(f"L{i}", f"Fed decision December 2026: hike {25 * i} bps?", 0.1, venue="polymarket", event="ladder")
+              for i in range(1, 11)]
+    talk = [mk(f"T{i}", f"Will Powell say rate {i}+ times at the December FOMC press conference?", 0.5,
+               venue="polymarket", event="talk") for i in range(1, 11)]
+    lone = mk("A", "Fed rate hike in December?", 0.6, venue="polymarket", event="lone")
+    r = Retriever(ladder + talk + [lone])
+    s = dict(zip([m.id for m in r.markets], r.scores(spec)))
+    assert s["A"] < max(s[m.id] for m in ladder) and s["A"] < max(s[m.id] for m in talk)  # it ranks behind both groups
+    got = r.candidates(spec, k=8)
+    assert "A" in [m.id for m, _ in got] and len(got) == 8
+    # Each group's markets stay together, and the best group keeps most of its rungs.
+    groups = [m.event_id for m, _ in got]
+    assert groups == sorted(groups, key=groups.index) and groups.count(groups[0]) == 6
+
+
 # -- ladders --------------------------------------------------------------------
 
 

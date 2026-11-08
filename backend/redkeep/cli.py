@@ -343,7 +343,7 @@ def cmd_record(s: Settings, args) -> int:
     from .pipeline import make_clients
     from .record import record
 
-    c = make_clients(s, claude=False)
+    c = make_clients(s, claude=False, fresh=True)  # a recording is what the sources say now, never a cached reply
     rec = record(s, c, intervals=tuple(args.interval or ["1h"]), engine_perps=args.engine_perps, skip=tuple(args.skip))
     for w in rec.warnings:
         print(f"  warning: {w}")

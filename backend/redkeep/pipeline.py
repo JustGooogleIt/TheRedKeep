@@ -75,12 +75,14 @@ def pick_model(client: Any, wanted: str | None) -> str:
     return best
 
 
-def make_clients(s: Settings, *, claude: bool = True, record: bool = True) -> Clients:
+def make_clients(s: Settings, *, claude: bool = True, record: bool = True, fresh: bool = False) -> Clients:
     """Data clients, plus Claude for matching and the prior when ``claude`` is on and a key is set.
 
     With ``record``, the data clients also save what they read to the point-in-time store, which is flushed when the
-    process exits."""
+    process exits. With ``fresh``, nothing that can still change comes from the response cache, so every read is
+    what the source says now: ``redkeep record`` reads this way. Settled markets and old candles stay cached."""
     http = Http(cache_dir=s.cache_dir / "http", min_interval=s.request_spacing)
+    ttl = {"ttl": 0} if fresh else {}
     store = Store(s.store_dir) if record else None
     if store is not None:
         atexit.register(store.flush)
@@ -92,8 +94,9 @@ def make_clients(s: Settings, *, claude: bool = True, record: bool = True) -> Cl
         model = pick_model(client, s.model)
         judge = Judge(client, model=model, effort=s.effort, log_dir=s.cache_dir / "ai")
         prior = prior_mod.AIPrior(client, model=model, effort=s.effort, log_dir=s.cache_dir / "ai")
-    return Clients(Polymarket(http, store=store), Kalshi(http, store=store), Fred(http, store=store),
-                   Massive(http, s.massive_api_key, store=store), judge, prior, model, Hyperliquid(http, store=store), store)
+    return Clients(Polymarket(http, store=store, **ttl), Kalshi(http, store=store, **ttl), Fred(http, store=store, **ttl),
+                   Massive(http, s.massive_api_key, store=store, **ttl), judge, prior, model,
+                   Hyperliquid(http, store=store, **ttl), store)
 
 
 # -- JSON helpers -------------------------------------------------------------------
