@@ -286,12 +286,25 @@ def test_the_record_and_store_commands(tmp_path, monkeypatch, capsys, gamma_even
     s = Settings(out_dir=tmp_path / "out", store_dir=tmp_path / "store")
     w = World(Store(s.store_dir), gamma_events, now)
     monkeypatch.setattr("redkeep.pipeline.catalogue", w.catalogue)
-    monkeypatch.setattr("redkeep.pipeline.make_clients", lambda s, **kw: w.clients)
+    made = []
+    monkeypatch.setattr("redkeep.pipeline.make_clients", lambda s, **kw: made.append(kw) or w.clients)
     monkeypatch.setattr(Settings, "from_env", classmethod(lambda cls: s))
     assert cli.main(["record", "--engine-perps", "--skip", "factors", "--compact"]) == 0
+    assert made == [{"claude": False, "fresh": True}]  # a recording never comes from the response cache
     out = capsys.readouterr().out
     assert "Hyperliquid: 1 trade[XYZ] perp, 1h candles (71 read)" in out  # S&P 500 only: no WTI or gold perp listed
     assert "71 candles, 3 markets, 3 quotes" in out and "Compacted segments" in out
     assert cli.main(["store"]) == 0
     out = capsys.readouterr().out
     assert "candles" in out and "quotes" in out and "Point-in-time store at" in out
+
+
+def test_fresh_clients_skip_the_response_cache(tmp_path):
+    from redkeep.pipeline import make_clients
+
+    def ttls(c):
+        return [x.ttl for x in (c.polymarket, c.kalshi, c.fred, c.massive, c.hyperliquid)]
+
+    s = Settings(cache_dir=tmp_path / "c", store_dir=tmp_path / "store")
+    assert ttls(make_clients(s, claude=False, fresh=True)) == [0] * 5
+    assert 0 not in ttls(make_clients(s, claude=False))
