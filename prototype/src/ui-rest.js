@@ -43,9 +43,13 @@ function ErrBar({ k, s, market }) {
 }
 
 function verdictText(f) {
+  const vague = Math.max((f.nAll ?? f.nMarket) - f.nMarket, 0);
+  if (f.agree === false && f.dof) return html`<span className="mk bad">!</span><p><b>Market readings disagree.</b> χ² ${f.chi2.toFixed(1)} is over the 5% cutoff of ${f.crit}. The engine shows the event as contested instead of averaging the gap away.</p>`;
   if (f.nMarket >= 2 && f.agree) return html`<span className="mk ok">✓</span><p><b>Market readings agree.</b> χ² ${f.chi2.toFixed(2)} is under the 5% cutoff of ${f.crit}, so the fused jump stands.</p>`;
-  if (f.nMarket >= 2) return html`<span className="mk bad">!</span><p><b>Market readings disagree.</b> χ² ${f.chi2.toFixed(1)} is over the 5% cutoff of ${f.crit}. The engine shows the event as contested instead of averaging the gap away.</p>`;
+  if (f.nMarket >= 2) return html`<span className="mk mid">≈</span><p><b>Market readings of different factors.</b> They don’t share a factor, so they can’t check each other yet and the jump is provisional.</p>`;
+  if (f.nMarket === 1 && vague) return html`<span className="mk mid">≈</span><p><b>One precise market reading.</b> The ${vague === 1 ? 'other market reading’s error bar is' : 'other market readings’ error bars are'} over half the jump, too wide to confirm it, so the jump is provisional.</p>`;
   if (f.nMarket === 1) return html`<span className="mk mid">≈</span><p><b>One market reading.</b> Nothing to cross-check it against yet, so the jump is provisional.</p>`;
+  if (vague) return html`<span className="mk mid">≈</span><p><b>${vague === 1 ? 'One market reading, too vague to count.' : 'Market readings too vague to count.'}</b> ${vague === 1 ? 'Its error bar is' : 'Their error bars are'} over half the jump, too wide to confirm it, so the jump is provisional.</p>`;
   return html`<span className="mk mid">≈</span><p><b>No market readings.</b> The jump comes from past events and the AI prior only.</p>`;
 }
 

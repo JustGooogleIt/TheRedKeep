@@ -7,7 +7,8 @@ import numpy as np
 import pytest
 
 from redkeep import factordata
-from redkeep.engine.fusion import DeltaReading, OddsReading, assign_tier, fuse_delta, fuse_odds
+from redkeep.engine.fusion import (QUORUM_SE, DeltaReading, FusedOdds, OddsReading, assign_tier, fuse_delta,
+                                    fuse_odds, size_error)
 from redkeep.events import Analog, load_library
 from redkeep.evidence import analogs, odds, prior, windows
 from redkeep.exposure import fit_line
@@ -134,6 +135,44 @@ def test_fusion_and_tiers():
     assert assign_tier(odds=mk, delta=fuse_delta([a, c]), match_good=True, liquid=True).tier == "C"
     # The AI never overrides a market's odds.
     assert fuse_odds([OddsReading("Kalshi", 0.40, 0.01, "market"), OddsReading("AI prior", 0.9, 0.01, "ai")]).q == 0.40
+
+
+def test_only_precise_market_readings_count_toward_the_quorum():
+    jump = np.zeros(NF)
+    jump[[index("eq"), index("rates"), index("oil")]] = [-2.0, 1.5, 1.0]
+    etf = DeltaReading("etf", "ETF windows", "", jump, np.full(NF, 0.4))
+    perps = np.full(NF, np.inf)
+    perps[[index("eq"), index("oil"), index("gold")]] = 3.0
+    vague = DeltaReading("hl", "Weekend windows", "", jump * 0.2, perps)  # sees little, with wide error bars
+    odds = FusedOdds(0.6, 0.02, [], from_market=True, cross_checked=False, disagree=False)
+
+    def tier(f):
+        return assign_tier(odds=odds, delta=f, match_good=True, liquid=True)
+
+    # A vague reading agrees with anything, so it can't help confirm the jump: one precise reading is tier C.
+    f = fuse_delta([etf, vague])
+    assert f.agree and f.n_market_all == 2 and f.n_market == 1
+    assert tier(f).tier == "C" and tier(f).reason.startswith("Only one market reading of the jump is precise enough")
+    # Precise means an error bar on the jump's size of at most half the jump (the app's projection).
+    assert size_error(1 / perps ** 2, f.delta) > QUORUM_SE >= size_error(np.full(NF, 1 / 0.4 ** 2), f.delta)
+    assert size_error(np.zeros(NF), f.delta) == np.inf
+    # Two vague readings confirm nothing.
+    f = fuse_delta([DeltaReading("etf", "ETF windows", "", jump, np.full(NF, 3.0)), vague])
+    assert f.n_market == 0 and f.n_market_all == 2
+    assert tier(f).tier == "C" and tier(f).reason.startswith("The market readings of the jump are too vague")
+    # A precise weekend reading that agrees makes two: tier A.
+    sharp = DeltaReading("hl", "Weekend windows", "", jump * 1.1, np.where(np.isfinite(perps), 0.5, np.inf))
+    f = fuse_delta([etf, sharp])
+    assert f.n_market == 2 and f.agree and tier(f).tier == "A"
+    # A vague reading can still contest a jump that it rules out.
+    against = DeltaReading("hl", "Weekend windows", "", -jump * 4, perps)
+    f = fuse_delta([etf, against])
+    assert f.n_market == 1 and f.agree is False and tier(f).tier == "B"
+    # Precise readings of different factors can't check each other.
+    eq_only = DeltaReading("etf", "ETF windows", "", jump, np.where(np.arange(NF) == index("eq"), 0.4, np.inf))
+    oil_only = DeltaReading("hl", "Weekend windows", "", jump, np.where(np.arange(NF) == index("oil"), 0.3, np.inf))
+    f = fuse_delta([eq_only, oil_only])
+    assert f.n_market == 2 and f.agree is None and tier(f).tier == "C" and "different factors" in tier(f).reason
 
 
 def test_ai_prior_request_and_readings(tmp_path):

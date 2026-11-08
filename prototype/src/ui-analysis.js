@@ -22,10 +22,10 @@ function Pipeline({ P, S, sim, tw }) {
 function evidenceNote() {
   if (DATASET !== 'live') return 'Options, ETF windows and Hyperliquid’s weekend perps each measure the jump. The engine checks that they agree.';
   const base = 'Daily ETF windows, past events and the AI prior each measure the jump. ';
-  if (!WEEKENDS) return base + 'Options and Hyperliquid readings come next; tier A needs two market readings that agree.';
+  if (!WEEKENDS) return base + 'Options and Hyperliquid readings come next; tier A needs two precise market readings that agree.';
   const n = WEEKENDS.readings;
   return base + (n ? 'Hyperliquid’s weekend perps add a second market reading for ' + n + (n === 1 ? ' event' : ' events') + ', on ' + listAnd(PERP_FACTORS.map(k => PERP_NAMES[k] || k)) + '.'
-    : 'Hyperliquid’s weekend perps saw too few sharp weekend moves to measure any event yet.') + ' Tier A needs two market readings that agree; options come next.';
+    : 'Hyperliquid’s weekend perps saw too few sharp weekend moves to measure any event yet.') + ' Tier A needs two precise market readings that agree; options come next.';
 }
 const PERP_NAMES = { eq: 'the S&P 500', oil: 'oil', gold: 'gold' };
 
