@@ -46,9 +46,14 @@ class WindowFit:
     readings: dict[str, DeltaReading]
     windows: list[date]
     moves: dict[str, int]  # sharp moves per event
+    left_out: int = 0  # windows some factor left to another reading (``skip``)
 
 
-def jump_windows(odds: dict[str, dict[date, float]], fd: FactorData, *, move: float = 0.05, min_moves: int = 3) -> WindowFit:
+def jump_windows(odds: dict[str, dict[date, float]], fd: FactorData, *, move: float = 0.05, min_moves: int = 3,
+                 skip: dict[int, set[date]] | None = None, left_to: str = "another reading") -> WindowFit:
+    """``skip`` leaves days out of one factor's regression. The pipeline passes the days whose window spans a weekend
+    that Hyperliquid's perps measured (``left_to`` names them), so the weekend reading and this one rest on separate
+    data and count as independent readings for the quorum."""
     dates = fd.dates
     prev = {d: dates[i - 1] for i, d in enumerate(dates) if i}
     ids = sorted(odds)
@@ -78,26 +83,34 @@ def jump_windows(odds: dict[str, dict[date, float]], fd: FactorData, *, move: fl
         x = x[np.isfinite(x)]
         if len(x) > 30:  # a factor with no data keeps the default; it gets no reading anyway
             noise[f] = x.std(ddof=1)
-    A = dQ[np.ix_(rows, cols)]
-    AtA_inv = np.linalg.pinv(A.T @ A)
-    delta = np.full((len(cols), NF), np.nan)
-    sigma = np.full((len(cols), NF), np.inf)
+    delta = np.full((len(ids), NF), np.nan)
+    sigma = np.full((len(ids), NF), np.inf)
+    skip = skip or {}
+    left = {i for i in rows if any(dates[i] in days for days in skip.values())}
     for f in range(NF):
-        y = Z[rows, f]
+        r = np.array([i for i in rows if dates[i] not in skip.get(f, ())], dtype=int)
+        y = Z[r, f]
         if not np.isfinite(y).all():
             continue
+        # Events with enough sharp moves among this factor's windows: all of ``cols`` unless some were skipped.
+        cf = [j for j in cols if sharp[r, j].sum() >= min_moves]
+        if not cf or len(r) < len(cf) + 2:
+            continue
+        A = dQ[np.ix_(r, cf)]
+        AtA_inv = np.linalg.pinv(A.T @ A)
         coef = AtA_inv @ (A.T @ y)
-        dof = len(rows) - len(cols)
+        dof = len(r) - len(cf)
         resid = y - A @ coef
         s2 = float(resid @ resid) / dof if dof >= 3 else noise[f] ** 2
         s2 = max(s2, noise[f] ** 2)  # never claim less noise than an ordinary day
-        delta[:, f] = coef
-        sigma[:, f] = np.sqrt(np.clip(np.diag(AtA_inv) * s2, 0, None))
-    for c, j in enumerate(cols):
+        delta[cf, f] = coef
+        sigma[cf, f] = np.sqrt(np.clip(np.diag(AtA_inv) * s2, 0, None))
+    kept = f"; {len(left)} that span a weekend are left to {left_to}" if left else ""
+    for j in cols:
         e = ids[j]
         readings[e] = DeltaReading(
             kind="etf", name="Jump windows",
-            detail=f"{moves[e]} days with odds moves of {move * 100:.0f}+ points, out of {len(rows)} windows in {len(dates)} trading days",
-            delta=delta[c], sigma=sigma[c], n=moves[e],
+            detail=f"{moves[e]} days with odds moves of {move * 100:.0f}+ points, out of {len(rows)} windows in {len(dates)} trading days{kept}",
+            delta=delta[j], sigma=sigma[j], n=moves[e],
         )
-    return WindowFit(readings, [dates[i] for i in rows], moves)
+    return WindowFit(readings, [dates[i] for i in rows], moves, len(left))

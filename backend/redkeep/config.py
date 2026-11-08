@@ -52,6 +52,7 @@ class Settings:
     history_days: int = 180  # odds history for jump windows and link checks
     exposure_years: float = 2.0
     window_move: float = 0.05  # a "sharp" daily odds move, in probability
+    weekend_min_moves: int = 2  # sharp weekend moves an event needs for a Hyperliquid reading
 
     request_spacing: dict[str, float] = field(default_factory=lambda: {
         "gamma-api.polymarket.com": 0.15,
@@ -59,6 +60,7 @@ class Settings:
         "api.elections.kalshi.com": 0.25,
         "fred.stlouisfed.org": 0.5,
         "api.massive.com": 0.05,
+        "api.hyperliquid.xyz": 1.5,  # 1,200 weight a minute; a candle request weighs about 28
     })
 
     @classmethod

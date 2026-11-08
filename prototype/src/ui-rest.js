@@ -43,9 +43,13 @@ function ErrBar({ k, s, market }) {
 }
 
 function verdictText(f) {
+  const vague = Math.max((f.nAll ?? f.nMarket) - f.nMarket, 0);
+  if (f.agree === false && f.dof) return html`<span className="mk bad">!</span><p><b>Market readings disagree.</b> χ² ${f.chi2.toFixed(1)} is over the 5% cutoff of ${f.crit}. The engine shows the event as contested instead of averaging the gap away.</p>`;
   if (f.nMarket >= 2 && f.agree) return html`<span className="mk ok">✓</span><p><b>Market readings agree.</b> χ² ${f.chi2.toFixed(2)} is under the 5% cutoff of ${f.crit}, so the fused jump stands.</p>`;
-  if (f.nMarket >= 2) return html`<span className="mk bad">!</span><p><b>Market readings disagree.</b> χ² ${f.chi2.toFixed(1)} is over the 5% cutoff of ${f.crit}. The engine shows the event as contested instead of averaging the gap away.</p>`;
+  if (f.nMarket >= 2) return html`<span className="mk mid">≈</span><p><b>Market readings of different factors.</b> They don’t share a factor, so they can’t check each other yet and the jump is provisional.</p>`;
+  if (f.nMarket === 1 && vague) return html`<span className="mk mid">≈</span><p><b>One precise market reading.</b> The ${vague === 1 ? 'other market reading’s error bar is' : 'other market readings’ error bars are'} over half the jump, too wide to confirm it, so the jump is provisional.</p>`;
   if (f.nMarket === 1) return html`<span className="mk mid">≈</span><p><b>One market reading.</b> Nothing to cross-check it against yet, so the jump is provisional.</p>`;
+  if (vague) return html`<span className="mk mid">≈</span><p><b>${vague === 1 ? 'One market reading, too vague to count.' : 'Market readings too vague to count.'}</b> ${vague === 1 ? 'Its error bar is' : 'Their error bars are'} over half the jump, too wide to confirm it, so the jump is provisional.</p>`;
   return html`<span className="mk mid">≈</span><p><b>No market readings.</b> The jump comes from past events and the AI prior only.</p>`;
 }
 
@@ -356,8 +360,8 @@ function Footer({ ds }) {
       ${ds !== 'live'
         ? html`<p>Everything here is illustrative: prices, odds, exposures, market matches and evidence readings are made up for the prototype, shaped like the real system’s inputs. Nothing here is investment advice.</p>`
         : EXPOSURES === 'live'
-          ? html`<p>Backend snapshot of ${fmtStamp(RK_LIVE.asOf)}: odds from Polymarket and Kalshi, prices and factor data from Massive and FRED, market matches judged by Claude, and jumps and exposures estimated by the engine. The April 2025 replay stays illustrative. Nothing here is investment advice.</p>`
-          : html`<p>Backend snapshot of ${fmtStamp(RK_LIVE.asOf)}: odds from Polymarket and Kalshi, factor data from ${UNMEASURED.length ? 'FRED' : 'Massive and FRED'}, market matches judged by Claude, and jumps estimated by the engine. The portfolios’ prices, holdings and exposures are illustrative, rescaled to the snapshot’s typical moves, and so is the April 2025 replay. Nothing here is investment advice.</p>`}
+          ? html`<p>Backend snapshot of ${fmtStamp(RK_LIVE.asOf)}: odds from Polymarket and Kalshi, prices and factor data from Massive and FRED${WEEKENDS ? ', weekend perp prices from Hyperliquid' : ''}, market matches judged by Claude, and jumps and exposures estimated by the engine. The April 2025 replay stays illustrative. Nothing here is investment advice.</p>`
+          : html`<p>Backend snapshot of ${fmtStamp(RK_LIVE.asOf)}: odds from Polymarket and Kalshi, factor data from ${UNMEASURED.length ? 'FRED' : 'Massive and FRED'}${WEEKENDS ? ', weekend perp prices from Hyperliquid' : ''}, market matches judged by Claude, and jumps estimated by the engine. The portfolios’ prices, holdings and exposures are illustrative, rescaled to the snapshot’s typical moves, and so is the April 2025 replay. Nothing here is investment advice.</p>`}
     </div>
   </div></footer>`;
 }

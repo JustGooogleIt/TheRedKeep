@@ -3,6 +3,7 @@
 import json
 import shutil
 import subprocess
+from dataclasses import replace
 from datetime import date, datetime, time, timedelta, timezone
 from pathlib import Path
 
@@ -12,6 +13,9 @@ import pytest
 from redkeep import factordata
 from redkeep.appdata import build, export
 from redkeep.config import Settings
+from redkeep.data.hyperliquid import Candle
+from redkeep.evidence import weekend
+from redkeep.factors import FACTORS, NF, index
 from redkeep.markets import from_kalshi_event, from_polymarket_event
 from redkeep.matching.judge import Verdict
 from redkeep.evidence import prior as prior_mod
@@ -38,19 +42,56 @@ class FakeVenue:
         return [(datetime.combine(d, time(19, 30), timezone.utc), q) for d, q in path.items()]  # before 4 pm New York, all year
 
 
+class WeekendVenue(FakeVenue):
+    """Odds that keep trading over the weekend: by Sunday evening they already show Monday's."""
+
+    def history(self, *args):
+        pts = super().history(*args)
+        return sorted(pts + [(t - timedelta(hours=22), q) for t, q in pts if t.weekday() == 0])  # Sunday 21:30 UTC
+
+
+class FakeHyperliquid:
+    """trade[XYZ]'s listings, and hourly perp candles that drift at random over each weekend, plus any planted moves
+    (in %, by the weekend's Friday and the coin's factor). Synthetic, not prices."""
+    LISTED = {"xyz:SP500": {"maxLeverage": 50}, "xyz:CL": {"maxLeverage": 20}, "xyz:GOLD": {"maxLeverage": 25}}
+    FACTOR = {"xyz:SP500": "eq", "xyz:CL": "oil", "xyz:GOLD": "gold"}
+
+    def __init__(self, moves: dict[date, dict[str, float]] | None = None):
+        self.moves = moves or {}
+
+    def coins(self, dex="xyz"):
+        return dict(self.LISTED)
+
+    def candles(self, coin, start, end, interval="1h"):
+        rng = np.random.default_rng(sorted(self.LISTED).index(coin))
+        p, out = 100.0, []
+        for a, b in weekend.weekends(start, end + timedelta(days=3)):
+            planted = self.moves.get(a.date(), {}).get(self.FACTOR[coin], 0.0)
+            p1 = p * (1 + rng.normal(0, 0.006) + planted / 100)
+            path = [p] * 3 + list(np.linspace(p, p1, int((b - a).total_seconds() // 3600))) + [p1] * 3
+            t0 = a - timedelta(hours=3)
+            out += [Candle(t0 + timedelta(hours=i), t0 + timedelta(hours=i + 1, milliseconds=-1), x, x, x, x, 1.0, 5)
+                    for i, x in enumerate(path)]
+            p = p1
+        return [c for c in out if start <= c.start <= end]
+
+
 class FakeFred:
+    def __init__(self, levels=LEVELS):
+        self.levels = levels
+
     def series(self, ids, start, end):
-        return {i: {d: v for d, v in LEVELS[i].items() if start <= d <= end} for i in ids if i in LEVELS}
+        return {i: {d: v for d, v in self.levels[i].items() if start <= d <= end} for i in ids if i in self.levels}
 
 
 class FakeMassive:
     available = True
 
-    def __init__(self, extra):
-        self.extra = extra
+    def __init__(self, extra, levels=LEVELS):
+        self.extra, self.levels = extra, levels
 
     def closes(self, t, start, end):
-        src = LEVELS.get(t) or self.extra[t]
+        src = self.levels.get(t) or self.extra[t]
         return {d: v for d, v in src.items() if start <= d <= end}
 
     def details(self, t):
@@ -88,14 +129,19 @@ class FakePrior:
                                                            vix=1.2, china=-0.5, chips=-0.6, gold=0.6))
 
 
-def odds_path(seed, q0, jumps):
-    """A quiet random walk with 7-point jumps on the given days, alternating away from and back toward q0."""
+def odds_jumps(q0, jumps, size=0.07):
+    """Jumps on the given days (indexes into the last 170 business days), alternating away from and back toward q0."""
+    away = 1 if q0 < 0.5 else -1
+    return {t: away * (-1) ** i * size for i, t in enumerate(jumps)}
+
+
+def odds_path(seed, q0, jumps, size=0.07):
+    """A quiet random walk with those jumps."""
     rng = np.random.default_rng(seed)
     days = DAYS[-170:]
     q = np.full(len(days), q0) + rng.normal(0, 0.004, len(days)).cumsum() * 0.2
-    away = 1 if q0 < 0.5 else -1
-    for i, t in enumerate(jumps):
-        q[t:] += away * (-1) ** i * 0.07
+    for t, x in odds_jumps(q0, jumps, size).items():
+        q[t:] += x
     return dict(zip(days, np.clip(q, 0.01, 0.99).tolist()))
 
 
@@ -190,7 +236,10 @@ def test_app_export_reproduces_the_engine(world, snap, tmp_path):
     fed = ev["fed-hike-dec"]
     assert fed["m"]["rel"] == "sum" and fed["m"]["score"] == pytest.approx(0.92)
     assert fed["seriesNote"].startswith("Sum of 2 outcomes") and len(fed["series"]) > 100 and fed["hist"]["y"] == fed["series"][-1]
-    assert [r[0] for r in fed["src"]][0] == "etf" and fed["fusion"]["nMarket"] == 1
+    # Prices here ignore the odds, so the ETF reading is noise: too vague to count, and with nothing to check against.
+    assert [r[0] for r in fed["src"]][0] == "etf"
+    assert fed["fusion"]["nAll"] == 1 and fed["fusion"]["nMarket"] == 0 and fed["fusion"]["agree"] is None
+    assert fed["tier"] == "C" and fed["tierWhy"].startswith("The market readings of the jump are too vague")
     assert ev["taiwan"]["m"] is None and ev["taiwan"]["hist"] is None
     assert ev["recession"]["miss"][0][2].startswith("Closes Dec 31, 2026")
     # The AI prior is the only reading for Taiwan, so it is exactly the fused jump.
@@ -259,3 +308,81 @@ def test_the_app_takes_the_events_alone(keyless, tmp_path):
     assert out.stdout.count("keep their size per unit of each factor") == 6
     assert out.stdout.count("the April 2025 replay is unchanged") == 6
     assert out.stdout.count("snapshot · ") == 6 * 5 and "matches the engine" not in out.stdout
+
+
+
+# The Fed hike's planted jump, in typical moves, and the series that carry it. SMH moves with SPY, so chips don't.
+HIKE = {"eq": -3.0, "rates": 3.0, "usd": 2.0, "oil": -1.5, "gold": -2.5}
+PROXIES = {"eq": ("SPY", "SP500", "SMH"), "rates": ("DGS10",), "usd": ("DTWEXBGS",), "oil": ("DCOILWTICO",), "gold": ("GLD",)}
+
+
+def planted(levels, jumps, typical):
+    """The levels with the hike's jump added from each jump day on: δ_f times the odds change, in typical moves."""
+    out = {k: dict(v) for k, v in levels.items()}
+    for day, dq in jumps.items():
+        for key, d in HIKE.items():
+            f = FACTORS[index(key)]
+            move = d * dq * typical[index(key)]  # in the factor's unit: % or bp
+            for name in PROXIES[key]:
+                s = out[name]
+                for t in s:
+                    if t >= day:
+                        s[t] = s[t] + move / f.scale if f.transform == "diff" else s[t] * (1 + move / 100)
+    return out
+
+
+@pytest.fixture(scope="module")
+def weekend_world(world):
+    """The same world, but odds trade over weekends, Hyperliquid lists its perps, and the Fed hike outcomes jump
+    15 points on Mondays (so over the weekend) and midweek. Prices carry the planted jump: ETFs on the day, the
+    perps over the weekend."""
+    pm, ks = world.polymarket, world.kalshi
+    paths, jumps = {**pm.paths}, {}
+    hikes = [m for m in pm._m + ks._m if any(w in (m.outcome or "").lower() for w in ("increase", "hike"))]
+    for j, m in enumerate(hikes):  # index i of the last 170 business days is a Monday when i % 5 == 0
+        days = [50, 70, 90, 110, 130] if j % 2 == 0 else [62, 83, 104, 126, 147]  # the same days on both venues
+        paths[m.token_yes or m.id] = odds_path(200 + j, m.mid, days, size=0.15)
+        if m.venue == "polymarket":
+            jumps.update({DAYS[-170:][t]: x for t, x in odds_jumps(m.mid, days, size=0.15).items()})
+    typical = factordata.build(LEVELS).typical
+    levels = planted(LEVELS, jumps, typical)
+    weekends = {d - timedelta(days=3): {k: HIKE[k] * dq * typical[index(k)] for k in ("eq", "oil", "gold")}
+                for d, dq in jumps.items() if d.weekday() == 0}
+    return replace(world, polymarket=WeekendVenue(pm._m, paths), kalshi=WeekendVenue(ks._m, paths),
+                   fred=FakeFred(levels), massive=FakeMassive(world.massive.extra, levels),
+                   hyperliquid=FakeHyperliquid(weekends))
+
+
+def test_weekend_windows_add_a_second_market_reading(weekend_world, tmp_path):
+    with_hl = refresh(Settings(cache_dir=tmp_path / "a"), weekend_world, today=TODAY, progress=lambda _: None)
+    without = refresh(Settings(cache_dir=tmp_path / "b"), replace(weekend_world, hyperliquid=None), today=TODAY,
+                      progress=lambda _: None)
+    json.dumps(with_hl, allow_nan=False)
+    assert without["windows"]["weekends"] is None and without["windows"]["left_out"] == 0
+    wk = with_hl["windows"]["weekends"]
+    assert wk["coins"] == {"eq": "xyz:SP500", "oil": "xyz:CL", "gold": "xyz:GOLD"} and wk["censored"] == []
+    assert set(wk["used"]) == {"eq", "oil", "gold"} and wk["readings"] == 1 and with_hl["windows"]["left_out"] >= 5
+    fed, fed0 = (next(e for e in snap["events"] if e["id"] == "fed-hike-dec") for snap in (with_hl, without))
+    rs, rs0 = ({r["kind"]: r for r in e["delta"]["readings"]} for e in (fed, fed0))
+    covered = [index("eq"), index("oil"), index("gold")]
+    others = [k for k in range(NF) if k not in covered]
+    assert [k for k, x in enumerate(rs["hl"]["sigma"]) if x is not None] == covered
+    assert rs["hl"]["detail"].startswith("S&P 500, WTI and gold perps: 5 weekends with odds moves of 5+ points")
+    # Monday's ETF window spans the weekend: on stocks, oil and gold it is left to the perps, elsewhere it stays.
+    assert rs["etf"]["detail"].endswith("that span a weekend are left to the S&P 500, WTI and gold perps")
+    assert [rs["etf"]["delta"][k] for k in others] == [rs0["etf"]["delta"][k] for k in others]
+    assert all(rs["etf"]["sigma"][k] > rs0["etf"]["sigma"][k] for k in covered)
+    # Each reading finds the planted jump on the factors it measures.
+    for key, d in HIKE.items():
+        k = index(key)
+        assert abs(rs["etf"]["delta"][k] - d) < 4 * rs["etf"]["sigma"][k], key
+        if key in ("eq", "oil", "gold"):
+            assert abs(rs["hl"]["delta"][k] - d) < 4 * rs["hl"]["sigma"][k], key
+    # One precise reading alone leaves the event at tier C; two that agree on the jump make it tier A.
+    assert fed0["delta"]["n_market"] == fed0["delta"]["n_market_all"] == 1 and fed0["tier"]["tier"] == "C"
+    assert fed0["tier"]["reason"] == "Only one market reading of the jump."
+    assert fed["delta"]["n_market"] == 2 and fed["delta"]["agree"] and fed["tier"]["tier"] == "A"
+    ev = {e["id"]: e for e in build(with_hl, [])["events"]}
+    assert [r[0] for r in ev["fed-hike-dec"]["src"]][:2] == ["etf", "hl"]
+    assert ev["fed-hike-dec"]["fusion"] | {"chi2": 0, "crit": 0} == {"nMarket": 2, "nAll": 2, "chi2": 0, "dof": 3, "crit": 0, "agree": True}
+

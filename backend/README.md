@@ -4,7 +4,7 @@ The engine behind the prototype, as a vertical slice (milestone M3 in the [build
 
 ```
 markets (Polymarket, Kalshi) ──► match each event (Claude) ──► odds, or "nothing fits"
-factor data (FRED, Massive) ──► jump windows, past events, AI prior ──► fused jump and tier
+factor data (FRED, Massive), weekend perps (Hyperliquid) ──► jump windows, past events, AI prior ──► fused jump and tier
 holdings (Massive) ──► look-through and exposures ──► impacts, priced-in moves, swing, simulation
 ```
 
@@ -34,12 +34,12 @@ Set these in the environment. They are read at start-up and never written to dis
 | `REDKEEP_EFFORT` | Optional: `low`, `medium` (default) or `high` | |
 | `REDKEEP_HOME` | Optional: where `.cache/` and `out/` live | `backend/` |
 
-Polymarket, Kalshi and FRED need no keys. The machine needs outbound access to `gamma-api.polymarket.com`, `clob.polymarket.com`, `api.elections.kalshi.com`, `fred.stlouisfed.org`, `api.massive.com` and `api.anthropic.com`.
+Polymarket, Kalshi, FRED and Hyperliquid need no keys. The machine needs outbound access to `gamma-api.polymarket.com`, `clob.polymarket.com`, `api.elections.kalshi.com`, `fred.stlouisfed.org`, `api.hyperliquid.xyz`, `api.massive.com` and `api.anthropic.com`.
 
 ## Commands
 
 ```bash
-uv run redkeep check                                   # can we reach every source, and what does the Massive key include?
+uv run redkeep check                                   # can we reach every source, which perps does Hyperliquid list, what does the Massive key include?
 uv run redkeep refresh                                 # build the event library; saves out/library-<time>.json and library-latest.json
 uv run redkeep analyze --sample allweather             # a sample portfolio: allweather, buffett, permanent, qqq, swensen, tech
 uv run redkeep analyze --holdings "VTI:300000, TLT:400000, NVDA:120sh"
@@ -61,15 +61,17 @@ The API serves the latest snapshot (`GET /events`, `GET /events/{id}`, either wi
 | Market catalogue | Yes/no markets in the 2,000 Polymarket events with the most trading in the last day (as deep as its API pages), plus targeted searches for the library's terms; every open Kalshi market outside sports, entertainment and weather | 6.2 |
 | Matching | BM25 retrieval (contracts that close within a week of the event's deadline get a boost), then Claude with a fixed rubric and structured output: same question, implies, implied by, part of (mutually exclusive outcomes that are summed, like "cut 25 bps" and "cut 50+ bps"), overlaps or unrelated, with a score, the quoted rule and a reason. Then, in order: a match, a ladder interpolated along thresholds or deadlines (isotonic fit, never extrapolated), a bound, or "nothing fits" with the near-misses and why they were rejected | 6.3 |
 | Odds | Mid of bid and ask, with an error from the spread and the volume; markets on both venues are cross-checked, and a disagreement beyond their errors makes the event tier B. The AI never overrides a market | 4.5, 6.4 |
-| Jump | Daily jump windows (odds read at the 4 p.m. New York close; factor moves regressed on all odds changes on days with a 5-point move), past similar events (an event study around analog dates) and the AI prior, fused by precision with a χ² check across market readings | 4.5, 4.6, 6.4 |
-| Tiers | A: a well-matched liquid market and two market readings of the jump that agree. B: readings disagree. C: priced, but one market reading or a weak match. D: no market fits | 6.5 |
+| Jump | Daily jump windows (odds read at the 4 p.m. New York close; factor moves regressed on all odds changes on days with a 5-point move); weekend windows on Hyperliquid's S&P 500, WTI and gold perps (Friday 5 p.m. to Sunday 6 p.m. New York time, while the reference markets are shut); past similar events (an event study around analog dates); and the AI prior. Until backtests measure them, the last two carry wide errors that grow with the move: half the move, in quadrature with a floor of 0.3 typical moves (past events) or 0.8 (the AI prior). Fused by precision, with a χ² check across market readings | 4.5, 4.6, 6.4 |
+| Weekend windows | The same regression on weekends with a 5-point odds move. Prices come from hourly trade candles, not the oracle, and each boundary price is the median of the closes around it and the next open, so one bad print can't set it. A move that comes within a quarter step of trade[XYZ]'s discovery-bound cap is censored and left out. Error bars come from calm weekends. Monday's daily ETF window spans the weekend, so on these three factors it is left to the perps: the two readings rest on separate data and count as independent | 6.4 |
+| Tiers | A: a well-matched liquid market and two precise market readings of the jump that agree (a reading is precise when its error bar on the jump's size is at most half the jump). B: readings disagree. C: priced, but fewer than two precise market readings or a weak match. D: no market fits | 4.6, 6.5 |
 | Links | Proposed knock-on links are used only when the two events' odds histories agree in direction (t ≥ 2), with the measured slope | 4.4, 6.6 |
 | Exposures | Weighted ridge regression of each holding's daily returns on the ten factors over two years (recent days count more), fit tested out of sample on the last six months; look-through via ETF Global holdings | 6.1 |
 | Impact | `Δ = b · δ`, knock-ons through the graph, priced-in moves `(1 − q)Δ` and `−qΔ`, swing `|Δ|√(q(1 − q))`, and a seeded 20,000-run simulation over the event graph | 4.1 to 4.4, 4.7 |
 
 ## Not yet, and why it matters
 
-- **Only one market reading of each jump.** Daily ETF windows are the only market reading in this slice, so no event can reach tier A yet: tier A needs two that agree. Options (event-day volatility and the two-world fit, milestone M6) and Hyperliquid's weekend windows add the second and third.
+- **A second market reading on three factors only.** Hyperliquid's weekend windows give a second reading on stocks, oil and gold, so an event can reach tier A once its odds have moved sharply on at least two weekends in the last 180 days and the two readings agree. Options (event-day volatility and the two-world fit, milestone M6) add a reading on every factor. The NVIDIA perp (chips), the dollar and rates perps, and holidays are left out for now.
+- **Hourly candles go back about 208 days.** Hyperliquid keeps only the latest 5,000 candles of each interval. Finished chunks stay in the response cache; the candle recorder (M1) will keep them for good.
 - **Daily windows, not 30-minute ones.** A day holds other news, so the error bars are wider than the design's intraday windows would give. They carry through fusion honestly.
 - **Ten hand-picked events.** The funnel that screens every market (Laya taught by Claude, M4) replaces the hand-written library.
 - **No calibration yet.** Calibrated odds equal market odds until the long-shot study (E2) fits the correction.
@@ -82,9 +84,9 @@ The API serves the latest snapshot (`GET /events`, `GET /events/{id}`, either wi
 backend/
 ├── data/              events.toml (the event library), portfolios.toml (sample portfolios)
 ├── redkeep/
-│   ├── data/          polymarket.py, kalshi.py, fred.py, massive.py
+│   ├── data/          polymarket.py, kalshi.py, fred.py, massive.py, hyperliquid.py
 │   ├── matching/      retrieve.py, judge.py, ladders.py, decide.py
-│   ├── evidence/      odds.py, windows.py, analogs.py, prior.py
+│   ├── evidence/      odds.py, windows.py, weekend.py, analogs.py, prior.py
 │   ├── engine/        fusion.py, impact.py, simulate.py
 │   ├── factors.py, factordata.py, exposure.py
 │   ├── pipeline.py    refresh and analyze

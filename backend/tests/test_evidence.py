@@ -7,7 +7,8 @@ import numpy as np
 import pytest
 
 from redkeep import factordata
-from redkeep.engine.fusion import DeltaReading, OddsReading, assign_tier, fuse_delta, fuse_odds
+from redkeep.engine.fusion import (QUORUM_SE, DeltaReading, FusedOdds, OddsReading, assign_tier, fuse_delta,
+                                    fuse_odds, size_error)
 from redkeep.events import Analog, load_library
 from redkeep.evidence import analogs, odds, prior, windows
 from redkeep.exposure import fit_line
@@ -43,7 +44,8 @@ def test_exposure_regression_recovers_known_betas(fd):
     assert r2_oos > 0.9
 
 
-def test_jump_windows_recover_the_jump():
+def window_world():
+    """Two events whose odds jump on set days, and factor moves driven by those jumps plus noise."""
     rng = np.random.default_rng(5)
     dates = DAYS[-200:]
     T = len(dates)
@@ -55,13 +57,33 @@ def test_jump_windows_recover_the_jump():
     dq = {e: np.diff(np.concatenate([[q[e][0]], q[e]])) for e in q}
     X = rng.normal(0, 0.45, (T, NF)) * 0.3 + sum(np.outer(dq[e], true[e]) for e in q)
     fd = factordata.FactorData(levels={}, dates=dates, X=X, typical=np.ones(NF))
-    hist = {e: dict(zip(dates, q[e].tolist())) for e in q}
+    return {e: dict(zip(dates, q[e].tolist())) for e in q}, fd, true
+
+
+def test_jump_windows_recover_the_jump():
+    hist, fd, true = window_world()
     wf = windows.jump_windows(hist, fd, move=0.05)
-    assert set(wf.readings) == {"a", "b"}
-    for e in q:
+    assert set(wf.readings) == {"a", "b"} and wf.left_out == 0
+    for e in hist:
         r = wf.readings[e]
         assert r.kind == "etf" and r.market
         assert np.all(np.abs(r.delta - true[e]) < 4 * r.sigma + 0.1)
+
+
+def test_days_left_to_the_weekend_perps_drop_out_of_that_factor_only():
+    hist, fd, true = window_world()
+    base = windows.jump_windows(hist, fd, move=0.05)
+    left = {fd.dates[t] for t in (20, 60, 120, 30, 90, 100)}  # three of a's six sharp days, three of b's five
+    wf = windows.jump_windows(hist, fd, move=0.05, skip={index("eq"): left}, left_to="the S&P 500 perp")
+    assert wf.left_out == 6 and wf.windows == base.windows
+    for e in hist:
+        r, r0 = wf.readings[e], base.readings[e]
+        assert np.array_equal(r.delta[1:], r0.delta[1:]) and np.array_equal(r.sigma[1:], r0.sigma[1:])  # other factors
+        assert r.detail == r0.detail + "; 6 that span a weekend are left to the S&P 500 perp"
+    a, b = wf.readings["a"], wf.readings["b"]
+    assert base.readings["a"].sigma[0] < a.sigma[0] < np.inf  # three windows left: a wider error bar
+    assert abs(a.delta[0] - true["a"][0]) < 4 * a.sigma[0] + 0.1
+    assert np.isinf(b.sigma[0])  # two sharp moves left on this factor, below the three a reading needs
 
 
 def test_odds_read_at_the_new_york_close():
@@ -84,6 +106,8 @@ def test_past_events_measure_the_move_on_the_day():
     expected = (levels["SPY"][d0] / levels["SPY"][date(2025, 4, 2)] - 1) * 100 / fd.typical[index("eq")] / 0.5
     assert r.delta[index("eq")] == pytest.approx(expected, rel=1e-9)
     assert r.kind == "past" and not r.market and r.sigma[index("eq")] > 0.3
+    # One past event can't pin the jump's size: its error is at least half the move it measured.
+    assert r.sigma[index("eq")] > 0.5 * abs(r.delta[index("eq")]) > 1.5
 
 
 def test_market_odds_error_grows_with_spread_and_shrinks_with_volume():
@@ -115,6 +139,44 @@ def test_fusion_and_tiers():
     assert fuse_odds([OddsReading("Kalshi", 0.40, 0.01, "market"), OddsReading("AI prior", 0.9, 0.01, "ai")]).q == 0.40
 
 
+def test_only_precise_market_readings_count_toward_the_quorum():
+    jump = np.zeros(NF)
+    jump[[index("eq"), index("rates"), index("oil")]] = [-2.0, 1.5, 1.0]
+    etf = DeltaReading("etf", "ETF windows", "", jump, np.full(NF, 0.4))
+    perps = np.full(NF, np.inf)
+    perps[[index("eq"), index("oil"), index("gold")]] = 3.0
+    vague = DeltaReading("hl", "Weekend windows", "", jump * 0.2, perps)  # sees little, with wide error bars
+    odds = FusedOdds(0.6, 0.02, [], from_market=True, cross_checked=False, disagree=False)
+
+    def tier(f):
+        return assign_tier(odds=odds, delta=f, match_good=True, liquid=True)
+
+    # A vague reading agrees with anything, so it can't help confirm the jump: one precise reading is tier C.
+    f = fuse_delta([etf, vague])
+    assert f.agree and f.n_market_all == 2 and f.n_market == 1
+    assert tier(f).tier == "C" and tier(f).reason.startswith("Only one market reading of the jump is precise enough")
+    # Precise means an error bar on the jump's size of at most half the jump (the app's projection).
+    assert size_error(1 / perps ** 2, f.delta) > QUORUM_SE >= size_error(np.full(NF, 1 / 0.4 ** 2), f.delta)
+    assert size_error(np.zeros(NF), f.delta) == np.inf
+    # Two vague readings confirm nothing.
+    f = fuse_delta([DeltaReading("etf", "ETF windows", "", jump, np.full(NF, 3.0)), vague])
+    assert f.n_market == 0 and f.n_market_all == 2
+    assert tier(f).tier == "C" and tier(f).reason.startswith("The market readings of the jump are too vague")
+    # A precise weekend reading that agrees makes two: tier A.
+    sharp = DeltaReading("hl", "Weekend windows", "", jump * 1.1, np.where(np.isfinite(perps), 0.5, np.inf))
+    f = fuse_delta([etf, sharp])
+    assert f.n_market == 2 and f.agree and tier(f).tier == "A"
+    # A vague reading can still contest a jump that it rules out.
+    against = DeltaReading("hl", "Weekend windows", "", -jump * 4, perps)
+    f = fuse_delta([etf, against])
+    assert f.n_market == 1 and f.agree is False and tier(f).tier == "B"
+    # Precise readings of different factors can't check each other.
+    eq_only = DeltaReading("etf", "ETF windows", "", jump, np.where(np.arange(NF) == index("eq"), 0.4, np.inf))
+    oil_only = DeltaReading("hl", "Weekend windows", "", jump, np.where(np.arange(NF) == index("oil"), 0.3, np.inf))
+    f = fuse_delta([eq_only, oil_only])
+    assert f.n_market == 2 and f.agree is None and tier(f).tier == "C" and "different factors" in tier(f).reason
+
+
 def test_ai_prior_request_and_readings(tmp_path):
     out = prior.Prior(probability=0.12, probability_reasoning="r", move_reasoning="m",
                       moves=prior.FactorMoves(eq=-1, rates=-0.5, infl=0.4, usd=0.2, oil=2.0, credit=0.6, vix=1.5, china=-0.3, chips=-0.4, gold=1.0))
@@ -131,6 +193,9 @@ def test_ai_prior_request_and_readings(tmp_path):
     ai.estimate(spec, date(2026, 11, 8), np.full(NF, 2.0))
     assert len(calls) == 1 and calls[0]["fallbacks"] == "default"
     d = prior.delta_reading(got)
-    assert d.delta[index("oil")] == 2.0 and d.kind == "ai" and np.all(d.sigma == prior.TAU_DELTA)
+    assert d.delta[index("oil")] == 2.0 and d.kind == "ai"
+    # Wide errors that grow with the estimated move: 0.8 typical moves and half the move, in quadrature.
+    assert d.sigma[index("oil")] == pytest.approx(np.hypot(prior.TAU_DELTA, 1.0))
+    assert np.all(d.sigma >= prior.TAU_DELTA) and d.sigma[index("usd")] < d.sigma[index("vix")]
     o = prior.odds_reading(got)
     assert o.kind == "ai" and not o.market and o.q == 0.12

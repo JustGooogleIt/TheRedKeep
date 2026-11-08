@@ -178,10 +178,12 @@ Every source is a noisy reading of two hidden quantities per event: the odds `q`
 
 | Tier | Rule | Shown as |
 |---|---|---|
-| **A · Confirmed** | `q` from a well-matched, liquid market, and `δ` backed by two or more independent market readings that agree (options, ETF windows, Hyperliquid weekend windows) | Normal |
+| **A · Confirmed** | `q` from a well-matched, liquid market, and `δ` backed by two or more independent, precise market readings that agree (options, ETF windows, Hyperliquid weekend windows) | Normal |
 | **B · Contested** | Two or more market readings of `q` or `δ` exist but disagree beyond their error bars | Flagged. The disagreement is the insight |
-| **C · Provisional** | `q` observed, but `δ` has only one market reading, or the match is weak | Wider error bars |
+| **C · Provisional** | `q` observed, but `δ` has fewer than two precise market readings, or the match is weak | Wider error bars |
 | **D · Unpriced** | No prediction market fits; `q` and `δ` come from past events and the AI only | Labeled as a qualitative risk |
+
+**Precise readings.** A reading with wide error bars agrees with almost anything, so agreement alone would let it confirm a jump it can barely see. A market reading therefore counts toward the quorum only if it could confirm the jump on its own: fitted as `k` times the fused jump, its error bar on `k` is `1 / sqrt(Σ_f δ̂_f² / σ_f²)`, and it must be at most 0.5, so the reading alone tells the jump from no jump at two standard errors. Vaguer readings still enter the average and the consistency check, so they can contest a jump, but they can't confirm one. The first live run showed why: a weekend reading that was mostly noise had lifted an event to tier A.
 
 Events also get an "odds cross-checked" badge when Polymarket and Kalshi, or a prediction market and the options two-world fit, agree.
 
@@ -313,7 +315,7 @@ In Castle's terms, the gap between event and contract is **basis risk**: the cha
 - Fit the two-world mixture around the event date (Melick and Thomas 1997) to get the options market's own odds and jump. Options do price political events (Kelly, Pástor and Veronesi 2016).
 - When the options-implied odds differ from the prediction market's, that is a headline insight: "Polymarket says 45%, but your semis options are pricing about 20%."
 
-**Jump windows.** Detect windows where any monitored market moved sharply, then regress factor-proxy returns in each window on all the odds changes in it (4.5). Market-hours windows on ETFs and off-hours windows on Hyperliquid are estimated separately, so they count as separate market readings for the quorum.
+**Jump windows.** Detect windows where any monitored market moved sharply, then regress factor-proxy returns in each window on all the odds changes in it (4.5). Market-hours windows on ETFs and off-hours windows on Hyperliquid are estimated separately, so they count as separate market readings for the quorum. While the ETF windows are daily, Monday's window (Friday's close to Monday's) spans the weekend, so on the factors the perps measure that day is left to the perps and the two readings rest on separate data.
 
 **Hyperliquid's weekend markets.** We checked which non-crypto perps are usable ([research note with 18 sources](research/hyperliquid-noncrypto-perps.md)). In short:
 
@@ -341,9 +343,9 @@ In Castle's terms, the gap between event and contract is **basis risk**: the cha
 - **A bonus.** trade[XYZ] has run HIP-4 event contracts since 10 September 2026 on the same API, so some odds and prices share one clock.
 - **Access.** We only read public data. Trading on trade.xyz is closed to US, UK and Canadian persons.
 
-**Past similar events.** The AI proposes analog dates with reasons, for example the May 2019 tariff escalation. We run a standard event study of factor moves around them (MacKinlay 1997) and scale by how comparable each analog is.
+**Past similar events.** The AI proposes analog dates with reasons, for example the May 2019 tariff escalation. We run a standard event study of factor moves around them (MacKinlay 1997) and scale by how comparable each analog is. No past event is quite the same, so the reading's error includes a model error of half the move it measured (with a floor of 0.3 typical moves): one quiet analog day can't pin a jump's size, and it shouldn't outweigh two market readings. Backtests (E3) will measure this error.
 
-**AI prior.** A structured estimate of `q` and `δ` with stated reasoning, used as the starting point. Its weight comes from its measured error.
+**AI prior.** A structured estimate of `q` and `δ` with stated reasoning, used as the starting point. Its weight comes from its measured error. Until backtests (E3, E6) measure it, the jump's error is 0.8 typical moves per factor and half the estimated move, added in quadrature, so a big estimated move is uncertain in size as well as sign.
 
 ### 6.5 Fusion and tiers
 
@@ -619,7 +621,7 @@ Build a thin vertical slice first, then widen it.
 | M9 | Evals and write-up | E8 and E9; demo script |
 | M10 (optional) | Hedging extension | The budgeted optimizer and live tracking; single-event sizing is already in the prototype |
 
-**Where the build stands.** The M3 slice runs end to end in [`backend/`](../backend/README.md): ten events matched to Polymarket and Kalshi by Claude (including "nothing fits" with the rejected near-misses), odds with cross-checks, jumps from daily jump windows, past events and the AI prior, fusion and tiers, link checks against odds histories, exposures with look-through, and the impacts, priced-in moves and simulation. `redkeep app` feeds a snapshot into the prototype, and `check.js` confirms the prototype's model gives the backend's numbers. A snapshot can also go in without portfolio analyses: the prototype then pairs its events with the illustrative portfolios, rescaled to the snapshot's typical moves, and labels them illustrative. Two simplifications, both documented: jump windows are daily rather than 30-minute, and with only one market reading of each jump (ETF windows), no event can reach tier A until options (M6) and Hyperliquid's weekend windows add the second. The slice is tested offline on recorded response shapes and synthetic prices; its first run on live data comes next.
+**Where the build stands.** The M3 slice runs end to end in [`backend/`](../backend/README.md): ten events matched to Polymarket and Kalshi by Claude (including "nothing fits" with the rejected near-misses), odds with cross-checks, jumps from daily jump windows, past events and the AI prior, fusion and tiers, link checks against odds histories, exposures with look-through, and the impacts, priced-in moves and simulation. `redkeep app` feeds a snapshot into the prototype, and `check.js` confirms the prototype's model gives the backend's numbers. A snapshot can also go in without portfolio analyses: the prototype then pairs its events with the illustrative portfolios, rescaled to the snapshot's typical moves, and labels them illustrative. Hyperliquid's weekend windows add a second market reading on stocks, oil and gold (the S&P 500, WTI and gold perps, measured on trades and censored at the discovery bounds), so an event whose odds move on weekends can reach tier A when both readings are precise and agree; options (M6) will add one on every factor. One simplification remains, documented: jump windows are daily rather than 30-minute. The slice is tested offline on recorded response shapes and synthetic prices; its first run on live data comes next.
 
 ---
 
@@ -632,6 +634,7 @@ Build a thin vertical slice first, then widen it.
 | Which model screens the funnel? | Laya, fine-tuned on Claude's labels, with Jev as the baseline and fallback ([section 8](#8-where-the-ai-is-used-and-where-it-isnt)) |
 | What does the Massive key cover? | It is expected to include option chains and historical ETF holdings |
 | Which Hyperliquid perps are usable? | Stocks, oil, chips (NVIDIA) and, weakly, gold, on weekends and holidays only ([6.4](#64-evidence)) |
+| When does a market reading count toward the quorum? | When it could confirm the jump on its own: its error bar on the jump's size is at most half the jump. Vaguer readings can contest a jump but not confirm it ([4.6](#46-fusion-and-the-market-quorum)) |
 | Which sample portfolios? | Famous published allocations: All Weather, Buffett's 90/10, the Permanent Portfolio and a Yale-style mix ([9.2](#92-screens)) |
 | Default horizon? | Six months, adjustable |
 | How much of Protect and Track to build? | Optional. Single-event hedge sizing is in the prototype; the optimizer and tracking are described, not built ([section 7](#7-optional-extension-hedging-with-event-contracts)) |
@@ -639,7 +642,7 @@ Build a thin vertical slice first, then widen it.
 **Still open**
 
 - Confirm the Massive key's coverage when it arrives: option chains and historical holdings.
-- Confirm Hyperliquid coin names and live depth with the `meta` endpoint, for example whether oil is `xyz:CL` or `xyz:WTIOIL`.
+- Confirm Hyperliquid coin names and live depth on a live run. The engine looks for both `xyz:CL` and `xyz:WTIOIL`, and `redkeep check` lists what the `meta` endpoint returns, with each perp's maximum leverage, which sets its discovery-bound step.
 - Does fine-tuned Laya match Jev on E0?
 - Can we get CME futures data for weeknight windows?
 
@@ -696,7 +699,7 @@ Build a thin vertical slice first, then widen it.
 | Jump | How far the world, and so the portfolio, moves if an event happens |
 | Priced in | The part of the jump today's prices already reflect: the odds times the jump |
 | Swing | How much an event could move you either way: `q (1 − q) Δ²`, shown as ± dollars |
-| Quorum | A number counts as confirmed only when two independent markets agree |
+| Quorum | A number counts as confirmed only when two independent market readings agree, each precise enough to confirm it alone |
 | Tier | Confidence label: A confirmed, B contested, C provisional, D unpriced |
 | Jump window | The minutes right after a prediction market moves sharply on news |
 | Ladder | Related markets that differ only by threshold or deadline |
