@@ -212,7 +212,8 @@ def check_link(parent: dict[date, float], child: dict[date, float], *, min_days:
 
 def refresh(s: Settings, c: Clients, *, today: date | None = None, progress: Progress = print) -> dict:
     if c.judge is None:
-        raise RuntimeError("ANTHROPIC_API_KEY is not set: the matcher needs Claude to judge candidates")
+        raise RuntimeError("No Anthropic key (set REDKEEP_ANTHROPIC_API_KEY or ANTHROPIC_API_KEY): "
+                           "the matcher needs Claude to judge candidates")
     now = datetime.now(timezone.utc)
     today = today or now.date()
     lib = load_library()
