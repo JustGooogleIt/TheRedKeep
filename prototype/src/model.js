@@ -76,7 +76,13 @@ function contributions(ev, P) {
   if (ev.dir) for (const st in ev.dir) { const w = P.stockW[st] || 0; if (w > 0) out.push({ key: 'dir:' + st, name: (NAMES[st] || st) + ' (own line)', move: ev.dir[st], exp: w, c: w * ev.dir[st], direct: true }); }
   return out.sort((a, c) => Math.abs(c.c) - Math.abs(a.c));
 }
-function eventDirect(ev, P) { return contributions(ev, P).reduce((s, x) => s + x.c, 0); }
+// The exact direct move. contributions() leaves out negligible terms, which only matters for display.
+function eventDirect(ev, P) {
+  let s = dot(P.b, ev.d);
+  if (ev.x) for (const e in ev.x) if (P.added.has(e)) s += (P.xRaw[e] || 0) * ev.x[e];
+  if (ev.dir) for (const st in ev.dir) s += (P.stockW[st] || 0) * ev.dir[st];
+  return s;
+}
 
 /* ---------- 4.2-4.4 Odds, what-ifs, knock-ons, priced-in moves, swing ---------- */
 function buildState(P, tw, live, whatIf) {
@@ -99,7 +105,7 @@ function buildState(P, tw, live, whatIf) {
     }
     e.phEff = e.resolved ? e.qEff : clamp(e.ph0 + e.shift, 0.005, 0.995);
   });
-  evs.forEach(e => { e.contrib = contributions(e, P); e.dD = e.contrib.reduce((s, x) => s + x.c, 0); });
+  evs.forEach(e => { e.contrib = contributions(e, P); e.dD = eventDirect(e, P); });
   [...order].reverse().forEach(e => {
     e.knock = e.children.map(c => { const ce = byId[c.id]; return { id: c.id, w: c.w, d: ce.resolved ? 0 : c.w * ce.dT }; });
     e.dT = e.dD + e.knock.reduce((s, k) => s + k.d, 0);
@@ -251,8 +257,9 @@ function mapGeometry(evs, P, mode) {
   return { pos, arrow: a.map(v => v / na), ends: { x: AXES3[0].ends, y: AXES3[1].ends, z: AXES3[2].ends } };
 }
 
-/* ---------- Odds history (illustrative): a bridge in log-odds space ---------- */
+/* ---------- Odds history: the snapshot's daily closes, or an illustrative bridge in log-odds space ---------- */
 function oddsHistory(e, n = 120) {
+  if (e.series && e.series.length >= 2) return e.series.concat([e.q]);
   if (!e.hist) return null;
   const rng = mulberry32(hashStr(e.id)); const { h0, y, j = [] } = e.hist;
   const inc = new Array(n - 2).fill(0).map(() => (rng() - 0.5) * 0.18);

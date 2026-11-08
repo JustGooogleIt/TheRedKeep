@@ -7,11 +7,11 @@ function Pipeline({ P, S, sim, tw }) {
   const matched = inH.filter(e => e.m).length;
   const nT = t => inH.filter(e => e.tier === t).length;
   const steps = [
-    ['Look through', html`<b>${P.rows.length}</b> holdings → <b>${P.nUnderlying}</b> companies`, 'Funds are replaced by what they hold, so overlaps add up.'],
+    ['Look through', html`<b>${P.rows.length}</b> holding${P.rows.length === 1 ? '' : 's'} → <b>${P.nUnderlying}</b> companies`, 'Funds are replaced by what they hold, so overlaps add up.'],
     ['Exposure', html`<b>${NF + P.extras.length}</b> factors · fit <b>${P.fit == null ? '–' : Math.round(P.fit * 100) + '%'}</b>`, 'Ten core factors, plus extras pulled in only when this portfolio needs them.'],
     ['Discover', html`<b>${inH.length}</b> events in ${tw.horizon} months`, 'Events that resolve inside your horizon. The real library keeps about 250, tagged from thousands of markets by Laya.'],
     ['Match', html`<b>${matched}</b> matched · <b>${inH.length - matched}</b> unpriced`, 'Each event is matched to a prediction market with the same resolution rule, or marked unpriced.'],
-    ['Evidence', html`<b>${nT('A')}</b> confirmed · <b>${nT('B')}</b> contested`, 'Options, ETF windows and Hyperliquid’s weekend perps each measure the jump. The engine checks that they agree.'],
+    ['Evidence', html`<b>${nT('A')}</b> confirmed · <b>${nT('B')}</b> contested`, DATASET === 'live' ? 'Daily ETF windows, past events and the AI prior each measure the jump. Options and Hyperliquid readings come next; tier A needs two market readings that agree.' : 'Options, ETF windows and Hyperliquid’s weekend perps each measure the jump. The engine checks that they agree.'],
     ['Graph', tw.knock ? html`<b>${S.links.length}</b> knock-on links` : html`Knock-ons <b>off</b>`, 'Some events make others likelier. Their effects are added along the links.'],
     ['Simulate', html`<b>${sim.n.toLocaleString('en-US')}</b> runs · ${Math.max(1, Math.round(sim.ms || 0))} ms`, 'Joint scenarios over the event graph, at market odds.'],
   ];

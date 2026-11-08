@@ -1,10 +1,13 @@
-// Checks the prototype's math against the design doc. Run: node prototype/check.js
+// Checks the prototype's math against the design doc. Run: node prototype/check.js [live.js]
+// With a live.js from `redkeep app`, it also checks that the app reproduces the backend engine's numbers.
 'use strict';
 const fs = require('fs'), path = require('path'), vm = require('vm');
 
 const src = f => fs.readFileSync(path.join(__dirname, 'src', f), 'utf8');
+const livePath = process.argv[2];
 const M = vm.runInNewContext(
-  src('data.js') + '\n' + src('model.js') + '\n;({ SAMPLES, analyzePortfolio, buildState, simulate })',
+  (livePath ? fs.readFileSync(livePath, 'utf8') : '') + '\n' + src('data.js') + '\n' + src('model.js') + '\n' + src('dataset.js') +
+  '\n;({ SAMPLES, analyzePortfolio, buildState, simulate, applyDataset, HAS_LIVE, LIVE: typeof RK_LIVE === "undefined" ? null : RK_LIVE })',
   { console },
 );
 
@@ -53,6 +56,25 @@ for (const s of M.SAMPLES) {
 }
 
 function analyze(id) { return M.analyzePortfolio(holdings(M.SAMPLES.find(s => s.id === id))); }
+
+// A backend snapshot: the app's model must reproduce the engine's own numbers for every analyzed portfolio.
+if (livePath) {
+  check('live.js holds a backend snapshot', M.HAS_LIVE);
+  M.applyDataset('live');
+  for (const r of M.LIVE.results) {
+    const P = analyze(r.sample);
+    check(r.sample + ': value matches the engine', Math.abs(P.V - r.value) <= 1e-6 * Math.max(1, r.value), P.V.toFixed(2) + ' vs ' + r.value.toFixed(2));
+    const bGap = Math.max(...P.b.map((v, k) => Math.abs(v - r.b[k])));
+    check(r.sample + ': the exposure arrow matches the engine', bGap < 1e-4, bGap.toExponential(1) + ' largest gap');
+    const S = M.buildState(P, { ...tw, horizon: r.horizon }, {}, r.whatIf || {});
+    let gap = 0;
+    for (const x of r.events) {
+      const e = S.byId[x.id];
+      gap = Math.max(gap, Math.abs(e.dD - x.direct), Math.abs(e.dT - x.total), Math.abs(e.ifYes - x.if_yes), Math.abs(e.ifNo - x.if_no), Math.abs(e.swingPct - x.swing_pct));
+    }
+    check(r.sample + ': every event\'s moves match the engine', gap < 1e-4, gap.toExponential(1) + ' largest gap, in % points');
+  }
+}
 
 console.log(failures ? '\n' + failures + ' check(s) failed' : '\nall checks passed');
 process.exit(failures ? 1 : 0);

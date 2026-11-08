@@ -99,8 +99,10 @@ function KeepMark({ size = 22 }) {
 }
 
 /* ---------- banner, floating glass nav, hero, intro ---------- */
-function Banner() {
-  return html`<div className="banner"><span className="banner-dot" aria-hidden="true"></span>Illustrative data · Snapshot ${fmtDate(TODAY)}<span className="banner-x"> · An independent take-home for Castle</span></div>`;
+function Banner({ ds, setDs }) {
+  const live = ds === 'live';
+  return html`<div className="banner"><span className="banner-dot" aria-hidden="true"></span>${live ? 'Backend snapshot · ' + fmtStamp(RK_LIVE.asOf) : 'Illustrative data · Snapshot ' + fmtDate(TODAY)}
+    ${HAS_LIVE && html`<button className="banner-btn" onClick=${() => setDs(live ? 'demo' : 'live')}>${live ? 'Show illustrative data' : 'Show backend snapshot'}</button>`}<span className="banner-x"> · An independent take-home for Castle</span></div>`;
 }
 
 // True once the element's bottom edge has scrolled up past `offset` pixels from the top.
@@ -268,9 +270,9 @@ function PortfolioCard({ holdings, P, sampleId, onPick, onEdit }) {
     ${sample && html`<p className="sample-note">${sample.note}</p>`}
     ${holdings.length > 0 && html`<div className="holds">${holdings.map((h, i) => html`<${HoldingRow} key=${h.id} h=${h} row=${rowById[h.id]} onChange=${x => change(i, x)} onRemove=${() => remove(i)} />`)}</div>`}
     <${AddHolding} onAdd=${add} />
-    <details className="universe"><summary>${Object.keys(TICKERS).length} tickers in this prototype</summary>
+    <details className="universe"><summary>${Object.keys(TICKERS).length} tickers in this ${DATASET === 'live' ? 'snapshot' : 'prototype'}</summary>
       <p>${Object.keys(TICKERS).join(' ')}</p>
-      <p style=${{ fontFamily: 'var(--f-body)', wordSpacing: 0, lineHeight: 1.5 }}>The real system covers anything with holdings data from Massive.</p>
+      <p style=${{ fontFamily: 'var(--f-body)', wordSpacing: 0, lineHeight: 1.5 }}>${DATASET === 'live' ? 'The tickers in the portfolios analyzed for this snapshot. The backend’s API analyzes any ticker Massive prices.' : 'The real system covers anything with holdings data from Massive.'}</p>
     </details>
   </section>`;
 }
@@ -292,7 +294,7 @@ function LookThrough({ P }) {
   const lines = items.filter(o => o.kind === 'line').length;
   return html`<section className="card" aria-labelledby="lt-h">
     <div className="card-head"><div><span className="kicker">Step 1 · Look through</span><h3 className="h3" id="lt-h" style=${{ marginTop: 6 }}>What you actually own</h3>
-      <p className="sub">${P.rows.length} holding${P.rows.length === 1 ? '' : 's'} become ${P.nUnderlying} named companies${lines ? ', ' + lines + ' other line' + (lines === 1 ? '' : 's') : ''} and each fund’s long tail. A company held through several funds is added up.</p></div></div>
+      <p className="sub">${P.rows.length} holding${P.rows.length === 1 ? ' becomes' : 's become'} ${P.nUnderlying} named companies${lines ? ', ' + lines + ' other line' + (lines === 1 ? '' : 's') : ''} and each fund’s long tail. A company held through several funds is added up.</p></div></div>
     <ul className="lt-list">${shown.map(o => html`<li key=${o.key}>
       <div className="lt-top"><span className="tk">${ltTicker(o)}</span><span className="lt-name">${ltName(o)}</span>${o.kind === 'stock' && o.w >= 0.05 && html`<span className="pill pill-acc" title="At 5% or more, the engine also tracks this company’s own event risk">Own line</span>`}<span className="lt-w mono">${(o.w * 100).toFixed(1)}%</span></div>
       <div className="bar"><i style=${{ width: (o.w / mx * 100).toFixed(1) + '%' }}></i></div>
@@ -305,7 +307,7 @@ function LookThrough({ P }) {
 function Exposure({ P }) {
   const rows = FACTORS.map((f, k) => ({ key: f.k, name: f.name, v: P.b[k], f })).concat(P.extras.map(e => ({ key: e.k, name: e.name, v: e.v, f: e, extra: true })));
   const mx = Math.max(1, ...rows.map(r => Math.abs(r.v)));
-  const typ = f => f.typical + (f.unit === '%' ? '%' : ' ' + f.unit);
+  const typ = f => +f.typical.toPrecision(2) + (f.unit === '%' ? '%' : ' ' + f.unit);
   return html`<section className="card" aria-labelledby="ex-h">
     <div className="card-head"><div><span className="kicker">Step 2 · Exposure</span><h3 className="h3" id="ex-h" style=${{ marginTop: 6 }}>Which way it leans</h3>
       <p className="sub">How much the portfolio moves when each factor has a typical day. Hover a row for its scale.</p></div></div>

@@ -4,7 +4,7 @@
    Event vectors are in "typical moves" of each factor if the event happens.
    Factor order: eq, rates, infl, usd, oil, credit, vix, china, chips, gold
    ========================================================================== */
-const TODAY = '2026-11-08';
+let TODAY = '2026-11-08'; // a backend snapshot replaces this and the data below (dataset.js)
 
 const FACTORS = [
   { k: 'eq',     name: 'US stocks',              short: 'Stocks',    proxy: 'SPY',          unit: '%',   typical: 2.2, up: 'stocks up' },
