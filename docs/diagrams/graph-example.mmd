@@ -1,0 +1,10 @@
+flowchart LR
+  classDef ev fill:#EFF6FF,stroke:#2563EB,color:#0F172A
+  classDef res fill:#F8FAFC,stroke:#64748B,color:#0F172A
+  T["Tariffs on China 25%+<br/>market odds 40%<br/>direct hit on QQQ: −6%"]
+  R["US recession<br/>hit on QQQ: −10%"]
+  X["Total jump: −6% + 0.25 × −10% = −8.5%<br/>If tariffs happen: 60% × −8.5% = −5.1%<br/>If they don't: 40% × 8.5% = +3.4%<br/>At 40% odds the two outcomes balance to zero"]
+  T -- recession odds 25 points higher<br/>with tariffs than without --> R
+  T -. adds up to .-> X
+  class T,R ev
+  class X res

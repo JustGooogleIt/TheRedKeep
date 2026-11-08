@@ -1,0 +1,43 @@
+flowchart TB
+  classDef src fill:#F8FAFC,stroke:#64748B,color:#0F172A
+  classDef ai fill:#F8FAFC,stroke:#94A3B8,stroke-dasharray:4 3,color:#334155
+  classDef qty fill:#EFF6FF,stroke:#2563EB,stroke-width:2px,color:#0F172A
+  classDef gate fill:#FFFFFF,stroke:#0F172A,color:#0F172A
+  classDef tA fill:#ECFDF5,stroke:#059669,color:#064E3B
+  classDef tB fill:#FFFBEB,stroke:#D97706,color:#78350F
+  classDef tC fill:#F1F5F9,stroke:#64748B,color:#0F172A
+  classDef tD fill:#FEF2F2,stroke:#DC2626,color:#7F1D1D
+
+  S1["Prediction markets<br/>odds, corrected for<br/>long-shot bias"]
+  S2["Options<br/>event-day volatility and<br/>two-world fit"]
+  S3["Jump windows<br/>moves right after a<br/>prediction market jumps"]
+  S4["Past similar events<br/>event studies of<br/>factor moves"]
+  S5["AI prior<br/>starting guess,<br/>weight earned in backtests"]
+
+  Q(("q<br/>odds"))
+  J(("δ<br/>jump vector"))
+
+  S1 --> Q
+  S2 --> Q
+  S2 --> J
+  S3 --> J
+  S4 --> J
+
+  G{"Fusion and<br/>quorum check"}
+  Q --> G
+  J --> G
+  S5 -. prior .-> G
+
+  G --> A["A. Confirmed<br/>jump backed by 2+<br/>agreeing markets"]
+  G --> B["B. Contested<br/>markets disagree,<br/>shown as a signal"]
+  G --> C["C. Provisional<br/>one market<br/>for the jump"]
+  G --> D["D. Unpriced<br/>no market fits,<br/>past events and AI only"]
+
+  class S1,S2,S3,S4 src
+  class S5 ai
+  class Q,J qty
+  class G gate
+  class A tA
+  class B tB
+  class C tC
+  class D tD
