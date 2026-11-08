@@ -220,7 +220,8 @@ class World:
 
         def answer(body):
             if body["type"] == "meta":
-                return {"universe": [{"name": "xyz:SP500", "maxLeverage": 50}, {"name": "xyz:NVDA", "maxLeverage": 20}]}
+                return {"universe": [{"name": "xyz:SP500", "maxLeverage": 50}, {"name": "xyz:NVDA", "maxLeverage": 20},
+                                     {"name": "xyz:OLD", "maxLeverage": 10, "isDelisted": True}]}
             req = body["req"]
             self.requests.append(req)
             hours = [now - timedelta(hours=k) for k in range(1, 72)]

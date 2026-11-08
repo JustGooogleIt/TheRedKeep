@@ -2,8 +2,8 @@
 
 Run it on a schedule, hourly for example. Each run adds only what is new since the last one:
 
-* **Hyperliquid candles** for every trade[XYZ] perp (or only the perps the weekend windows use), from the last candle
-  stored. The API keeps only the latest 5,000 candles of each interval, about 208 days of hourly ones, so anything
+* **Hyperliquid candles** for every listed trade[XYZ] perp (or only the perps the weekend windows use), from the last
+  candle stored. Delisted perps are skipped. The API keeps only the latest 5,000 candles of each interval, about 208 days of hourly ones, so anything
   older exists only in the store. The first run reads all that the API still has.
 * **The market catalogue**: every listed market's details and quotes on both venues, as ``refresh`` reads it.
   Neither venue keeps past quotes, so a spread as of last Tuesday exists only here.
@@ -68,7 +68,7 @@ def _perps(c, rec: Recording, intervals, engine_perps: bool, now: datetime, prog
     except Exception as e:  # a source that fails is reported; the rest still records
         rec.warnings.append(f"Hyperliquid unavailable: {type(e).__name__}: {e}")
         return
-    coins = sorted(listed)
+    coins = sorted(x for x, spec in listed.items() if not spec.get("isDelisted"))  # delisted perps print no more candles
     if engine_perps:
         coins = [x for p in PERPS for x in [next((x for x in p.coins if x in listed), None)] if x]
     n = 0
