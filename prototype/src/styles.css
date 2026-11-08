@@ -153,6 +153,62 @@ a { color: var(--accent); }
 .hero-sub { font: 500 18px/1.5 var(--f-body); color: rgba(255, 255, 255, .86); margin: 16px auto 0; max-width: 54ch; text-wrap: pretty; }
 .hero-cta { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 26px; }
 
+/* ---------- dragon scroll scene (ui-dragon.js). Every rule is scoped to .dragon. ----------
+   A tall section with a sticky full-viewport stage; scrolling its length drives the scene.
+   The palette is the Crimson Flight study's; type and buttons are the site's. */
+.dragon { position: relative; height: 440vh; margin-top: calc(-1 * var(--nav-h)); background: #13040A; color: #F6E9E4; }
+.dragon .dragon-stage { position: sticky; top: 0; height: 100vh; height: 100svh; overflow: hidden; background: #16050D; }
+.dragon .dragon-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.dragon .dragon-shade { position: absolute; inset: 0; pointer-events: none; background: linear-gradient(180deg, #13040A70, transparent 27%, transparent 73%, #13040A90), radial-gradient(ellipse, transparent 40%, #13040A66); }
+.dragon .dragon-intro, .dragon .dragon-end { position: absolute; left: 8%; right: 8%; max-width: 780px; pointer-events: none; will-change: opacity, transform; }
+.dragon .dragon-intro { top: 23%; }
+.dragon .dragon-end { top: 28%; opacity: 0; visibility: hidden; }
+.dragon .dragon-eyebrow { font: 500 11px/1.6 var(--f-mono); letter-spacing: .16em; text-transform: uppercase; color: #E48B9E; margin: 0 0 22px; }
+.dragon .dragon-h { font-family: var(--f-display); font-weight: 400; font-size: clamp(46px, 6.7vw, 104px); line-height: 1.02; letter-spacing: -.03em; color: #FFF4EF; margin: 0; text-wrap: balance; text-shadow: 0 2px 25px #16020D; }
+.dragon h2.dragon-h { font-size: clamp(44px, 6vw, 90px); }
+.dragon .dragon-sub { font: 400 17px/1.55 var(--f-body); color: #D9B9BD; margin: 22px 0 0; max-width: 46ch; text-wrap: pretty; text-shadow: 0 1px 2px #16020D, 0 0 16px #16020D; }
+.dragon .dragon-cta { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 30px; pointer-events: auto; }
+.dragon .dragon-hud { position: absolute; inset: 0; pointer-events: none; font: 500 10px/1.5 var(--f-mono); letter-spacing: .2em; text-transform: uppercase; }
+.dragon .dragon-chapter { position: absolute; bottom: 41px; left: 4%; display: flex; gap: 24px; color: #C3A0A9; }
+.dragon .dragon-chapter b { font-weight: 500; color: #F23B61; white-space: nowrap; }
+.dragon .dragon-hint { position: absolute; bottom: 39px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 18px; font-size: 9px; color: #D0A8B2; white-space: nowrap; }
+.dragon .dragon-hint i { display: block; width: 42px; height: 1px; background: #894A5D; }
+.dragon .dragon-rail { position: absolute; right: 4%; bottom: 43px; width: 120px; height: 2px; background: #69404E; }
+.dragon .dragon-rail i { display: block; height: 100%; background: #EF3458; transform-origin: 0 50%; transform: scaleX(0); }
+/* Narrower: the chapter and rail move up a row so the scroll hint gets its own line. */
+@media (max-width: 1100px) {
+  .dragon .dragon-chapter { bottom: 70px; right: calc(4% + 144px); }
+  .dragon .dragon-hint { bottom: 27px; }
+  .dragon .dragon-rail { bottom: 75px; }
+}
+@media (max-width: 650px) {
+  .dragon .dragon-intro, .dragon .dragon-end { left: 7%; right: 7%; }
+  .dragon .dragon-intro { top: 15%; }
+  .dragon .dragon-eyebrow { font-size: 8px; letter-spacing: .12em; margin-bottom: 14px; }
+  .dragon .dragon-h { font-size: 42px; letter-spacing: -.02em; }
+  .dragon h2.dragon-h { font-size: 40px; }
+  .dragon .dragon-sub { font-size: 14px; line-height: 1.5; margin-top: 14px; }
+  .dragon .dragon-cta { margin-top: 18px; }
+  .dragon .dragon-cta .btn { padding: 11px 14px; font-size: 13px; }
+  .dragon .dragon-hud { font-size: 8px; }
+  .dragon .dragon-chapter { left: 6%; right: calc(6% + 86px); gap: 12px; }
+  .dragon .dragon-rail { right: 6%; width: 70px; }
+}
+/* Short windows, such as a phone held sideways: tighter copy that clears the nav, and a one-row HUD. */
+@media (max-height: 620px) and (min-width: 651px) {
+  .dragon .dragon-intro, .dragon .dragon-end { top: calc(var(--nav-h) + 16px); }
+  .dragon .dragon-eyebrow { margin-bottom: 10px; }
+  .dragon .dragon-h, .dragon h2.dragon-h { font-size: clamp(34px, 5vw, 56px); }
+  .dragon .dragon-sub { font-size: 14px; margin-top: 10px; }
+  .dragon .dragon-cta { margin-top: 14px; }
+  .dragon .dragon-cta .btn { padding: 10px 14px; font-size: 13px; }
+}
+@media (max-height: 620px) and (min-width: 651px) and (max-width: 1100px) {
+  .dragon .dragon-chapter { bottom: 24px; }
+  .dragon .dragon-rail { bottom: 30px; }
+  .dragon .dragon-hint { display: none; }
+}
+
 /* ---------- page ---------- */
 .wrap { max-width: 1440px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
 #app { scroll-margin-top: calc(var(--nav-h) + 4px); }

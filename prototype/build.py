@@ -3,13 +3,19 @@
 - index.html                 a standalone page: open it in any browser.
 - dist/the-red-keep.html     the same page in Claude artifact form (no doctype, head or body tags),
                              published with dist/hero.webp and dist/hero-960.webp beside it.
+
+citadel.webp, the faint castle behind the dragon scene, is inlined as a data URL: the scene
+reads its canvas back pixel by pixel, which an image from another origin (or from a file://
+page) would block.
 """
-import pathlib, shutil
+import base64, pathlib, shutil
 
 here = pathlib.Path(__file__).resolve().parent
 src = here / 'src'
 css = (src / 'styles.css').read_text()
-js = '\n'.join((src / f).read_text() for f in ['data.js', 'model.js', 'ui-core.js', 'ui-analysis.js', 'ui-rest.js'])
+citadel = 'data:image/webp;base64,' + base64.b64encode((here / 'citadel.webp').read_bytes()).decode()
+js = f'const RK_CITADEL = "{citadel}";\n' + '\n'.join(
+    (src / f).read_text() for f in ['data.js', 'model.js', 'ui-core.js', 'ui-analysis.js', 'ui-dragon.js', 'ui-rest.js'])
 assert '</script' not in js.lower() and '</style' not in css.lower()
 
 meta = '''<meta name="description" content="Scenario Analysis Engine. Ashwin's take-home for Castle.">

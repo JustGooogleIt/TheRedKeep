@@ -280,13 +280,19 @@ function ReplayView({ P, tw }) {
 }
 
 /* ---------- tweaks ---------- */
-const DEFAULT_TWEAKS = { odds: 'market', knock: true, horizon: 6, tiers: 'ABCD', topN: 12, sims: 4000, noise: false, theme: 'auto', accent: 'dragon', heading: 'serif', density: 'comfortable', hero: true, view: 'macro', rotate: true, labels: 'top', links: true };
+const DEFAULT_TWEAKS = { odds: 'market', knock: true, horizon: 6, tiers: 'ABCD', topN: 12, sims: 4000, noise: false, theme: 'auto', accent: 'dragon', heading: 'serif', density: 'comfortable', hero: 'dragon', glow: 'normal', citadel: true, view: 'macro', rotate: true, labels: 'top', links: true };
 const TWEAK_OPTS = {
   odds: ['market', 'calibrated'], knock: [true, false], horizon: [3, 6, 12], tiers: ['ABCD', 'ABC', 'AB'], topN: [8, 12, 'all'], sims: [2000, 4000, 10000], noise: [false, true],
-  theme: ['auto', 'light', 'dark'], accent: ['dragon', 'ember', 'teal', 'steel'], heading: ['serif', 'sans'], density: ['comfortable', 'compact'], hero: [true, false],
+  theme: ['auto', 'light', 'dark'], accent: ['dragon', 'ember', 'teal', 'steel'], heading: ['serif', 'sans'], density: ['comfortable', 'compact'], hero: ['dragon', 'image', 'off'], glow: ['normal', 'bright'], citadel: [true, false],
   view: ['macro', 'mine', 'flat'], rotate: [true, false], labels: ['top', 'all', 'none'], links: [true, false],
 };
-function cleanTweaks(t) { const o = {}; if (t && typeof t === 'object') for (const k in TWEAK_OPTS) if (TWEAK_OPTS[k].includes(t[k])) o[k] = t[k]; return o; }
+function cleanTweaks(t) {
+  const o = {}; if (!t || typeof t !== 'object') return o;
+  // Earlier versions saved the hero as on or off; on now opens on the dragon scene.
+  if (typeof t.hero === 'boolean') t = { ...t, hero: t.hero ? 'dragon' : 'off' };
+  for (const k in TWEAK_OPTS) if (TWEAK_OPTS[k].includes(t[k])) o[k] = t[k];
+  return o;
+}
 
 function TweaksSheet({ tw, setTw, onClose }) {
   const [copied, setCopied] = useState(null); const closeRef = useRef(null);
@@ -318,7 +324,9 @@ function TweaksSheet({ tw, setTw, onClose }) {
           ${Row('Accent', null, 'accent', [['dragon', 'Dragon'], ['ember', 'Ember'], ['teal', 'Teal'], ['steel', 'Steel']])}
           ${Row('Headings', null, 'heading', [['serif', 'Serif'], ['sans', 'Sans']])}
           ${Row('Density', null, 'density', [['comfortable', 'Roomy'], ['compact', 'Compact']])}
-          ${Row('Hero image', 'Hide it to open straight on the engine', 'hero', [[true, 'On'], [false, 'Off']])}
+          ${Row('Hero', 'Scroll scene, still image or none', 'hero', [['dragon', 'Dragon'], ['image', 'Image'], ['off', 'Off']])}
+          ${tw.hero === 'dragon' && Row('Dragon glow', null, 'glow', [['normal', 'Normal'], ['bright', 'Bright']])}
+          ${tw.hero === 'dragon' && Row('Castle behind the dragon', 'A faint citadel in the numbers', 'citadel', [[true, 'On'], [false, 'Off']])}
         </div>
         <div className="tw-group"><span className="label">Map</span>
           ${Row('View', null, 'view', [['macro', 'Macro'], ['mine', 'Mine'], ['flat', '2D']])}
@@ -388,7 +396,8 @@ function App() {
   const [tweaksOpen, setTweaksOpen] = useState(false);
   const [aiOK, setAiOK] = useState(false);
   const heroRef = useRef(null);
-  const pastHero = useScrolledPast(heroRef, 36, tw.hero);
+  const heroOn = tw.hero !== 'off';
+  const pastHero = useScrolledPast(heroRef, 36, heroOn && tw.hero);
 
   useEffect(() => { saveState({ holdings, sampleId, tweaks: tw, tab }); }, [holdings, sampleId, tw, tab]);
   useEffect(() => { let on = true; getSample().then(s => { if (on) setAiOK(!!s); }); return () => { on = false; }; }, []);
@@ -437,17 +446,18 @@ function App() {
     requestAnimationFrame(() => {
       const el = document.getElementById('app'); if (!el) return;
       // With the hero on, land just past it; without it the nav sits in the flow above the app.
-      const navOffset = document.querySelector('.hero') ? 0 : 64;
+      const navOffset = heroRef.current ? 0 : 64;
       window.scrollTo({ top: Math.max(0, el.getBoundingClientRect().top + window.scrollY - navOffset), behavior: REDUCED ? 'auto' : 'smooth' });
     });
   }, []);
   const selEv = sel ? S.byId[sel] : null;
   const hasLive = Object.keys(liveOdds).length > 0;
 
-  return html`<div className=${cls('app', !tw.hero && 'no-hero')} data-accent=${tw.accent} data-heading=${tw.heading} data-density=${tw.density}>
+  return html`<div className=${cls('app', !heroOn && 'no-hero')} data-accent=${tw.accent} data-heading=${tw.heading} data-density=${tw.density}>
     <${Banner} />
-    <${Nav} tab=${tab} goTab=${goTab} live=${live} setLive=${setLive} openTweaks=${() => setTweaksOpen(true)} solid=${!tw.hero || pastHero} />
-    ${tw.hero && html`<${Hero} tw=${tw} goTab=${goTab} heroRef=${heroRef} />`}
+    <${Nav} tab=${tab} goTab=${goTab} live=${live} setLive=${setLive} openTweaks=${() => setTweaksOpen(true)} solid=${!heroOn || pastHero} />
+    ${tw.hero === 'dragon' ? html`<${DragonScene} tw=${tw} goTab=${goTab} heroRef=${heroRef} />`
+      : tw.hero === 'image' ? html`<${Hero} tw=${tw} goTab=${goTab} heroRef=${heroRef} />` : null}
     <div className="wrap" id="app">
       <${Intro} tab=${tab} />
       <div className="layout">

@@ -435,7 +435,7 @@ The UI borrows Castle's component layer so it would sit comfortably next to thei
 - **Surfaces.** A light gray canvas (`#F5F5F5`), flat white cards with 4px corners, ink text (`#171717`), a floating glass nav, and a dark band and footer.
 - **Color.** Dragon red (`#B4141F`) as the accent. Losses use Castle's red-brown risk color (`#7C4632`) and gains forest green (`#395938`). Deep teal, blue and sage mark the confidence tiers.
 - **Dark mode.** Maroon near-blacks instead of pure black, with a brighter red accent.
-- **Hero.** A custom illustration of a red dragon over a castle on a sea cliff, in mauve and rose with a halftone texture.
+- **Hero.** A scroll scene at the top of the page: a lean dragon drawn entirely in crimson digits beats its wings and breathes fire upward, and the fire grows as you scroll. The digits sit on a fixed grid, the wings and flame keep moving when scrolling stops, and a faint castle from the hero illustration (a red dragon over a castle on a sea cliff, in mauve and rose with a halftone texture) sits behind it. With reduced motion it holds one still pose and redraws only when you scroll. Tweaks can switch to the still illustration or hide the hero.
 - **Branding.** The Red Keep's own mark with "an independent take-home for Castle, not affiliated". Castle's logo is not used in the app.
 
 ### 9.2 Screens
@@ -565,7 +565,7 @@ Ground rules: time-based splits only (fit on the past, test on the future), poin
 - **Backend:** Python 3.12 and FastAPI; pandas, NumPy and SciPy; statsmodels for regressions; scikit-learn for the graphical lasso and isotonic regression; PyMC for fusion v2; DuckDB for market data and point-in-time snapshots; a scheduler for the shared jobs.
 - **AI:** the Anthropic Python SDK, with a stronger Claude model for funnel labels, matching, analogs and explanations, and for the markets Laya is unsure about. Structured outputs and prompt caching. Laya runs with Hugging Face Transformers on CPU.
 - **Frontend:** Next.js with TypeScript and Tailwind; react-three-fiber for the 3D map; Recharts or visx for 2D charts; websockets for live updates.
-- **Prototype:** a single-page React app with no build step (React and htm from a CDN, hand-drawn SVG charts and a small 3D projection). `prototype/build.py` stitches the sources into one HTML file, and `prototype/check.js` checks its math against sections 3 and 4. It is the visual spec for the full app.
+- **Prototype:** a single-page React app with no build step (React and htm from a CDN, hand-drawn SVG charts, a small 3D projection and a canvas scroll scene). `prototype/build.py` stitches the sources into one HTML file, and `prototype/check.js` checks its math against sections 3 and 4. It is the visual spec for the full app.
 - **Tooling:** pytest, an `evals/` harness that writes reports to `evals/reports/`, and Makefile targets for common tasks.
 
 ```

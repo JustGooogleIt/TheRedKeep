@@ -164,6 +164,62 @@ a { color: var(--accent); }
 .hero-sub { font: 500 18px/1.5 var(--f-body); color: rgba(255, 255, 255, .86); margin: 16px auto 0; max-width: 54ch; text-wrap: pretty; }
 .hero-cta { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 26px; }
 
+/* ---------- dragon scroll scene (ui-dragon.js). Every rule is scoped to .dragon. ----------
+   A tall section with a sticky full-viewport stage; scrolling its length drives the scene.
+   The palette is the Crimson Flight study's; type and buttons are the site's. */
+.dragon { position: relative; height: 440vh; margin-top: calc(-1 * var(--nav-h)); background: #13040A; color: #F6E9E4; }
+.dragon .dragon-stage { position: sticky; top: 0; height: 100vh; height: 100svh; overflow: hidden; background: #16050D; }
+.dragon .dragon-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.dragon .dragon-shade { position: absolute; inset: 0; pointer-events: none; background: linear-gradient(180deg, #13040A70, transparent 27%, transparent 73%, #13040A90), radial-gradient(ellipse, transparent 40%, #13040A66); }
+.dragon .dragon-intro, .dragon .dragon-end { position: absolute; left: 8%; right: 8%; max-width: 780px; pointer-events: none; will-change: opacity, transform; }
+.dragon .dragon-intro { top: 23%; }
+.dragon .dragon-end { top: 28%; opacity: 0; visibility: hidden; }
+.dragon .dragon-eyebrow { font: 500 11px/1.6 var(--f-mono); letter-spacing: .16em; text-transform: uppercase; color: #E48B9E; margin: 0 0 22px; }
+.dragon .dragon-h { font-family: var(--f-display); font-weight: 400; font-size: clamp(46px, 6.7vw, 104px); line-height: 1.02; letter-spacing: -.03em; color: #FFF4EF; margin: 0; text-wrap: balance; text-shadow: 0 2px 25px #16020D; }
+.dragon h2.dragon-h { font-size: clamp(44px, 6vw, 90px); }
+.dragon .dragon-sub { font: 400 17px/1.55 var(--f-body); color: #D9B9BD; margin: 22px 0 0; max-width: 46ch; text-wrap: pretty; text-shadow: 0 1px 2px #16020D, 0 0 16px #16020D; }
+.dragon .dragon-cta { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 30px; pointer-events: auto; }
+.dragon .dragon-hud { position: absolute; inset: 0; pointer-events: none; font: 500 10px/1.5 var(--f-mono); letter-spacing: .2em; text-transform: uppercase; }
+.dragon .dragon-chapter { position: absolute; bottom: 41px; left: 4%; display: flex; gap: 24px; color: #C3A0A9; }
+.dragon .dragon-chapter b { font-weight: 500; color: #F23B61; white-space: nowrap; }
+.dragon .dragon-hint { position: absolute; bottom: 39px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 18px; font-size: 9px; color: #D0A8B2; white-space: nowrap; }
+.dragon .dragon-hint i { display: block; width: 42px; height: 1px; background: #894A5D; }
+.dragon .dragon-rail { position: absolute; right: 4%; bottom: 43px; width: 120px; height: 2px; background: #69404E; }
+.dragon .dragon-rail i { display: block; height: 100%; background: #EF3458; transform-origin: 0 50%; transform: scaleX(0); }
+/* Narrower: the chapter and rail move up a row so the scroll hint gets its own line. */
+@media (max-width: 1100px) {
+  .dragon .dragon-chapter { bottom: 70px; right: calc(4% + 144px); }
+  .dragon .dragon-hint { bottom: 27px; }
+  .dragon .dragon-rail { bottom: 75px; }
+}
+@media (max-width: 650px) {
+  .dragon .dragon-intro, .dragon .dragon-end { left: 7%; right: 7%; }
+  .dragon .dragon-intro { top: 15%; }
+  .dragon .dragon-eyebrow { font-size: 8px; letter-spacing: .12em; margin-bottom: 14px; }
+  .dragon .dragon-h { font-size: 42px; letter-spacing: -.02em; }
+  .dragon h2.dragon-h { font-size: 40px; }
+  .dragon .dragon-sub { font-size: 14px; line-height: 1.5; margin-top: 14px; }
+  .dragon .dragon-cta { margin-top: 18px; }
+  .dragon .dragon-cta .btn { padding: 11px 14px; font-size: 13px; }
+  .dragon .dragon-hud { font-size: 8px; }
+  .dragon .dragon-chapter { left: 6%; right: calc(6% + 86px); gap: 12px; }
+  .dragon .dragon-rail { right: 6%; width: 70px; }
+}
+/* Short windows, such as a phone held sideways: tighter copy that clears the nav, and a one-row HUD. */
+@media (max-height: 620px) and (min-width: 651px) {
+  .dragon .dragon-intro, .dragon .dragon-end { top: calc(var(--nav-h) + 16px); }
+  .dragon .dragon-eyebrow { margin-bottom: 10px; }
+  .dragon .dragon-h, .dragon h2.dragon-h { font-size: clamp(34px, 5vw, 56px); }
+  .dragon .dragon-sub { font-size: 14px; margin-top: 10px; }
+  .dragon .dragon-cta { margin-top: 14px; }
+  .dragon .dragon-cta .btn { padding: 10px 14px; font-size: 13px; }
+}
+@media (max-height: 620px) and (min-width: 651px) and (max-width: 1100px) {
+  .dragon .dragon-chapter { bottom: 24px; }
+  .dragon .dragon-rail { bottom: 30px; }
+  .dragon .dragon-hint { display: none; }
+}
+
 /* ---------- page ---------- */
 .wrap { max-width: 1440px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
 #app { scroll-margin-top: calc(var(--nav-h) + 4px); }
@@ -487,6 +543,7 @@ button.tile::after { content: "→"; position: absolute; top: 14px; right: 16px;
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/htm@3.1.1/dist/htm.umd.js"></script>
 <script>
+const RK_CITADEL = "data:image/webp;base64,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";
 /* ==========================================================================
    DATA · everything below is illustrative, made up for the prototype.
    Exposure vectors are in "% of the holding per typical move" of each factor.
@@ -1959,6 +2016,304 @@ function AnalysisView(p) {
 }
 
 /* ==========================================================================
+   UI · Part 3: the dragon scroll scene at the top of the page.
+   Ported from the Crimson Flight study (scene.js). Each frame paints a
+   low-resolution colour scene into an offscreen buffer, then prints it as a
+   fixed grid of digits. A clock drives the wingbeats, body lift, tail wave and
+   flame flicker, so they keep moving when scrolling stops; scroll drives the
+   fire's growth and the scene's progression. Everything the component touches
+   is reached through refs, and every frame, observer and listener it starts is
+   stopped when it unmounts.
+   ========================================================================== */
+const DRAGON_CHAPTERS = ['What could move your portfolio', 'Net of what’s already priced in', 'Hedging against dragons'];
+const DRAGON_STILL_PHASE = 0;          // the wing pose shown when motion is reduced
+const DRAGON_DIGITS = '0123456789'.split('');
+// The faint castle behind the dragon: the area of citadel.png that scene.js samples, which leaves out
+// the artwork's own dragon. build.py inlines it as a data URL, so the canvas can always read it back.
+const DRAGON_CITADEL = typeof RK_CITADEL === 'string' ? RK_CITADEL : 'citadel.webp';
+const clamp01 = x => Math.max(0, Math.min(1, x));
+
+/* Owns the two canvases. The drawing below follows scene.js line for line;
+   only its globals became arguments (progress, clock, wing phase, glow, image). */
+function makeDragonPainter(canvas) {
+  const ctx = canvas.getContext('2d', { alpha: false });
+  const buffer = document.createElement('canvas'), b = buffer.getContext('2d', { willReadFrequently: true });
+  const mix = (a, z, t) => a + (z - a) * t;
+  let W = 0, H = 0, cols = 0, rows = 0, cell = 9;
+
+  function resize(w, h) {
+    W = w; H = h; cell = W < 650 ? 6 : 7;
+    cols = Math.ceil(W / cell); rows = Math.ceil(H / (cell * 1.35));
+    const d = Math.min(window.devicePixelRatio || 1, 2);
+    canvas.width = Math.round(W * d); canvas.height = Math.round(H * d); ctx.setTransform(d, 0, 0, d, 0, 0);
+    buffer.width = cols; buffer.height = rows;
+  }
+
+  function shape(path, fill, stroke, width = 1) {
+    const p = new Path2D(path);
+    if (fill) { b.fillStyle = fill; b.fill(p); }
+    if (stroke) { b.strokeStyle = stroke; b.lineWidth = width; b.stroke(p); }
+  }
+
+  // Dorsal anatomy: long neck, narrow torso, articulated wing fingers and tapered tail.
+  function dragon(x, y, size, phase) {
+    b.save(); b.translate(x, y); b.scale(size, size);
+    // Each joint has its own phase: the shoulder drives, the wrist follows,
+    // and the outer fingers flex last. The span stays open throughout the stroke.
+    for (const side of [-1, 1]) {
+      b.save(); b.scale(side, 1);
+      const drive = Math.sin(phase), wristBeat = Math.sin(phase - .28), tipBeat = Math.sin(phase - .56);
+      const elbow = { x: 35, y: -11 + drive * 12 };
+      const wrist = { x: 69 + 3 * Math.cos(phase), y: -21 + wristBeat * 28 };
+      const tip = { x: 143 - 7 * Math.cos(phase), y: -25 + tipBeat * 62 };
+      const fingers = [tip, { x: 115, y: 22 + Math.sin(phase - .68) * 49 }, { x: 79, y: 43 + Math.sin(phase - .52) * 33 }, { x: 40, y: 36 + Math.sin(phase - .32) * 15 }];
+      const [, f1, f2, f3] = fingers;
+      const outline = `M 6 -4 Q 19 ${elbow.y - 6} ${elbow.x} ${elbow.y} Q 52 ${wrist.y - 8} ${wrist.x} ${wrist.y} Q 108 ${tip.y - 10} ${tip.x} ${tip.y} Q ${f1.x - 5} ${mix(tip.y, f1.y, .6)} ${f1.x} ${f1.y} Q ${f2.x + 14} ${f2.y - 20} ${f2.x} ${f2.y} Q ${f3.x + 17} ${f3.y - 16} ${f3.x} ${f3.y} Q 20 11 6 13 Z`;
+      const membrane = b.createLinearGradient(12, wrist.y - 20, 90, 46);
+      membrane.addColorStop(0, '#4d1735'); membrane.addColorStop(.3, '#db426a'); membrane.addColorStop(.65, '#862c50'); membrane.addColorStop(1, '#43132e');
+      shape(outline, membrane, '#df799c', .7);
+      b.save(); b.clip(new Path2D(outline));
+      // Thin light and shadow bands move with the flexing membrane.
+      for (let j = 0; j < 170; j++) { const xx = 13 + (j * 37.73) % 129, yy = -85 + (j * 13.19) % 195; b.fillStyle = j % 3 ? '#f69fb72b' : '#21071755'; b.fillRect(xx, yy, .8, 1.1); }
+      for (let i = 0; i < fingers.length; i++) {
+        const f = fingers[i];
+        for (let j = 1; j < 5; j++) { const t = j / 5; shape(`M ${mix(8, f.x, t)} ${mix(8, f.y, t)} Q ${mix(wrist.x, f.x, t)} ${mix(wrist.y, f.y, t) + 4} ${f.x} ${f.y}`, null, '#f094b240', .55); }
+      }
+      b.restore();
+      // The strong upper arm and four supporting fingers remain visible at every angle.
+      shape(`M 6 -4 Q 19 ${elbow.y - 6} ${elbow.x} ${elbow.y} Q 52 ${wrist.y - 8} ${wrist.x} ${wrist.y} Q 108 ${tip.y - 10} ${tip.x} ${tip.y}`, null, '#efacc2', 1.7);
+      for (let i = 1; i < fingers.length; i++) { const f = fingers[i]; shape(`M ${wrist.x} ${wrist.y} Q ${mix(wrist.x, f.x, .55)} ${mix(wrist.y, f.y, .55) - 5} ${f.x} ${f.y}`, null, '#ef99b4', .9); }
+      shape(`M 7 5 Q 25 ${elbow.y + 7} ${elbow.x} ${elbow.y + 2} Q 53 ${wrist.y + 2} ${wrist.x} ${wrist.y}`, null, '#4c1836', 2.3);
+      shape(`M ${wrist.x - 1} ${wrist.y} L ${wrist.x + 1} ${wrist.y - 9} L ${wrist.x + 5} ${wrist.y + 1}`, '#edb0c3', null);
+      b.restore();
+    }
+    // A continuous taper follows a broad, trailing S-curve. Motion travels
+    // down its length, so the tip follows the hips instead of wagging as a unit.
+    function tailPoint(t) {
+      const wave = phase * .58;
+      // No fixed sideways bend: the entire curve crosses the centerline.
+      // Increasing amplitude and delayed phase let the tip trail the hips.
+      const xx = (Math.sin(wave - t * 2.6) * 30 + Math.sin(wave - t * 4.3) * 5) * t ** 1.25;
+      return { x: xx, y: 28 + 57 * t - 5 * t * t + Math.cos(wave - t * 2.6) * 1.6 * t };
+    }
+    const spine = [], left = [], right = [];
+    for (let i = 0; i <= 70; i++) {
+      const t = i / 70, pt = tailPoint(t), next = tailPoint(Math.min(1, t + .002)), prev = tailPoint(Math.max(0, t - .002));
+      const dx = next.x - prev.x, dy = next.y - prev.y, len = Math.hypot(dx, dy) || 1, nx = dy / len, ny = -dx / len, r = 5.4 * (1 - t) ** 1.3 + .06;
+      spine.push({ ...pt, nx, ny, r, t }); left.push({ x: pt.x - nx * r, y: pt.y - ny * r }); right.push({ x: pt.x + nx * r, y: pt.y + ny * r });
+    }
+    b.beginPath(); left.forEach((pt, i) => (i ? b.lineTo(pt.x, pt.y) : b.moveTo(pt.x, pt.y))); right.slice().reverse().forEach(pt => b.lineTo(pt.x, pt.y)); b.closePath();
+    const tailShade = b.createLinearGradient(-6, 35, 29, 78);
+    tailShade.addColorStop(0, '#bd5b80'); tailShade.addColorStop(.35, '#67213f'); tailShade.addColorStop(.65, '#cc6d93'); tailShade.addColorStop(1, '#45152e');
+    b.fillStyle = tailShade; b.fill(); b.strokeStyle = '#ce7d9c'; b.lineWidth = .5; b.stroke();
+    // A narrow illuminated ridge and small diminishing dorsal scales.
+    b.beginPath(); spine.forEach((pt, i) => (i ? b.lineTo(pt.x - pt.nx * pt.r * .2, pt.y - pt.ny * pt.r * .2) : b.moveTo(pt.x, pt.y))); b.strokeStyle = '#eea5bd'; b.lineWidth = .62; b.stroke();
+    for (let i = 4; i < 59; i += 5) {
+      const pt = spine[i], tp = spine[i + 2], h = (1 - pt.t) * 2.7;
+      shape(`M ${pt.x} ${pt.y} L ${pt.x - pt.nx * h} ${pt.y - pt.ny * h - 1.6} L ${tp.x} ${tp.y}`, '#d78fab', null);
+      shape(`M ${left[i].x} ${left[i].y} Q ${pt.x} ${pt.y + 1.5} ${right[i].x} ${right[i].y}`, null, '#f3adc642', .4);
+    }
+    const body = b.createLinearGradient(-9, 0, 9, 0);
+    body.addColorStop(0, '#2c0b20'); body.addColorStop(.4, '#be567e'); body.addColorStop(.56, '#f4acc2'); body.addColorStop(.7, '#9a355a'); body.addColorStop(1, '#230917');
+    shape('M -3 -47 C -3 -34 -8 -24 -8 -9 C -14 1 -10 18 -7 30 Q -4 39 0 40 Q 6 35 7 27 C 9 15 13 1 7 -9 C 6 -24 3 -34 3 -47 Z', body, '#bd6a8f', .6);
+    // Long folded hind legs and separated hooked talons.
+    for (const side of [-1, 1]) { b.save(); b.scale(side, 1); shape('M 6 15 Q 16 23 11 36 L 15 45 L 12 43 L 10 46 L 10 41 L 7 43 L 7 37 Q 8 29 4 26 Z', '#73304f', '#d98fa6', .6); b.restore(); }
+    // Segmented scales and a pale dorsal ridge bring depth through the numerical shading.
+    for (let j = 0; j < 24; j++) {
+      const yy = -42 + j * 3.2, ww = yy < -12 ? 2.2 : yy > 27 ? 3 : 6.1;
+      shape(`M ${-ww} ${yy} Q 0 ${yy + 3} ${ww} ${yy}`, null, j % 2 ? '#f29ab6' : '#662144', .44);
+      shape(`M 0 ${yy} L -1.5 ${yy + 3} L 1 ${yy + 2}`, '#f2a9bd', null);
+    }
+    shape('M -3 -47 L -5 -53 L -3 -59 L -1 -62 L 2 -62 L 4 -58 L 5 -53 L 3 -47 Z', body, '#ed9db5', .6);
+    shape('M -4 -53 L -9 -49 L -5 -59 M 4 -53 L 9 -49 L 5 -59', null, '#eaa6be', 1);
+    b.fillStyle = '#ffc5ad'; b.fillRect(-3, -57, 1, .8); b.fillRect(2, -57, 1, .8);
+    b.restore();
+    return { x, y: y - 62 * size };
+  }
+
+  function paint({ p, clock, phase, boost, citadel }) {
+    if (!cols || !rows) return;
+    b.globalAlpha = 1; b.fillStyle = '#12050c'; b.fillRect(0, 0, cols, rows);
+    const sky = b.createLinearGradient(0, 0, 0, rows);
+    sky.addColorStop(0, '#30111f'); sky.addColorStop(.55, '#321322'); sky.addColorStop(1, '#0c0308');
+    b.fillStyle = sky; b.fillRect(0, 0, cols, rows);
+    // The castle drifts slightly as you scroll (citadel is already cropped to the castle area).
+    if (citadel) {
+      b.save(); b.globalAlpha = .19;
+      const cw = cols * 1.1, ch = rows * .78;
+      b.drawImage(citadel, 0, 0, citadel.naturalWidth, citadel.naturalHeight, -cols * .04 - p * cols * .035, rows * .37 - p * rows * .025, cw, ch);
+      b.globalCompositeOperation = 'multiply'; b.fillStyle = '#ba4b6d'; b.fillRect(0, rows * .37, cols, rows);
+      b.restore();
+    }
+    const veil = b.createLinearGradient(0, rows * .35, 0, rows * .52);
+    veil.addColorStop(0, '#321322'); veil.addColorStop(1, '#32132200');
+    b.fillStyle = veil; b.fillRect(0, rows * .35, cols, rows * .18);
+    // One finely articulated dragon holds the center while scrolling brings it closer.
+    const size = Math.min(cols / 340, rows / 205) * (1 + p * .055);
+    const x = cols * (.50 + Math.sin(p * 2) * .012), y = rows * .57 - Math.sin(clock * 2.65 - .4) * 1.25;
+    const mouth = dragon(x, y, size, phase);
+    const fire = clamp01((p - .08) / .77);
+    if (fire > 0) {
+      const length = rows * .10 + rows * .45 * fire, width = 1 + fire * 5.5;
+      const glow = b.createRadialGradient(mouth.x, mouth.y - length * .55, 0, mouth.x, mouth.y - length * .55, length * .8);
+      glow.addColorStop(0, '#da244744'); glow.addColorStop(1, '#da244700');
+      b.fillStyle = glow; b.fillRect(0, 0, cols, rows);
+      // Nested rising tongues: narrow at the mouth, billowing into a growing plume.
+      for (let layer = 0; layer < 3; layer++) {
+        b.beginPath(); b.moveTo(mouth.x - .65, mouth.y);
+        for (let i = 0; i <= 36; i++) {
+          const t = i / 36, yy = mouth.y - t * length, envelope = Math.sin(Math.PI * t * .92) * width * (1 - layer * .28);
+          const curl = Math.sin(t * 12 - clock * 4 + layer) * t * 2 + Math.sin(t * 28 - clock * 6) * t;
+          b.lineTo(mouth.x - envelope + curl, yy);
+        }
+        for (let i = 36; i >= 0; i--) {
+          const t = i / 36, envelope = Math.sin(Math.PI * t * .92) * width * (1 - layer * .28);
+          const curl = Math.sin(t * 12 - clock * 4 + layer) * t * 2 + Math.sin(t * 25 - clock * 5) * t;
+          b.lineTo(mouth.x + envelope + curl, mouth.y - t * length);
+        }
+        b.closePath(); b.fillStyle = ['#a92249', '#f24b65', '#ffb39b'][layer]; b.fill();
+      }
+      for (let i = 0; i < 65; i++) {
+        const t = (clock * .23 + i * .071) % 1, side = Math.sin(i * 9.31);
+        const xx = mouth.x + side * (3 + t * width * 2) + Math.sin(clock + i) * t * 2, yy = mouth.y - t * length * 1.2;
+        b.globalAlpha = (1 - t) * fire; b.fillStyle = i % 4 ? '#ef4564' : '#ffc1a5'; b.fillRect(xx, yy, .5, .7);
+      }
+      b.globalAlpha = 1;
+    }
+    // Print the buffer as digits on a grid that never moves: brighter pixels get denser digits.
+    const pix = b.getImageData(0, 0, cols, rows).data;
+    ctx.fillStyle = '#11040b'; ctx.fillRect(0, 0, W, H);
+    ctx.font = `${cell + 1}px "Courier New",monospace`; ctx.textBaseline = 'top';
+    const bright = boost ? 1.35 : 1;
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        const k = (r * cols + c) * 4, R = pix[k], G = pix[k + 1], B = pix[k + 2];
+        const lum = (R * .36 + G * .45 + B * .19) / 255, density = clamp01(lum * 1.6);
+        const noise = ((c * 73 + r * 37) % 101) / 101;
+        const digit = Math.floor(clamp01(density * .7 + noise * .3) * 9);
+        const red = Math.min(255, (R * .9 + 22) * bright), green = Math.min(210, (G * .65 + 5) * bright), blue = Math.min(230, (B * .77 + 8) * bright);
+        ctx.fillStyle = `rgb(${red | 0},${green | 0},${blue | 0})`;
+        ctx.fillText(DRAGON_DIGITS[digit], c * cell, r * cell * 1.35);
+      }
+    }
+  }
+
+  return { resize, paint };
+}
+
+/* The scene: a tall scroll section with a sticky, full-viewport stage. */
+function DragonScene({ tw, goTab, heroRef }) {
+  const own = useRef(null); const rootRef = heroRef || own;
+  const stageRef = useRef(null), canvasRef = useRef(null), introRef = useRef(null), endRef = useRef(null), hudRef = useRef(null);
+  const barRef = useRef(null), chapterNoRef = useRef(null), chapterNameRef = useRef(null);
+  const look = useRef(null); look.current = { boost: tw.glow === 'bright', citadel: tw.citadel !== false };
+  const redraw = useRef(null);
+  useEffect(() => { if (redraw.current) redraw.current(); }, [tw.glow, tw.citadel]);
+
+  useEffect(() => {
+    const root = rootRef.current, stage = stageRef.current, canvas = canvasRef.current;
+    const intro = introRef.current, end = endRef.current, hud = hudRef.current, bar = barRef.current;
+    const chapterNo = chapterNoRef.current, chapterName = chapterNameRef.current;
+    if (!root || !stage || !canvas || !canvas.getContext) return undefined;
+    const painter = makeDragonPainter(canvas);
+    const mq = typeof matchMedia === 'function' ? matchMedia('(prefers-reduced-motion: reduce)') : null;
+    let reduce = !!(mq && mq.matches);
+    let raf = 0, visible = true, dirty = true, progress = 0, goal = 0, overhang = 0, paintedAt = -1, chapter = 0, img = null;
+
+    const size = () => painter.resize(stage.clientWidth || window.innerWidth, stage.clientHeight || window.innerHeight);
+    // All layout reads happen here, once per frame, before anything is written.
+    function measure() {
+      const top = root.getBoundingClientRect().top, h = stage.clientHeight;
+      goal = clamp01(-top / Math.max(1, root.offsetHeight - h));
+      // Until the section reaches the top of the window, the foot of the stage hangs below the fold.
+      overhang = Math.max(0, Math.min(top, top + h - window.innerHeight));
+    }
+    // The castle backdrop is optional: load it the first time it is switched on.
+    const citadel = () => {
+      if (!look.current.citadel) return null;
+      if (!img) { img = new Image(); img.decoding = 'async'; img.onload = () => { dirty = true; schedule(); }; img.src = DRAGON_CITADEL; }
+      return img.complete && img.naturalWidth ? img : null;
+    };
+    function paint(now) {
+      const p = progress, clock = reduce ? 0 : now / 1000;
+      painter.paint({ p, clock, phase: reduce ? DRAGON_STILL_PHASE : clock * 2.65 + p * .6, boost: look.current.boost, citadel: citadel() });
+    }
+    // The copy, chapter marker and progress rail follow the same eased progress as the canvas.
+    function place() {
+      const p = progress, a = 1 - clamp01(p / .21), z = clamp01((p - .80) / .15);
+      intro.style.opacity = a; intro.style.visibility = a > .02 ? 'visible' : 'hidden';
+      intro.style.transform = reduce ? '' : `translateY(${-p * 110}px)`;
+      end.style.opacity = z; end.style.visibility = z > .02 ? 'visible' : 'hidden';
+      end.style.transform = reduce ? '' : `translateY(${(1 - z) * 25}px)`;
+      hud.style.transform = overhang ? `translateY(${-overhang}px)` : '';
+      bar.style.transform = `scaleX(${p})`;
+      const n = p < .30 ? 0 : p < .78 ? 1 : 2;
+      if (n !== chapter) { chapter = n; chapterNo.textContent = `0${n + 1} / 03`; chapterName.textContent = DRAGON_CHAPTERS[n]; }
+    }
+    function frame(now) {
+      raf = 0; measure();
+      if (reduce) { progress = goal; dirty = false; paint(0); place(); return; }   // one still frame, no loop
+      progress += (goal - progress) * .10;
+      if (dirty || now - paintedAt > 30) { paintedAt = now; dirty = false; paint(now); }
+      place();
+      if (visible) raf = requestAnimationFrame(frame);
+    }
+    function schedule() { if (!raf && visible) raf = requestAnimationFrame(frame); }
+    function stop() { if (raf) cancelAnimationFrame(raf); raf = 0; }
+    // Repaint at once after a resize, because resizing clears the canvas.
+    const onResize = () => { size(); measure(); if (reduce) progress = goal; paint(reduce ? 0 : performance.now()); place(); };
+    const onScroll = () => { if (reduce) schedule(); };   // the running loop reads the scroll position itself
+    const onMotionPref = () => { reduce = !!(mq && mq.matches); stop(); dirty = true; schedule(); };
+    const ro = typeof ResizeObserver === 'function' ? new ResizeObserver(onResize) : null;
+    const io = typeof IntersectionObserver === 'function'
+      ? new IntersectionObserver(entries => { visible = entries[entries.length - 1].isIntersecting; if (visible) { dirty = true; schedule(); } else stop(); })
+      : null;
+
+    size(); measure(); progress = goal; paint(reduce ? 0 : performance.now()); place();
+    if (ro) ro.observe(stage); else window.addEventListener('resize', onResize);
+    if (io) io.observe(root);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    if (mq) { if (mq.addEventListener) mq.addEventListener('change', onMotionPref); else mq.addListener(onMotionPref); }
+    redraw.current = () => { dirty = true; schedule(); };
+    schedule();
+    return () => {
+      stop(); redraw.current = null;
+      if (ro) ro.disconnect(); else window.removeEventListener('resize', onResize);
+      if (io) io.disconnect();
+      window.removeEventListener('scroll', onScroll);
+      if (mq) { if (mq.removeEventListener) mq.removeEventListener('change', onMotionPref); else mq.removeListener(onMotionPref); }
+      if (img) { img.onload = null; img = null; }
+    };
+  }, []);
+
+  return html`<section className="dragon" ref=${rootRef}>
+    <div className="dragon-stage" ref=${stageRef}>
+      <canvas className="dragon-canvas" ref=${canvasRef} role="img" aria-label="A slender dragon drawn in crimson numbers beats its wings and breathes a plume of fire upward that grows as you scroll."></canvas>
+      <div className="dragon-shade" aria-hidden="true"></div>
+      <div className="dragon-intro" ref=${introRef}>
+        <p className="dragon-eyebrow">Scenario Analysis Engine · Ashwin’s take-home for Castle</p>
+        <h1 className="dragon-h">Hedging against dragons.</h1>
+        <p className="dragon-sub">Find the events that could move your portfolio in the next ${tw.horizon} months, and see how much of each one the market has already priced in.</p>
+        <div className="dragon-cta">
+          <button className="btn btn-light btn-lg" onClick=${() => goTab('analysis')}>Explore the engine</button>
+          <button className="btn btn-outline-light btn-lg" onClick=${() => goTab('replay')}>Replay April 2025</button>
+        </div>
+      </div>
+      <div className="dragon-end" ref=${endRef}>
+        <p className="dragon-eyebrow">The first Red Keep had thick walls and no plan for dragons.</p>
+        <h2 className="dragon-h">This one starts with the dragons.</h2>
+        <div className="dragon-cta"><button className="btn btn-light btn-lg" onClick=${() => goTab('analysis')}>Explore the engine</button></div>
+      </div>
+      <div className="dragon-hud" ref=${hudRef} aria-hidden="true">
+        <div className="dragon-chapter"><b ref=${chapterNoRef}>01 / 03</b><span ref=${chapterNameRef}>${DRAGON_CHAPTERS[0]}</span></div>
+        <div className="dragon-hint"><span>Scroll</span><i></i><span>↓</span></div>
+        <div className="dragon-rail"><i ref=${barRef}></i></div>
+      </div>
+    </div>
+  </section>`;
+}
+
+/* ==========================================================================
    UI · Part 3: the event card, historical replay, tweaks, and the app shell.
    ========================================================================== */
 const REL = { same: 'Same event', implies: 'Stricter market · lower bound', ladder: 'Ladder of deadlines' };
@@ -2240,13 +2595,19 @@ function ReplayView({ P, tw }) {
 }
 
 /* ---------- tweaks ---------- */
-const DEFAULT_TWEAKS = { odds: 'market', knock: true, horizon: 6, tiers: 'ABCD', topN: 12, sims: 4000, noise: false, theme: 'auto', accent: 'dragon', heading: 'serif', density: 'comfortable', hero: true, view: 'macro', rotate: true, labels: 'top', links: true };
+const DEFAULT_TWEAKS = { odds: 'market', knock: true, horizon: 6, tiers: 'ABCD', topN: 12, sims: 4000, noise: false, theme: 'auto', accent: 'dragon', heading: 'serif', density: 'comfortable', hero: 'dragon', glow: 'normal', citadel: true, view: 'macro', rotate: true, labels: 'top', links: true };
 const TWEAK_OPTS = {
   odds: ['market', 'calibrated'], knock: [true, false], horizon: [3, 6, 12], tiers: ['ABCD', 'ABC', 'AB'], topN: [8, 12, 'all'], sims: [2000, 4000, 10000], noise: [false, true],
-  theme: ['auto', 'light', 'dark'], accent: ['dragon', 'ember', 'teal', 'steel'], heading: ['serif', 'sans'], density: ['comfortable', 'compact'], hero: [true, false],
+  theme: ['auto', 'light', 'dark'], accent: ['dragon', 'ember', 'teal', 'steel'], heading: ['serif', 'sans'], density: ['comfortable', 'compact'], hero: ['dragon', 'image', 'off'], glow: ['normal', 'bright'], citadel: [true, false],
   view: ['macro', 'mine', 'flat'], rotate: [true, false], labels: ['top', 'all', 'none'], links: [true, false],
 };
-function cleanTweaks(t) { const o = {}; if (t && typeof t === 'object') for (const k in TWEAK_OPTS) if (TWEAK_OPTS[k].includes(t[k])) o[k] = t[k]; return o; }
+function cleanTweaks(t) {
+  const o = {}; if (!t || typeof t !== 'object') return o;
+  // Earlier versions saved the hero as on or off; on now opens on the dragon scene.
+  if (typeof t.hero === 'boolean') t = { ...t, hero: t.hero ? 'dragon' : 'off' };
+  for (const k in TWEAK_OPTS) if (TWEAK_OPTS[k].includes(t[k])) o[k] = t[k];
+  return o;
+}
 
 function TweaksSheet({ tw, setTw, onClose }) {
   const [copied, setCopied] = useState(null); const closeRef = useRef(null);
@@ -2278,7 +2639,9 @@ function TweaksSheet({ tw, setTw, onClose }) {
           ${Row('Accent', null, 'accent', [['dragon', 'Dragon'], ['ember', 'Ember'], ['teal', 'Teal'], ['steel', 'Steel']])}
           ${Row('Headings', null, 'heading', [['serif', 'Serif'], ['sans', 'Sans']])}
           ${Row('Density', null, 'density', [['comfortable', 'Roomy'], ['compact', 'Compact']])}
-          ${Row('Hero image', 'Hide it to open straight on the engine', 'hero', [[true, 'On'], [false, 'Off']])}
+          ${Row('Hero', 'Scroll scene, still image or none', 'hero', [['dragon', 'Dragon'], ['image', 'Image'], ['off', 'Off']])}
+          ${tw.hero === 'dragon' && Row('Dragon glow', null, 'glow', [['normal', 'Normal'], ['bright', 'Bright']])}
+          ${tw.hero === 'dragon' && Row('Castle behind the dragon', 'A faint citadel in the numbers', 'citadel', [[true, 'On'], [false, 'Off']])}
         </div>
         <div className="tw-group"><span className="label">Map</span>
           ${Row('View', null, 'view', [['macro', 'Macro'], ['mine', 'Mine'], ['flat', '2D']])}
@@ -2348,7 +2711,8 @@ function App() {
   const [tweaksOpen, setTweaksOpen] = useState(false);
   const [aiOK, setAiOK] = useState(false);
   const heroRef = useRef(null);
-  const pastHero = useScrolledPast(heroRef, 36, tw.hero);
+  const heroOn = tw.hero !== 'off';
+  const pastHero = useScrolledPast(heroRef, 36, heroOn && tw.hero);
 
   useEffect(() => { saveState({ holdings, sampleId, tweaks: tw, tab }); }, [holdings, sampleId, tw, tab]);
   useEffect(() => { let on = true; getSample().then(s => { if (on) setAiOK(!!s); }); return () => { on = false; }; }, []);
@@ -2397,17 +2761,18 @@ function App() {
     requestAnimationFrame(() => {
       const el = document.getElementById('app'); if (!el) return;
       // With the hero on, land just past it; without it the nav sits in the flow above the app.
-      const navOffset = document.querySelector('.hero') ? 0 : 64;
+      const navOffset = heroRef.current ? 0 : 64;
       window.scrollTo({ top: Math.max(0, el.getBoundingClientRect().top + window.scrollY - navOffset), behavior: REDUCED ? 'auto' : 'smooth' });
     });
   }, []);
   const selEv = sel ? S.byId[sel] : null;
   const hasLive = Object.keys(liveOdds).length > 0;
 
-  return html`<div className=${cls('app', !tw.hero && 'no-hero')} data-accent=${tw.accent} data-heading=${tw.heading} data-density=${tw.density}>
+  return html`<div className=${cls('app', !heroOn && 'no-hero')} data-accent=${tw.accent} data-heading=${tw.heading} data-density=${tw.density}>
     <${Banner} />
-    <${Nav} tab=${tab} goTab=${goTab} live=${live} setLive=${setLive} openTweaks=${() => setTweaksOpen(true)} solid=${!tw.hero || pastHero} />
-    ${tw.hero && html`<${Hero} tw=${tw} goTab=${goTab} heroRef=${heroRef} />`}
+    <${Nav} tab=${tab} goTab=${goTab} live=${live} setLive=${setLive} openTweaks=${() => setTweaksOpen(true)} solid=${!heroOn || pastHero} />
+    ${tw.hero === 'dragon' ? html`<${DragonScene} tw=${tw} goTab=${goTab} heroRef=${heroRef} />`
+      : tw.hero === 'image' ? html`<${Hero} tw=${tw} goTab=${goTab} heroRef=${heroRef} />` : null}
     <div className="wrap" id="app">
       <${Intro} tab=${tab} />
       <div className="layout">
