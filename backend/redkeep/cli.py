@@ -1,4 +1,4 @@
-"""Command line: ``redkeep check | refresh | analyze | calibrate | replay | record | store | app | serve``."""
+"""Command line: ``redkeep check | refresh | analyze | calibrate | jumps | replay | record | store | app | serve``."""
 
 from __future__ import annotations
 
@@ -202,6 +202,87 @@ def cmd_calibrate(s: Settings, args) -> int:
     return 0
 
 
+def cmd_jumps(s: Settings, args) -> int:
+    """Jump accuracy on resolved markets (DESIGN.md section 10, evals E3 to E5)."""
+    from . import jumps
+    from .pipeline import finite, make_clients, save
+
+    if args.from_file:
+        old = json.loads(Path(args.from_file).read_text())
+        if old.get("kind") != "redkeep.jumps":
+            print(f"{args.from_file} is not a saved jumps study", file=sys.stderr)
+            return 1
+        print(f"Read {len(old['rows']):,} markets from {args.from_file}")
+        rep = jumps.report(jumps.cases_from(old), {**old["sources"], "rerun_of": str(args.from_file)}, old["warnings"],
+                           typical=old.get("typical"))
+    else:
+        start = date.fromisoformat(args.since)
+        end = date.fromisoformat(args.until) if args.until else datetime.now(timezone.utc).date() - timedelta(days=1)
+        print(f"Resolved markets that closed from {start} to {end} (up to {args.markets:,} a venue)")
+        rep = jumps.run(make_clients(s, claude=False), start, end, per_venue=args.markets)
+    print_jumps(rep)
+    path = save(finite(rep), s.out_dir, "jumps")
+    print(f"\nSaved {path}")
+    return 0
+
+
+def _share(x) -> str:
+    return "  n/a" if x is None else f"{100 * x:+5.0f}%"
+
+
+def _range(r, signed: bool = True) -> str:
+    if not r:
+        return ""
+    fmt = (lambda v: f"{100 * v:+.0f}%") if signed else (lambda v: f"{100 * v:.0f}%")
+    return f" (95% range {fmt(r[0])} to {fmt(r[1])})"
+
+
+def print_jumps(rep: dict) -> None:
+    from .factors import FACTORS
+
+    for w in rep["warnings"]:
+        print(f"  warning: {w}")
+    for v, st in rep["sources"].get("venues", {}).items():
+        if isinstance(st, dict):
+            why = ", ".join(f"{n} {k}" for k, n in sorted(st.get("left_out", {}).items(), key=lambda x: -x[1]))
+            print(f"  {v.title()}: {st.get('sampled', 0)} read, {st.get('cases', 0)} with a reading the evening before"
+                  + (f"; left out: {why}" if why else ""))
+    e3, e4, e5 = rep["e3"], rep["e4"], rep["e5"]
+    print(f"\nJumps: {rep['cases']} resolved markets, one per event ({e3['days']} resolution days, {e3['pairs']} "
+          f"market-factors with a reading). Granularity: "
+          + ", ".join(f"{n} {g}" for g, n in rep["granularity"].items()))
+    if not e3["pairs"]:
+        print("  Nothing to score.")
+        return
+    print(f"\n  E3  resolution-day moves explained: {_share(e3['explained_share']).strip()}{_range(e3['explained_range'])}")
+    print(f"      with no move where a reading can't resolve the factor ({e3['resolved_pairs']} of {e3['pairs']} "
+          f"resolved): {_share(e3['explained_share_resolved']).strip()}{_range(e3['explained_resolved_range'])}")
+    print(f"      the most any jump could explain, given each factor's day-to-day noise: "
+          f"{_share(e3['explainable']).strip()}")
+    print(f"      signs on clear moves: {e3['clear_signs_right']} of {e3['clear_moves']} right"
+          + _range(e3["clear_signs_range"], signed=False)
+          + (f"; rank correlation {e3['rank_corr']:+.2f}" if e3["rank_corr"] is not None else ""))
+    print(f"\n  {'factor':<24} {'pairs':>5} {'explained':>9} {'signs':>9} {'rank':>6} {'80% cover':>9}")
+    names = {f.key: f.name for f in FACTORS}
+    for k, v in e3["by_factor"].items():
+        sg = f"{v['clear_signs_right']}/{v['clear_moves']}" if v["clear_moves"] else "-"
+        rk = f"{v['rank_corr']:+.2f}" if v["rank_corr"] is not None else "-"
+        cv = f"{100 * v['coverage_80']:.0f}%" if v["coverage_80"] is not None else "-"
+        print(f"  {names.get(k, k):<24} {v['pairs']:>5} {_share(v['explained_share']):>9} {sg:>9} {rk:>6} {cv:>9}")
+    sc = e4["scale"]
+    print(f"\n  E4  realized jumps inside the 80% interval: {100 * e4['coverage_80']:.0f}%")
+    if sc["scale"]:
+        print(f"      a scale of {sc['scale']:.2f} on the error bars gives 80% on days before {sc['split_day']}; on the "
+              f"{sc['later_pairs']} later pairs it covers {100 * sc['later_coverage_scaled']:.0f}% "
+              f"(unscaled {100 * sc['later_coverage']:.0f}%)")
+    for name in ("precise", "vague"):
+        x = e5[name]
+        cover = f"{100 * x['coverage_80']:.0f}%" if x["coverage_80"] is not None else "n/a"
+        print(f"  E5  {name:<7} readings: {x['markets']:>4} markets, explained {_share(x['explained_share']).strip()}, "
+              f"signs {x['clear_signs_right']} of {x['clear_moves']}, 80% cover {cover}")
+    print(f"  E6  {rep['e6']}")
+
+
 def cmd_replay(s: Settings, args) -> int:
     """Replay a past episode day by day on the markets' archived prices (DESIGN.md section 10, eval E8)."""
     from .pipeline import make_clients, save
@@ -342,6 +423,12 @@ def main(argv: list[str] | None = None) -> int:
     k.add_argument("--from", dest="from_file", metavar="FILE",
                    help="rerun on the prices an earlier run saved (out/calibration-obs-*.jsonl.gz), without fetching")
     k.add_argument("--write", action="store_true", help="save the slopes to data/calibration.json for the engine to use")
+    j = sub.add_parser("jumps", help="score the engine's jumps on resolved markets (evals E3 to E5)")
+    j.add_argument("--since", default="2025-01-01", help="first close date (YYYY-MM-DD, default 2025-01-01)")
+    j.add_argument("--until", help="last close date (default: yesterday)")
+    j.add_argument("--markets", type=int, default=600, help="markets to read on each venue (default 600)")
+    j.add_argument("--from", dest="from_file", metavar="FILE",
+                   help="rerun the study on the markets an earlier run saved (out/jumps-*.json), without fetching")
     rp = sub.add_parser("replay", help="replay a past episode on archived prices (eval E8)")
     rp.add_argument("--episode", default="tariffs-2025", help="an episode in data/episodes, or a .toml file")
     rp.add_argument("--write", action="store_true", help="save it to data/replays for the app")
@@ -371,7 +458,7 @@ def main(argv: list[str] | None = None) -> int:
     logging.basicConfig(level=logging.INFO if args.verbose else logging.WARNING, format="%(levelname)s %(name)s: %(message)s")
     s = Settings.from_env()
     return {"check": cmd_check, "refresh": cmd_refresh, "analyze": cmd_analyze, "calibrate": cmd_calibrate,
-            "replay": cmd_replay, "record": cmd_record, "store": cmd_store, "app": cmd_app, "serve": cmd_serve}[args.cmd](s, args)
+            "jumps": cmd_jumps, "replay": cmd_replay, "record": cmd_record, "store": cmd_store, "app": cmd_app, "serve": cmd_serve}[args.cmd](s, args)
 
 
 if __name__ == "__main__":
