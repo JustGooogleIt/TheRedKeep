@@ -12,7 +12,7 @@ from redkeep.markets import from_kalshi_event, from_polymarket_event, is_sports_
 def test_polymarket_markets_parse_json_in_string_fields(gamma_events):
     fed = gamma_events[0]
     ms = from_polymarket_event(fed)
-    assert [m.outcome for m in ms] == ["25 bps decrease", "50+ bps decrease", "No change"]
+    assert [m.outcome for m in ms] == ["25 bps increase", "50+ bps increase", "No change"]
     m = ms[0]
     assert m.key == "polymarket:71001" and m.token_yes == "111" and m.exclusive
     assert m.mid == pytest.approx(0.62) and m.spread == pytest.approx(0.02)
@@ -29,12 +29,12 @@ def test_polymarket_skips_sports_and_head_to_head(gamma_events):
 def test_kalshi_dollar_strings_and_fixed_point_sizes(kalshi_events):
     ms = from_kalshi_event(kalshi_events[0])
     assert len(ms) == 3 and all(m.exclusive for m in ms)
-    cut = ms[0]
-    assert cut.key == "kalshi:KXFEDDECISION-26DEC-C25" and cut.series == "KXFEDDECISION"
-    assert cut.bid == pytest.approx(0.60) and cut.ask == pytest.approx(0.62) and cut.mid == pytest.approx(0.61)
-    assert cut.volume == pytest.approx(3_000_000 * 0.61)
-    assert "December 09, 2026" in cut.rules
-    assert cut.category == "Economics"
+    hike = ms[0]
+    assert hike.key == "kalshi:KXFEDDECISION-26DEC-H25" and hike.series == "KXFEDDECISION"
+    assert hike.bid == pytest.approx(0.60) and hike.ask == pytest.approx(0.62) and hike.mid == pytest.approx(0.61)
+    assert hike.volume == pytest.approx(3_000_000 * 0.61)
+    assert "December 09, 2026" in hike.rules
+    assert hike.category == "Economics"
 
 
 def test_kalshi_reads_old_cent_fields_too():
