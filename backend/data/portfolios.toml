@@ -1,0 +1,44 @@
+# Sample portfolios: famous published allocations on $1M (same as the prototype).
+# Each holding is [ticker, amount, unit], with unit "usd" or "shares".
+
+[[portfolio]]
+id = "allweather"
+name = "All Weather"
+who = "Ray Dalio"
+note = "30% stocks, 55% Treasuries, 7.5% gold, 7.5% commodities, as popularized by Tony Robbins."
+holdings = [["VTI", 300000, "usd"], ["TLT", 400000, "usd"], ["IEF", 150000, "usd"], ["GLD", 75000, "usd"], ["DBC", 75000, "usd"]]
+
+[[portfolio]]
+id = "qqq"
+name = "QQQ · $1M"
+who = "Design doc example"
+note = "The portfolio in DESIGN.md section 3."
+holdings = [["QQQ", 1000000, "usd"]]
+
+[[portfolio]]
+id = "buffett"
+name = "90/10"
+who = "Warren Buffett"
+note = "90% S&P 500 index fund, 10% short-term government bonds (2013 shareholder letter)."
+holdings = [["VOO", 900000, "usd"], ["SHY", 100000, "usd"]]
+
+[[portfolio]]
+id = "permanent"
+name = "Permanent Portfolio"
+who = "Harry Browne"
+note = "A quarter each in stocks, long Treasuries, cash and gold."
+holdings = [["VTI", 250000, "usd"], ["TLT", 250000, "usd"], ["BIL", 250000, "usd"], ["GLD", 250000, "usd"]]
+
+[[portfolio]]
+id = "swensen"
+name = "Yale-style"
+who = "David Swensen"
+note = "From \"Unconventional Success\": US, foreign and emerging stocks, REITs, TIPS and Treasuries."
+holdings = [["VTI", 300000, "usd"], ["VEA", 150000, "usd"], ["VWO", 50000, "usd"], ["VNQ", 200000, "usd"], ["TIP", 150000, "usd"], ["IEF", 150000, "usd"]]
+
+[[portfolio]]
+id = "tech"
+name = "Tech-heavy"
+who = "Example"
+note = "Shows look-through: NVIDIA is held directly and inside QQQ and SMH."
+holdings = [["QQQ", 600, "shares"], ["NVDA", 1200, "shares"], ["MSFT", 300, "shares"], ["SMH", 250, "shares"], ["TLT", 1000, "shares"], ["GLD", 150, "shares"]]

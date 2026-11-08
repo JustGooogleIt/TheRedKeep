@@ -1,0 +1,37 @@
+{
+  "cursor": "",
+  "events": [
+    {
+      "category": "Economics", "event_ticker": "KXFEDDECISION-26DEC", "series_ticker": "KXFEDDECISION",
+      "mutually_exclusive": true, "title": "Fed decision in Dec 2026?", "sub_title": "On Dec 9, 2026",
+      "strike_date": "2026-12-09T19:00:00Z",
+      "markets": [
+        {"ticker": "KXFEDDECISION-26DEC-H25", "event_ticker": "KXFEDDECISION-26DEC", "market_type": "binary", "status": "active",
+         "title": "Will the Federal Reserve Hike rates by 25bps at their December 2026 meeting?", "yes_sub_title": "Hike 25bps",
+         "rules_primary": "If the Federal Reserve does a Hike of 25bps on December 09, 2026, then the market resolves to Yes.",
+         "rules_secondary": "The outcomes are mutually exclusive.", "close_time": "2026-12-09T18:59:00Z",
+         "yes_bid_dollars": "0.6000", "yes_ask_dollars": "0.6200", "last_price_dollars": "0.6100",
+         "volume_fp": "3000000.00", "volume_24h_fp": "40000.00", "open_interest_fp": "900000.00", "strike_type": "custom", "custom_strike": {"Hike": "25"}},
+        {"ticker": "KXFEDDECISION-26DEC-H26", "event_ticker": "KXFEDDECISION-26DEC", "market_type": "binary", "status": "active",
+         "title": "Will the Federal Reserve Hike rates by >25bps at their December 2026 meeting?", "yes_sub_title": "Hike >25bps",
+         "rules_primary": "If the Federal Reserve does a Hike of >25bps on December 09, 2026, then the market resolves to Yes.",
+         "rules_secondary": "The outcomes are mutually exclusive.", "close_time": "2026-12-09T18:59:00Z",
+         "yes_bid_dollars": "0.0100", "yes_ask_dollars": "0.0200", "last_price_dollars": "0.0100",
+         "volume_fp": "170000.00", "volume_24h_fp": "90.00", "open_interest_fp": "160000.00", "strike_type": "custom", "custom_strike": {"Hike": ">25"}},
+        {"ticker": "KXFEDDECISION-26DEC-H0", "event_ticker": "KXFEDDECISION-26DEC", "market_type": "binary", "status": "active",
+         "title": "Will the Federal Reserve Hike rates by 0bps at their December 2026 meeting?", "yes_sub_title": "Hold",
+         "rules_primary": "If the Federal Reserve does a Hike of 0bps on December 09, 2026, then the market resolves to Yes.",
+         "rules_secondary": "The outcomes are mutually exclusive.", "close_time": "2026-12-09T18:59:00Z",
+         "yes_bid_dollars": "0.3600", "yes_ask_dollars": "0.3800", "last_price_dollars": "0.3700",
+         "volume_fp": "2000000.00", "volume_24h_fp": "30000.00", "open_interest_fp": "700000.00", "strike_type": "custom", "custom_strike": {"Hike": "0"}}
+      ]
+    },
+    {
+      "category": "Sports", "event_ticker": "KXNBA-26NOV06SASSAC", "series_ticker": "KXNBA", "mutually_exclusive": true,
+      "title": "Spurs vs Kings", "markets": [
+        {"ticker": "KXNBA-26NOV06SASSAC-SAS", "market_type": "binary", "status": "active", "title": "Spurs win?",
+         "rules_primary": "Spurs win.", "close_time": "2026-11-07T03:00:00Z", "yes_bid_dollars": "0.5", "yes_ask_dollars": "0.51", "volume_fp": "100.00"}
+      ]
+    }
+  ]
+}

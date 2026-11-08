@@ -1,0 +1,11 @@
+prototype/dist/
+node_modules/
+__pycache__/
+.DS_Store
+
+# backend: the virtual environment, cached responses and Claude calls, and run outputs
+backend/.venv/
+backend/.cache/
+backend/out/
+.pytest_cache/
+*.egg-info/

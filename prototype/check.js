@@ -1,0 +1,100 @@
+// Checks the prototype's math against the design doc. Run: node prototype/check.js [live.js]
+// With a live.js from `redkeep app`, it also runs the checks on the snapshot's events, and checks that the app reproduces
+// the backend engine's numbers for every portfolio the snapshot analyzed. A snapshot of events only keeps the
+// illustrative portfolios: their exposures per unit of each factor, and the April 2025 replay, must not change.
+'use strict';
+const fs = require('fs'), path = require('path'), vm = require('vm');
+
+const src = f => fs.readFileSync(path.join(__dirname, 'src', f), 'utf8');
+const livePath = process.argv[2];
+const M = vm.runInNewContext(
+  (livePath ? fs.readFileSync(livePath, 'utf8') : '') + '\n' + src('data.js') + '\n' + src('model.js') + '\n' + src('dataset.js') +
+  '\n;({ SAMPLES, FACTORS, analyzePortfolio, buildState, simulate, replayCompute, applyDataset, HAS_LIVE, LIVE_PORTFOLIOS,' +
+  ' LIVE: typeof RK_LIVE === "undefined" ? null : RK_LIVE })',
+  { console },
+);
+
+let failures = 0;
+function check(name, ok, detail) {
+  console.log((ok ? 'ok    ' : 'FAIL  ') + name + (detail ? '  (' + detail + ')' : ''));
+  if (!ok) failures++;
+}
+const near = (a, b, tol) => Math.abs(a - b) <= tol;
+const tw = { knock: true, horizon: 6, odds: 'market', noise: false };
+const holdings = s => s.h.map(([t, u, a], i) => ({ id: t + i, t, u, a }));
+
+// The worked example in DESIGN.md section 3: $1M of QQQ, tariffs at 40%.
+{
+  const P = analyze('qqq');
+  const e = M.buildState(P, tw, {}, {}).byId.tariff;
+  const f = x => (x > 0 ? '+' : '') + x.toFixed(2) + '%';
+  check('section 3: direct hit is -6.0%', near(e.dD, -6.0, 0.05), f(e.dD));
+  check('section 3: total jump is -8.5%', near(e.dT, -8.5, 0.05), f(e.dT));
+  check('section 3: priced in is -3.4%', near(e.priced, -3.4, 0.05), f(e.priced));
+  check('section 3: if tariffs happen, -5.1%', near(e.ifYes, -5.1, 0.05), f(e.ifYes));
+  check('section 3: if they do not, +3.4%', near(e.ifNo, 3.4, 0.05), f(e.ifNo));
+}
+
+// The identities in section 4, on every sample portfolio and every event.
+function identities(label) {
+  for (const s of M.SAMPLES) {
+    const P = analyze(s.id);
+    const S = M.buildState(P, tw, {}, {});
+    let pricedIn = 0, knock = 0, swing = 0;
+    for (const e of S.evs) {
+      pricedIn = Math.max(pricedIn, Math.abs(e.qEff * e.ifYes + (1 - e.qEff) * e.ifNo));
+      const viaChildren = e.children.reduce((t, c) => t + c.w * S.byId[c.id].dT, 0);
+      knock = Math.max(knock, Math.abs(e.dT - e.dD - viaChildren));
+      swing = Math.max(swing, Math.abs(e.swingPct ** 2 - e.swing));
+    }
+    check(label + s.id + ': the priced-in moves net to zero at market odds (4.2)', pricedIn < 1e-9);
+    check(label + s.id + ': knock-on jumps add up through the graph (4.4)', knock < 1e-9);
+    check(label + s.id + ': the swing matches q(1-q) times the jump squared (4.3)', swing < 1e-9);
+
+    // The simulator (4.7): zero mean at market odds, and seeded so a run repeats exactly.
+    const a = M.simulate(S, P, tw, 4000), b = M.simulate(S, P, tw, 4000);
+    const se = a.sd / Math.sqrt(a.n);
+    check(label + s.id + ': the simulated mean is zero within 4 standard errors (4.7)', Math.abs(a.mean) <= 4 * se,
+      a.mean.toFixed(3) + '% vs +/-' + (4 * se).toFixed(3) + '%');
+    check(label + s.id + ': the simulation repeats exactly', a.mean === b.mean && a.p5 === b.p5 && a.es === b.es);
+  }
+}
+identities('');
+
+function analyze(id) { return M.analyzePortfolio(holdings(M.SAMPLES.find(s => s.id === id))); }
+const perUnit = P => P.b.map((v, k) => v / M.FACTORS[k].typical);  // exposure per 1% or 1 bp of each factor
+
+if (livePath) {
+  check('live.js holds a backend snapshot', M.HAS_LIVE);
+  const before = Object.fromEntries(M.SAMPLES.map(s => { const P = analyze(s.id); return [s.id, { unit: perUnit(P), replay: M.replayCompute(P, true) }]; }));
+  M.applyDataset('live');
+  identities('snapshot · ');
+
+  // Events only: the illustrative portfolios stay, rescaled to the snapshot's typical moves.
+  if (!M.LIVE_PORTFOLIOS) for (const s of M.SAMPLES) {
+    const P = analyze(s.id), was = before[s.id];
+    const gap = Math.max(...perUnit(P).map((v, k) => Math.abs(v - was.unit[k])));
+    check(s.id + ': illustrative exposures keep their size per unit of each factor', gap < 1e-12, gap.toExponential(1) + ' largest gap');
+    const R = M.replayCompute(P, true);
+    const rGap = Math.max(...R.real.map((v, i) => Math.abs(v - was.replay.real[i])), ...R.calls.map((c, i) => Math.abs(c.pred - was.replay.calls[i].pred)));
+    check(s.id + ': the April 2025 replay is unchanged', rGap < 1e-9, rGap.toExponential(1) + ' largest gap, in % points');
+  }
+
+  // The engine's own portfolios: the app's model must reproduce the engine's numbers for each.
+  for (const r of M.LIVE.results) {
+    const P = analyze(r.sample);
+    check(r.sample + ': value matches the engine', Math.abs(P.V - r.value) <= 1e-6 * Math.max(1, r.value), P.V.toFixed(2) + ' vs ' + r.value.toFixed(2));
+    const bGap = Math.max(...P.b.map((v, k) => Math.abs(v - r.b[k])));
+    check(r.sample + ': the exposure arrow matches the engine', bGap < 1e-4, bGap.toExponential(1) + ' largest gap');
+    const S = M.buildState(P, { ...tw, horizon: r.horizon }, {}, r.whatIf || {});
+    let gap = 0;
+    for (const x of r.events) {
+      const e = S.byId[x.id];
+      gap = Math.max(gap, Math.abs(e.dD - x.direct), Math.abs(e.dT - x.total), Math.abs(e.ifYes - x.if_yes), Math.abs(e.ifNo - x.if_no), Math.abs(e.swingPct - x.swing_pct));
+    }
+    check(r.sample + ': every event\'s moves match the engine', gap < 1e-4, gap.toExponential(1) + ' largest gap, in % points');
+  }
+}
+
+console.log(failures ? '\n' + failures + ' check(s) failed' : '\nall checks passed');
+process.exit(failures ? 1 : 0);

@@ -4,7 +4,9 @@
 
 *What could move your portfolio, net of what's already priced in.*
 
-Design draft v0.1 · November 2026 · Castle take-home, Option 1 (scenario analysis)
+Design draft v0.3 · November 2026 · Castle take-home, Option 1 (scenario analysis)
+
+v0.3: the vertical slice (M3) is built in [`backend/`](../backend/README.md). [Section 15](#15-build-plan) says what runs today and what doesn't yet.
 
 > Independent take-home project built for Castle Technologies. Not affiliated with or endorsed by Castle.
 
@@ -18,7 +20,7 @@ Design draft v0.1 · November 2026 · Castle take-home, Option 1 (scenario analy
 4. [The math](#4-the-math)
 5. [Architecture](#5-architecture)
 6. [Stage by stage](#6-stage-by-stage)
-7. [Detect, protect, track: hedging with event contracts](#7-detect-protect-track-hedging-with-event-contracts)
+7. [Optional extension: hedging with event contracts](#7-optional-extension-hedging-with-event-contracts)
 8. [Where the AI is used, and where it isn't](#8-where-the-ai-is-used-and-where-it-isnt)
 9. [The app](#9-the-app)
 10. [How we prove it works](#10-how-we-prove-it-works)
@@ -27,7 +29,7 @@ Design draft v0.1 · November 2026 · Castle take-home, Option 1 (scenario analy
 13. [Assumptions and limitations](#13-assumptions-and-limitations)
 14. [Tech stack and repo layout](#14-tech-stack-and-repo-layout)
 15. [Build plan](#15-build-plan)
-16. [Open questions](#16-open-questions)
+16. [Decisions and open questions](#16-decisions-and-open-questions)
 17. [References](#17-references)
 18. [Glossary](#18-glossary)
 
@@ -40,10 +42,10 @@ Most risk tools list what *could* happen. The Red Keep tells you how much you wo
 It works in five steps:
 
 1. **See what you really own.** Look through ETFs to the stocks inside (QQQ becomes NVIDIA, Microsoft, Apple and so on), then measure how the portfolio responds to ten macro factors.
-2. **Find the events that matter.** Scan every live Polymarket and Kalshi market and keep the ~100 that could swing this portfolio the most.
+2. **Find the events that matter.** Screen every live Polymarket and Kalshi market with Laya, a small open-source model taught by Claude, and keep the ~100 that could swing this portfolio the most.
 3. **Match events to markets.** Check each market's exact wording, threshold and deadline against the event, and say so when nothing fits.
-4. **Measure odds and impact from several markets that check each other.** Prediction markets, options, and traded prices (Hyperliquid around the clock, ETFs in market hours), plus past events and an AI prior. Each source is weighted by how accurate it has been in backtests.
-5. **Show it and prove it.** An interactive app with a portfolio builder, a 3D risk map, live analysis and a historical replay, backed by evals against a "just ask an AI" baseline.
+4. **Measure odds and impact from several markets that check each other.** Prediction markets, options, and traded prices (ETFs in market hours, Hyperliquid's perps on weekends and holidays), plus past events and an AI prior. Each source is weighted by how accurate it has been in backtests.
+5. **Show it and prove it.** An interactive app with a portfolio builder, a 3D risk map, live analysis and a historical replay, backed by evals against a "just ask an AI" baseline. A playable prototype on illustrative data is in [`prototype/`](../prototype/).
 
 Five ideas set it apart:
 
@@ -53,7 +55,7 @@ Five ideas set it apart:
 - **Events form a graph.** Knock-on effects, like tariffs raising recession odds, are counted once and only once.
 - **Trust is earned.** Every source's weight, the AI's included, comes from its measured accuracy on events that have already resolved.
 
-The design maps directly onto Castle's own Detect, Protect and Track flow ([section 7](#7-detect-protect-track-hedging-with-event-contracts)).
+An optional extension sizes hedges with event contracts from the same numbers ([section 7](#7-optional-extension-hedging-with-event-contracts)).
 
 ---
 
@@ -164,7 +166,7 @@ Every source is a noisy reading of two hidden quantities per event: the odds `q`
 
 **Two-world fit.** Option prices around the event date are modeled as `C(K) = w · BS(K; F_yes, σ_yes) + (1 − w) · BS(K; F_no, σ_no)`, with `w · F_yes + (1 − w) · F_no = F`. The weight `w` is the options market's own (risk-neutral) probability and `ln(F_yes / F_no)` is its jump. Melick and Thomas (1997) used this mixture to read scenario probabilities for oil during the Gulf crisis.
 
-**Jump windows.** We look at windows where one or more monitored prediction markets moved at least 5 points within 30 minutes, and regress factor-proxy returns in the window on all the odds changes in it. Including every market that moved separates direct effects from knock-on effects. We use changes in probability, not log-odds, because prices are linear in `q` (4.2). This borrows high-frequency identification from monetary economics (Gürkaynak, Sack and Swanson 2005; Nakamura and Steinsson 2018) and prediction-market event studies (Snowberg, Wolfers and Zitzewitz 2007). Hyperliquid perps trade around the clock and catch news that breaks overnight or on weekends; ETFs cover market hours. For factors with no 24/7 proxy, an off-hours window is measured at the next open with a wider error bar.
+**Jump windows.** We look at windows where one or more monitored prediction markets moved at least 5 points within 30 minutes, and regress factor-proxy returns in the window on all the odds changes in it. Including every market that moved separates direct effects from knock-on effects. We use changes in probability, not log-odds, because prices are linear in `q` (4.2). This borrows high-frequency identification from monetary economics (Gürkaynak, Sack and Swanson 2005; Nakamura and Steinsson 2018) and prediction-market event studies (Snowberg, Wolfers and Zitzewitz 2007). ETFs cover market hours. Hyperliquid's perps on stocks, oil, chips and (weakly) gold keep trading on weekends and holidays, and only then do they find their own price; while the reference market is open they copy it and add nothing new ([6.4](#64-evidence)). Rates, credit, breakevens and the VIX have no usable perp, so an off-hours window for those is measured at the next open with a wider error bar.
 
 ### 4.6 Fusion and the market quorum
 
@@ -176,7 +178,7 @@ Every source is a noisy reading of two hidden quantities per event: the odds `q`
 
 | Tier | Rule | Shown as |
 |---|---|---|
-| **A · Confirmed** | `q` from a well-matched, liquid market, and `δ` backed by two or more independent market readings that agree (options, Hyperliquid windows, ETF windows) | Normal |
+| **A · Confirmed** | `q` from a well-matched, liquid market, and `δ` backed by two or more independent market readings that agree (options, ETF windows, Hyperliquid weekend windows) | Normal |
 | **B · Contested** | Two or more market readings of `q` or `δ` exist but disagree beyond their error bars | Flagged. The disagreement is the insight |
 | **C · Provisional** | `q` observed, but `δ` has only one market reading, or the match is weak | Wider error bars |
 | **D · Unpriced** | No prediction market fits; `q` and `δ` come from past events and the AI only | Labeled as a qualitative risk |
@@ -266,15 +268,15 @@ The three 3D display axes are published blends of these: **growth** (stocks, cre
 
 1. Pull all active Polymarket and Kalshi markets.
 2. Cheap filters drop sports, entertainment and celebrity categories, markets below a volume and liquidity floor, and spreads too wide to be informative.
-3. Fast AI tagging, cached per market: is this macro or geopolitical; which factors would it move; rough direction and size per factor on a −2 to +2 scale; a one-line reason.
+3. Fast screening with Laya, a small open-source decision model fine-tuned on Claude's labels ([section 8](#8-where-the-ai-is-used-and-where-it-isnt)), cached per market: is this macro or geopolitical; which factors would it move; rough direction and size per factor on a −2 to +2 scale. Markets Laya is unsure about go to Claude, which also writes a one-line reason for each market kept.
 4. Group near-duplicates (the same question on two venues, or a ladder of thresholds or dates) into one event.
 5. Keep events whose rough vector is material for at least one factor. These ~250 get the full evidence treatment on schedule.
 6. **Portfolio-first.** The AI also proposes events from the portfolio's largest exposures and holdings, like "export controls on advanced chips", which may not have obvious markets. These go through matching, and if nothing fits they become tier D.
 7. **Per portfolio,** rank by swing against the arrow and show the top ~100 (configurable).
 
-**Why.** Costs stay low because the expensive estimation only runs where it can matter. Coverage is wide because we search market-first and portfolio-first. Ranking is principled because it uses swing.
+**Why.** Costs stay low because the expensive estimation only runs where it can matter, and the screen itself takes milliseconds per market. Coverage is wide because we search market-first and portfolio-first. Ranking is principled because it uses swing.
 
-**Rejected.** AI brainstorming only (ungrounded, and misses what markets are pricing); market-first only (misses unpriced risks); ranking by expected value (always about zero) or by probability alone (ignores size).
+**Rejected.** AI brainstorming only (ungrounded, and misses what markets are pricing); market-first only (misses unpriced risks); ranking by expected value (always about zero) or by probability alone (ignores size); a large model reading every market (accurate, but slow and costly when thousands of markets are re-screened on every refresh, so Claude teaches and checks instead).
 
 ### 6.3 Matching events to markets
 
@@ -283,7 +285,7 @@ The three 3D display axes are published blends of these: **growth** (stocks, cre
 **How.**
 
 1. **Retrieve** candidates with hybrid search, keywords plus embeddings, over market titles and resolution rules.
-2. **Judge** each candidate with a stronger AI model, a fixed rubric and structured output. Same entity? Same threshold (equal, stricter, looser)? Same deadline (earlier, later)? Same resolution source? The model labels the relationship (same question, implies, implied by, overlaps, unrelated), gives a match score from 0 to 1, and quotes the rule text it relied on.
+2. **Judge** each candidate with a stronger AI model, a fixed rubric and structured output. Same entity? Same threshold (equal, stricter, looser)? Same deadline (earlier, later)? Same resolution source? The model labels the relationship (same question, implies, implied by, part of, overlaps, unrelated), gives a match score from 0 to 1, and quotes the rule text it relied on. "Part of" covers mutually exclusive outcomes whose union is the event, such as "cut 25 bps" and "cut 50 bps or more" for "the Fed cuts": their odds are summed.
 3. **Ladders.** Markets that differ only by threshold or deadline are fitted together under monotonic constraints: a higher threshold can never be more likely, and a later deadline can never be less likely. We interpolate to the event's exact terms and never extrapolate past the ladder; outside it we report a bound.
 4. **Bounds.** When only "implies" relationships exist, the probability is a range, for example `P(≥25%) ≤ P(≥20%) ≤ P(≥10%)`.
 5. **"Nothing fits."** If the best match score is below a threshold, or the implied range is wider than a maximum, the event has no market and becomes tier D. We still show the closest near-miss and why it was rejected ("deadline differs by nine months"). Both thresholds are tuned on the labeled matching set (E1 in section 10).
@@ -311,7 +313,33 @@ In Castle's terms, the gap between event and contract is **basis risk**: the cha
 - Fit the two-world mixture around the event date (Melick and Thomas 1997) to get the options market's own odds and jump. Options do price political events (Kelly, Pástor and Veronesi 2016).
 - When the options-implied odds differ from the prediction market's, that is a headline insight: "Polymarket says 45%, but your semis options are pricing about 20%."
 
-**Jump windows.** Detect windows where any monitored market moved sharply, then regress factor-proxy returns in each window on all the odds changes in it (4.5). Hyperliquid (24/7) and ETF (market hours) windows are estimated separately, so they count as separate market readings for the quorum.
+**Jump windows.** Detect windows where any monitored market moved sharply, then regress factor-proxy returns in each window on all the odds changes in it (4.5). Market-hours windows on ETFs and off-hours windows on Hyperliquid are estimated separately, so they count as separate market readings for the quorum.
+
+**Hyperliquid's weekend markets.** We checked which non-crypto perps are usable ([research note with 18 sources](research/hyperliquid-noncrypto-perps.md)). In short:
+
+- **Who lists them.** Almost all come from one deployer, trade[XYZ] (coin names start with `xyz:`), which lists 118 markets: stock indexes, ETFs, currencies, commodities and single stocks.
+- **When they add information.** Only while the reference market is closed. While it is open, the perp's oracle is that market's price, so the perp adds nothing new. On weekends and holidays it finds its own price, and that price carries real information: a Blockworks study of 614 market-weekends (March to July 2026, funded by the Hyperliquid Policy Center) found the last weekend price cut the error in predicting Monday's opening gap by 53%. A separate open-source analysis found the oil perp hedged 80 to 88% of the variance in Monday's gap, and gold only 17%.
+
+| Factor | Market | Daily volume (Sep 2026 where dated) | Weekend windows |
+|---|---|---|---|
+| US stocks | `xyz:SP500`, `xyz:XYZ100` | About $185M a day each | Yes |
+| Oil | `xyz:CL` (WTI), `xyz:BRENTOIL` | About $240M a day (WTI) | Yes, the strongest |
+| Chips and AI | `xyz:NVDA`, `xyz:SMH` | Under $60M a day (NVDA); SMH is thin | NVDA only |
+| Gold | `xyz:GOLD` | About $60M a day | Yes, with a weak signal |
+| US dollar | `xyz:EUR`, `xyz:JPY` | About $10M a day across currencies | Marginal; the dollar-index perp was delisted |
+| Interest rates | `xyz:TLT` | About $2M a day | Marginal |
+| China and trade | `xyz:BABA` | About $8M a day | Weak |
+| Credit, inflation expectations, fear | None | | No; measured at the next open |
+
+- **How we measure.**
+  - Use trades or the order-book midpoint, not the oracle. On weekends the oracle drifts toward the book with a 30-minute time constant, so 30 minutes after a jump it shows only about 63% of it.
+  - Treat a move that hits the discovery bound as censored: a lower bound on the jump, not a reading. On the 28 February 2026 Iran-strike weekend the bound held oil's move to about 45% of Monday's gap.
+  - Filter bad prints. One bad pre-market print sent `xyz:SKHYNIX` down 17.9% on 28 July 2026.
+  - Give these windows wider error bars than ETF windows: weekend order books hold 31 to 50% of weekday depth.
+- **Weeknights.** CME futures are deeper than the perps overnight, so weeknight windows should use futures if we can get the data ([section 16](#16-decisions-and-open-questions)). Hyperliquid's unique value is weekends and holidays.
+- **Data access.** `POST api.hyperliquid.xyz/info` with `candleSnapshot`, using the dex prefix (`xyz:SP500`). Only the latest 5,000 candles are kept, about 3.5 days of one-minute bars, so we record from day one; Tardis (from December 2025) and 0xArchive (from October 2025) sell older history. The rate limit is 1,200 weight per minute per IP.
+- **A bonus.** trade[XYZ] has run HIP-4 event contracts since 10 September 2026 on the same API, so some odds and prices share one clock.
+- **Access.** We only read public data. Trading on trade.xyz is closed to US, UK and Canadian persons.
 
 **Past similar events.** The AI proposes analog dates with reasons, for example the May 2019 tariff escalation. We run a standard event study of factor moves around them (MacKinlay 1997) and scale by how comparable each analog is.
 
@@ -344,9 +372,9 @@ For each event: the full jump; the move if it happens and if it doesn't, in % an
 
 ---
 
-## 7. Detect, protect, track: hedging with event contracts
+## 7. Optional extension: hedging with event contracts
 
-Castle's product goes from detecting event risk, to protecting against it with event contracts, to tracking the hedge. The Red Keep's detection output is exactly what hedge sizing needs, so we add a **Protect** step (stretch goal) and a **Track** view.
+This section is optional; the core engine stands without it. Once the engine knows each event's jump and odds, sizing a hedge with an event contract falls out of the same math, so it is a natural next step. The prototype already shows single-event sizing (7.1) on every event card, and its live feed of odds moves is the seed of tracking. The budgeted optimizer (7.3) and full tracking (7.5) are described here, not built.
 
 ### 7.1 Sizing a hedge
 
@@ -380,7 +408,8 @@ A live view of the portfolio and its hedges as markets move, with alerts when an
 
 | Task | Model | Output | Guardrail |
 |---|---|---|---|
-| Funnel tagging | Fast, low-cost Claude model | Relevance, rough factor vector, one-line reason | Only a filter; never a final number |
+| Funnel labels (teacher) | Stronger Claude model | Relevance and rough factor vector for a few thousand sample markets, with reasons | A hand-checked sample; versioned like code |
+| Funnel screening | Laya, fine-tuned on those labels | Relevance and rough factor vector for every live market | Only a filter, never a final number; unsure cases go to Claude; measured in E0 |
 | Portfolio-first brainstorm | Stronger Claude model | Candidate events | Must be matched, or labeled tier D |
 | Match judging | Stronger | Relationship, match score, quoted rule text | Measured on the labeled set (E1) |
 | Analog selection | Stronger | Past dates with reasons | The event study computes the numbers |
@@ -388,7 +417,13 @@ A live view of the portfolio and its hedges as markets move, with alerts when an
 | Priors | Stronger | Rough `q` and `δ` | Weight earned in backtests |
 | Explanations | Stronger | Plain-language "why" on cards and disagreements | Grounded in the computed numbers |
 
-Rules: the AI never produces a final number when market evidence exists. Calls use structured outputs against a schema, temperature 0 and prompt caching. Every call is logged with its inputs and outputs, so any number can be audited. Prompts and rubrics are versioned and evaluated like code.
+Rules: the AI never produces a final number when market evidence exists. Calls use structured outputs against a schema and prompt caching, and opt into server-side fallback: if the model declines a request for policy reasons, the API retries it on the recommended fallback model and the response records which model answered. Every call is logged with its inputs and outputs, so any number can be audited, and cached, so a rerun returns the same answer. Prompts and rubrics are versioned and evaluated like code.
+
+**Claude teaches, Laya scales.** Screening thousands of markets on every refresh is a narrow, repetitive job, which suits a *decision model*: a small model that returns a typed answer (a choice, a score or a yes/no) with a probability in a single pass, instead of writing text.
+
+- **Laya** (Convai Innovations, September 2026) is open source under Apache 2.0: about 421M parameters, built on ModernBERT-large, with a median response time of about 33 ms. Out of the box it is close to guessing, so it has to be fine-tuned, which is what the loop below does.
+- **Jev** (TypeSafe AI, September 2026) is the closed alternative: a paid API, in early access at about $0.042 per million input tokens. Laya's maker says Laya is about 7.8× faster than Jev, but that is the maker's own benchmark. Jev is our baseline: if fine-tuned Laya can't match Jev on E0 ([section 10](#10-how-we-prove-it-works)), we use Jev.
+- **The loop.** Claude labels a few thousand markets with the funnel rubric; we fine-tune Laya on those labels; Laya screens every live market; markets it is unsure about, plus a random sample of the rest, go to Claude, and any disagreements become new training labels.
 
 ---
 
@@ -396,18 +431,21 @@ Rules: the AI never produces a final number when market evidence exists. Calls u
 
 ### 9.1 Design language
 
-The UI builds on Castle's own look so it feels native to them:
+The UI borrows Castle's component layer so it would sit comfortably next to their product, and adds The Red Keep's own accent and hero:
 
-- Serif display headings (Hedvig Letters Serif), Geist for body text, and Geist Mono for numbers and small uppercase, letter-spaced data labels.
-- A light gray canvas (`#F5F5F5`), white cards with hairline borders (`#E5E5E5`) and ink text (`#171717`).
-- Deep teal and forest green as accents, and a red-brown "risk" color for losses.
-- Co-branding in the header, "The Red Keep · built for Castle", with Castle's logo and a small "independent take-home, not affiliated" note.
+- **Type.** Serif display headings (Hedvig Letters Serif), including two-tone headings with an accent phrase; Geist for body text; Geist Mono for buttons, numbers and small uppercase, letter-spaced labels.
+- **Surfaces.** A light gray canvas (`#F5F5F5`), flat white cards with 4px corners, ink text (`#171717`), a floating glass nav, and a dark band and footer.
+- **Color.** Dragon red (`#B4141F`) as the accent. Losses use Castle's red-brown risk color (`#7C4632`) and gains forest green (`#395938`). Deep teal, blue and sage mark the confidence tiers.
+- **Dark mode.** Maroon near-blacks instead of pure black, with a brighter red accent.
+- **Hero.** The illustration at the top of the page: a red dragon breathes fire onto a castle on a sea cliff, in mauve and rose with a halftone texture.
+- **Dragon story.** Between the hero and the app, a scroll story modelled on the manifesto on castle.tech, where short lines light up word by word over knights drawn in dark green characters. Here a lean dragon drawn entirely in crimson digits beats its wings and breathes fire upward while ten short lines in three chapters explain the engine: look-through, what's priced in, knock-on effects, the market quorum and ranking by swing. The fire grows as you read. The digits sit on a fixed grid, the wings and flame keep moving when scrolling stops, and a faint castle from the hero illustration sits behind the dragon. With reduced motion every word is lit, the dragon holds one still pose and the scene redraws only when you scroll. Tweaks can hide the hero image or the story.
+- **Branding.** The Red Keep's own mark with "an independent take-home for Castle, not affiliated". Castle's logo is not used in the app.
 
 ### 9.2 Screens
 
 1. **Portfolio builder**
    - Ticker search with autocomplete; enter shares or a dollar amount; live price and position value; weights computed automatically.
-   - Edit, remove, import from CSV, and sample portfolios (tech-heavy, 60/40, energy tilt, crypto-curious).
+   - Edit, remove, import from CSV, and sample portfolios: four famous published allocations (below), a tech-heavy example and the $1M QQQ example from section 3.
    - A "what you really own" drawer: the look-through to underlying stocks, the arrow as bars across the ten factors, and the fit score.
 2. **Risk dashboard** (home)
    - Headline numbers: total ± swing, the worst 1-in-20 outcome, the number of confirmed events.
@@ -421,19 +459,29 @@ The UI builds on Castle's own look so it feels native to them:
    - Pick a date or a preset episode, such as the April 2, 2025 tariff announcement and the pause a week later. Everything is rebuilt as of that date from snapshots and point-in-time data only.
    - Press play to step forward day by day and compare what the system predicted with what actually happened.
    - Works for the current portfolio or for a historical one built as of that date.
-6. **Protect** (stretch). Pick events to hedge and set a budget; see the suggested legs, their cost, basis risk, and a before-and-after outcome chart ("raw event risk" vs. "hedged", Castle's own framing).
-7. **Track** (stretch). Live P&L of the portfolio and hedges, with alerts.
+6. **Protect** (optional, [section 7](#7-optional-extension-hedging-with-event-contracts)). Pick events to hedge and set a budget; see the suggested legs, their cost, basis risk, and a before-and-after outcome chart ("raw event risk" vs. "hedged", Castle's own framing).
+7. **Track** (optional). Live P&L of the portfolio and hedges, with alerts.
+
+**Sample portfolios.** The demo centers on famous allocations whose weights are published, applied to $1M. No well-known trader publishes an exact personal ETF portfolio (Paul Tudor Jones and Meb Faber describe theirs only loosely), so we use famous model portfolios instead.
+
+| Portfolio | Source | Holdings | Main sensitivity |
+|---|---|---|---|
+| All Weather | Ray Dalio's approach, as published by Robbins (2014) | 30% VTI, 40% TLT, 15% IEF, 7.5% GLD, 7.5% DBC | Hurt most by a rate spike (55% in Treasuries); helped by gold and inflation surges |
+| 90/10 | Buffett (2013) | 90% VOO, 10% SHY | Hurt most by a stock crash |
+| Permanent Portfolio | Browne (1999) | 25% each in VTI, TLT, BIL and GLD | Balanced; helped by gold and inflation surges |
+| Yale-style | Swensen (2005) | 30% VTI, 15% VEA, 5% VWO, 20% VNQ, 15% TIP, 15% IEF | Hurt by a rate spike through REITs; helped by a weaker dollar |
 
 ### 9.3 The 3D risk map
 
-![3D risk map concept](diagrams/risk-map-concept.png)
+![The 3D risk map in the prototype, for the tech-heavy sample portfolio](assets/prototype-map.png)
 
 - **Axes:** growth, inflation and risk appetite (blends of the ten factors, in typical moves).
 - The origin is your portfolio today, your arrow is your exposure, and each event is a dot placed at its jump.
-- **Dot size** is the odds, **color** is the tier, and **lines** are graph links.
-- A dot's impact on you is how far it sits along or behind your arrow, not its distance from the origin. The same dot can matter a lot for one portfolio and not at all for another; in the concept above, fiscal stimulus sits sideways to QQQ's arrow and nets to about zero.
+- **Dot size** is the swing, **color** says whether the event hurts or helps this portfolio, **fill** is the tier (solid A, ringed B, hollow C, dashed D), and **lines** are graph links.
+- A dot's impact on you is how far it sits along or behind your arrow, not its distance from the origin. The same dot can matter a lot for one portfolio and not at all for another: an event that sits sideways to your arrow nets to about zero.
 - **Clusters are themes.** Tariffs and an oil shock form a "stagflation" cluster; a cluster behind your arrow means concentrated risk. Dots in front of it are your upside.
-- **Interactions:** orbit, hover for numbers, click for the event card or a what-if; a "my view" toggle that turns the map toward your portfolio's three most important directions. Every 3D view has a 2D equivalent (impact against odds) for readability and accessibility.
+- **Interactions:** orbit, hover for numbers, click for the event card or a what-if. Every 3D view has a 2D equivalent (impact against odds, with curves of equal swing) for readability and accessibility.
+- **My view.** A second 3D mode built around your portfolio. Left to right is exactly what each event does to you; the other two axes are the directions your portfolio is blind to, found from the events themselves: the two directions in which the events' jumps vary most once your arrow's direction is taken out, with each event weighted by `q (1 − q)`.
 
 ### 9.4 Live updates
 
@@ -448,6 +496,7 @@ Ground rules: time-based splits only (fit on the past, test on the future), poin
 
 | # | Eval | Question | Data | Metric | Baseline |
 |---|---|---|---|---|---|
+| E0 | Funnel screening | Does the cheap screen keep the markets that matter? | ~2,000 markets labeled by Claude, with a hand-checked sample | Recall of material markets at the kept size; precision; cost and latency per 1,000 markets | Claude on every market; Jev |
 | E1 | Matching | Do we pick the right market, and say "nothing fits" when we should? | ~200 hand-labeled event-market pairs, including hard negatives | Precision and recall of match decisions; relationship-label accuracy; "nothing fits" precision | Embeddings only; AI without the rubric |
 | E2 | Calibration | Do events priced at 70% happen about 70% of the time? | Thousands of resolved Polymarket and Kalshi markets | Brier score (Brier 1950), log loss, reliability curves; raw vs. corrected | Raw market prices |
 | E3 | Jump accuracy | Do predicted jumps match what happened when events resolved? | Resolved events with clean resolution windows | Sign accuracy, mean absolute error, rank correlation | AI-only estimates |
@@ -466,12 +515,13 @@ Ground rules: time-based splits only (fit on the past, test on the future), poin
 
 | Source | Used for | Access | Notes |
 |---|---|---|---|
-| Massive | Stock and ETF prices, ETF holdings, options (plan-dependent) | API key from Castle (pending) | Fallback: free daily prices and issuers' holdings files |
+| Massive | Stock and ETF prices, current and historical ETF holdings, option chains | API key from Castle (pending) | The key is expected to include options and historical holdings. Fallback: free daily prices and issuers' holdings files |
 | Polymarket | Market list, prices, price history, resolutions | Public APIs | |
 | Kalshi | Market list, prices, price history, resolutions | Public API | CFTC-regulated venue |
-| Hyperliquid | 24/7 perp prices | Public API | Coverage of non-crypto perps to verify |
+| Hyperliquid (trade[XYZ] markets) | Weekend and holiday prices for stocks, oil, chips and gold | Public API, read-only | Keeps only the latest 5,000 candles, so we record from day one; Tardis or 0xArchive for older history ([6.4](#64-evidence)) |
 | FRED | Yields, breakevens, credit spreads, VIX (daily) | Public | Factor proxies and long history |
 | Claude API | AI steps | Personal key | |
+| Laya | Funnel screening | Open weights on Hugging Face (Apache 2.0) | Fine-tuned on Claude's labels; Jev is the fallback ([section 8](#8-where-the-ai-is-used-and-where-it-isnt)) |
 
 ---
 
@@ -489,7 +539,9 @@ Ground rules: time-based splits only (fit on the past, test on the future), poin
 | Multiple-outcome markets | Treat as one categorical variable whose probabilities sum to 1 |
 | Correlated events | The graph and the simulator prevent double counting |
 | Missing or stale ETF holdings | Fall back to returns-based exposures for that fund |
-| Off-hours news | Hyperliquid 24/7; next-open gaps for other factors, with wider errors |
+| Off-hours news | Weekends and holidays: Hyperliquid perps for stocks, oil, chips and gold. Weeknights: CME futures where we have them. Everything else: next-open gaps, with wider errors |
+| A perp at its discovery bound | Censored: the move is a lower bound on the jump, not a reading |
+| A bad print on a perp | Filter outliers against the order book and nearby trades; drop the window if in doubt |
 | Market resolved or rules changed | Removed from the library; rule changes detected by hashing the resolution text |
 | Events far in the future | Horizon filter, six months by default and user-adjustable |
 | Holdings with options | Out of scope; flagged in the UI |
@@ -507,14 +559,16 @@ Ground rules: time-based splits only (fit on the past, test on the future), poin
 | Graph links are stable over the horizon | Links change slowly relative to six months | Rolling re-estimation | Shorter windows; wider errors |
 | Links are predictive, not causal | That is what "if this happens, what do markets learn" needs | n/a | Stated in the UI |
 | Past analogs resemble today | Used only as a prior | E6 ablation | Their weight shrinks automatically |
+| Weekend perp prices anticipate Monday's open | Studies find they cut the error in predicting Monday's gap by about half: strongly for oil, weakly for gold | Compare weekend jumps with the next ETF open, by factor | Lower that factor's weight, or drop its weekend windows |
 
 ---
 
 ## 14. Tech stack and repo layout
 
 - **Backend:** Python 3.12 and FastAPI; pandas, NumPy and SciPy; statsmodels for regressions; scikit-learn for the graphical lasso and isotonic regression; PyMC for fusion v2; DuckDB for market data and point-in-time snapshots; a scheduler for the shared jobs.
-- **AI:** the Anthropic Python SDK, with a fast, low-cost Claude model for tagging and a stronger Claude model for matching, analogs and explanations. Structured outputs and prompt caching.
+- **AI:** the Anthropic Python SDK, with a stronger Claude model for funnel labels, matching, analogs and explanations, and for the markets Laya is unsure about. Structured outputs and prompt caching. Laya runs with Hugging Face Transformers on CPU.
 - **Frontend:** Next.js with TypeScript and Tailwind; react-three-fiber for the 3D map; Recharts or visx for 2D charts; websockets for live updates.
+- **Prototype:** a single-page React app with no build step (React and htm from a CDN, hand-drawn SVG charts, a small 3D projection and a canvas scroll scene). `prototype/build.py` stitches the sources into one HTML file, and `prototype/check.js` checks its math against sections 3 and 4. It is the visual spec for the full app.
 - **Tooling:** pytest, an `evals/` harness that writes reports to `evals/reports/`, and Makefile targets for common tasks.
 
 ```
@@ -522,20 +576,26 @@ TheRedKeep/
 ├── README.md
 ├── docs/
 │   ├── DESIGN.md
-│   └── diagrams/              # Mermaid sources, rendered SVG/PNG, concept figure
-├── backend/
-│   ├── app/                   # FastAPI routes
-│   ├── data/                  # massive.py, polymarket.py, kalshi.py, hyperliquid.py, fred.py, holdings.py
-│   ├── exposure/              # lookthrough.py, factors.py, fit.py
-│   ├── events/                # funnel.py, portfolio_first.py
-│   ├── matching/              # retrieve.py, judge.py, ladders.py
-│   ├── evidence/              # odds.py, options.py, windows.py, analogs.py, prior.py
-│   ├── fusion/                # combine.py, tiers.py
-│   ├── graph/                 # learn.py, propagate.py, coherence.py
-│   ├── scenarios/             # impact.py, simulate.py
-│   ├── hedging/               # size.py, optimize.py (stretch)
-│   └── jobs/                  # refresh_library.py, backtest_sources.py, calibrate.py
-├── evals/                     # e1_matching ... e9_baseline, reports/
+│   ├── assets/                # hero image
+│   ├── diagrams/              # Mermaid sources, rendered SVG/PNG, concept figure
+│   └── research/              # research notes, such as Hyperliquid's non-crypto perps
+├── prototype/                 # playable single-page prototype: illustrative data, or a backend snapshot
+│   ├── src/                   # data.js, model.js, dataset.js, ui-*.js, styles.css (and live.js from the backend)
+│   ├── build.py               # writes index.html
+│   └── check.js               # checks the prototype's math against the doc, and against the backend's numbers
+├── backend/                   # built so far: the M3 slice (see its README)
+│   ├── data/                  # events.toml (the event library), portfolios.toml (samples)
+│   ├── redkeep/
+│   │   ├── data/              # polymarket.py, kalshi.py, fred.py, massive.py; next: hyperliquid.py, options
+│   │   ├── matching/          # retrieve.py, judge.py, ladders.py, decide.py
+│   │   ├── evidence/          # odds.py, windows.py, analogs.py, prior.py; next: options.py
+│   │   ├── engine/            # fusion.py, impact.py, simulate.py
+│   │   ├── exposure.py        # look-through, regressions and fit
+│   │   ├── pipeline.py        # refresh (the shared library) and analyze (per portfolio)
+│   │   └── api.py, cli.py     # FastAPI routes and the `redkeep` command
+│   └── tests/
+│   # planned: events/ (the funnel and Laya), graph/ (learned links), hedging/, jobs/ (backtests, calibration)
+├── evals/                     # e0_screening ... e9_baseline, reports/
 └── frontend/                  # Next.js app
 ```
 
@@ -548,32 +608,46 @@ Build a thin vertical slice first, then widen it.
 | Milestone | Scope | Done when |
 |---|---|---|
 | M0 | Repo, design doc, data access checks | APIs reachable; sample data cached |
-| M1 | Data layer | Prices, ETF holdings, Polymarket and Kalshi markets and histories, Hyperliquid candles and FRED, all stored point-in-time |
+| M1 | Data layer | Prices, current and historical ETF holdings, Polymarket and Kalshi markets and histories, Hyperliquid candles (recorded from day one, since the API keeps only recent ones) and FRED, all stored point-in-time |
 | M2 | Exposure engine | Arrows and fit scores for the sample portfolios (E7) |
 | M3 | Vertical slice | One portfolio, about 10 events: matching, odds, jump windows, impacts and a basic list UI, end to end |
-| M4 | Funnel and matcher at scale | Labeled set built; E1 passing |
+| M4 | Funnel and matcher at scale | Claude's labels in; Laya fine-tuned and compared with Jev (E0); matching set built; E1 passing |
 | M5 | Evidence, fusion v1 and tiers | Calibration (E2) and jump accuracy (E3 to E6) |
-| M6 | Options, once the Massive key arrives | Event-day variance and the two-world fit |
+| M6 | Options from Massive | Event-day variance from the term structure and the two-world fit, on SPY, QQQ, TLT, USO, GLD, FXI and SMH chains |
 | M7 | Event graph and simulator | Coherence checks and the outcome distribution |
-| M8 | App | Builder, dashboard, event cards, 3D map, replay |
+| M8 | App | Builder, dashboard, event cards, 3D map, replay; the prototype is the spec |
 | M9 | Evals and write-up | E8 and E9; demo script |
-| M10 (stretch) | Protect and Track | Hedge sizing, the budgeted optimizer, live tracking |
+| M10 (optional) | Hedging extension | The budgeted optimizer and live tracking; single-event sizing is already in the prototype |
+
+**Where the build stands.** The M3 slice runs end to end in [`backend/`](../backend/README.md): ten events matched to Polymarket and Kalshi by Claude (including "nothing fits" with the rejected near-misses), odds with cross-checks, jumps from daily jump windows, past events and the AI prior, fusion and tiers, link checks against odds histories, exposures with look-through, and the impacts, priced-in moves and simulation. `redkeep app` feeds a snapshot into the prototype, and `check.js` confirms the prototype's model gives the backend's numbers. A snapshot can also go in without portfolio analyses: the prototype then pairs its events with the illustrative portfolios, rescaled to the snapshot's typical moves, and labels them illustrative. Two simplifications, both documented: jump windows are daily rather than 30-minute, and with only one market reading of each jump (ETF windows), no event can reach tier A until options (M6) and Hyperliquid's weekend windows add the second. The slice is tested offline on recorded response shapes and synthetic prices; its first run on live data comes next.
 
 ---
 
-## 16. Open questions
+## 16. Decisions and open questions
 
-- Does the Massive key include options and historical ETF holdings?
-- Which non-crypto Hyperliquid perps (indexes, commodities, single stocks) are liquid enough for jump windows?
-- Which sample portfolios should the demo center on?
-- Should the default horizon be three, six or twelve months?
-- How much of Protect and Track should be built, and how much described?
+**Decided**
+
+| Question | Decision |
+|---|---|
+| Which model screens the funnel? | Laya, fine-tuned on Claude's labels, with Jev as the baseline and fallback ([section 8](#8-where-the-ai-is-used-and-where-it-isnt)) |
+| What does the Massive key cover? | It is expected to include option chains and historical ETF holdings |
+| Which Hyperliquid perps are usable? | Stocks, oil, chips (NVIDIA) and, weakly, gold, on weekends and holidays only ([6.4](#64-evidence)) |
+| Which sample portfolios? | Famous published allocations: All Weather, Buffett's 90/10, the Permanent Portfolio and a Yale-style mix ([9.2](#92-screens)) |
+| Default horizon? | Six months, adjustable |
+| How much of Protect and Track to build? | Optional. Single-event hedge sizing is in the prototype; the optimizer and tracking are described, not built ([section 7](#7-optional-extension-hedging-with-event-contracts)) |
+
+**Still open**
+
+- Confirm the Massive key's coverage when it arrives: option chains and historical holdings.
+- Confirm Hyperliquid coin names and live depth with the `meta` endpoint, for example whether oil is `xyz:CL` or `xyz:WTIOIL`.
+- Does fine-tuned Laya match Jev on E0?
+- Can we get CME futures data for weeknight windows?
 
 ---
 
 ## 17. References
 
-Each reference was checked in November 2026 against a publisher, journal index (RePEc, NBER) or author page; the links point there.
+**Papers and books.** Each was checked in November 2026 against a publisher, journal index (RePEc, NBER) or author page; the links point there.
 
 1. Brier, G. W. (1950). Verification of forecasts expressed in terms of probability. *Monthly Weather Review*, 78(1).
 2. Bürgi, C., Deng, W., and Whelan, K. (2025). Makers and Takers: The Economics of the Kalshi Prediction Market. CESifo Working Paper No. 12122. [ifo.de](https://www.ifo.de/en/cesifo/publications/2025/working-paper/makers-and-takers-economics-kalshi-prediction-market) · [PDF](https://www.karlwhelan.com/Papers/Kalshi.pdf)
@@ -594,6 +668,21 @@ Each reference was checked in November 2026 against a publisher, journal index (
 17. Snowberg, E., and Wolfers, J. (2010). Explaining the Favorite-Long Shot Bias: Is it Risk-Love or Misperceptions? *Journal of Political Economy*, 118(4), 723–746. [NBER](https://www.nber.org/papers/w15923)
 18. Snowberg, E., Wolfers, J., and Zitzewitz, E. (2007). Partisan Impacts on the Economy: Evidence from Prediction Markets and Close Elections. *Quarterly Journal of Economics*, 122(2), 807–829. [NBER](https://www.nber.org/papers/w12073)
 19. Wolfers, J., and Zitzewitz, E. (2004). Prediction Markets. *Journal of Economic Perspectives*, 18(2), 107–126. [RePEc](https://econpapers.repec.org/RePEc:aea:jecper:v:18:y:2004:i:2:p:107-126)
+
+**Products, data and portfolios.** Read by research agents on 8 November 2026. Where only a secondary source was reachable, it is marked.
+
+20. AK20061 (undated). Hyperliquid weekend hedging, an open-source analysis. [GitHub](https://github.com/AK20061/Hyperliquid-weekend-hedging)
+21. Blockworks Research (2026). Price discovery in Hyperliquid's weekend markets. Funded by the Hyperliquid Policy Center. [0xArchive](https://0xarchive.io/resources/research/price-discovery-in-hyperliquids-weekend-markets)
+22. Browne, H. (1999). *Fail-Safe Investing*. St. Martin's Press. Secondary: [Wikipedia](https://en.wikipedia.org/wiki/Fail-Safe_Investing)
+23. Buffett, W. E. (2013). Letter to the shareholders of Berkshire Hathaway. Secondary: [The White Coat Investor](https://www.whitecoatinvestor.com/the-90-10-warren-buffett-portfolio)
+24. Castle Labs (2026). 432 hours of Hyperliquid oil market. [research.castlelabs.io](https://research.castlelabs.io/p/432-hours-of-hyperliquid-oil-market)
+25. Convai Innovations (2026). Laya model card. [Hugging Face](https://huggingface.co/convaiinnovations/laya); news coverage: [GameBusiness.jp](https://www.gamebusiness.jp/article/2026/10/01/28183.html)
+26. GIGAZINE (16 September 2026). Report on TypeSafe AI's Jev. [gigazine.net](https://gigazine.net/gsc_news/en/20260916-system-one-jev)
+27. Hyperliquid documentation: info endpoint, rate limits, historical data and HIP-3. [hyperliquid.gitbook.io](https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api/info-endpoint.md)
+28. Nexus Mutual (2026). xyz:SKHYNIX flash crash on Hyperliquid: incident report. [nexusmutual.io](https://nexusmutual.io/blog/xyz-skhynix-flash-crash-on-hyperliquid-incident-report)
+29. Robbins, T. (2014). *Money: Master the Game*. Simon & Schuster. Secondary: [A Wealth of Common Sense](https://awealthofcommonsense.com/?p=7038)
+30. Swensen, D. F. (2005). *Unconventional Success: A Fundamental Approach to Personal Investment*. Free Press. Secondary: [My Money Blog](https://mymoneyblog.com/model-portfolio-7-unconventional-success-by-david-swensen.html)
+31. trade.xyz documentation: specification index, oracle price and discovery bounds. [docs.trade.xyz](https://docs.trade.xyz/perpetuals/specifications-and-schedules/specification-index.md)
 
 ---
 
@@ -617,3 +706,6 @@ Each reference was checked in November 2026 against a publisher, journal index (
 | Event library | The shared, regularly refreshed set of events with their odds and jumps |
 | Fit score | How much of a portfolio's movement the factors explain, on data the model didn't see |
 | Expected shortfall | The average loss in the worst outcomes, for example the worst 5% |
+| Decision model | A small model that returns a typed answer (a choice, a score or a yes/no) with a probability in one pass, instead of writing text. Laya and Jev are examples |
+| HIP-3 perp | A perpetual futures market that a third party deploys on Hyperliquid, such as trade[XYZ]'s S&P 500 and oil perps |
+| Discovery bound | A cap on how far a HIP-3 perp can move while its reference market is closed; a move that hits it is censored |

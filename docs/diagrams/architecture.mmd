@@ -8,12 +8,12 @@ flowchart TB
 
   subgraph INPUTS["Inputs"]
     direction LR
-    PM["Prediction markets<br/>Polymarket, Kalshi"] ~~~ MKT["Market data<br/>prices, ETF holdings, options"] ~~~ HL["Hyperliquid<br/>24/7 perp prices"] ~~~ CL["Claude<br/>AI-assisted steps"]
+    PM["Prediction markets<br/>Polymarket, Kalshi"] ~~~ MKT["Market data (Massive)<br/>prices, ETF holdings, options"] ~~~ HL["Hyperliquid<br/>weekend and holiday<br/>perp prices"] ~~~ CL["Claude and Laya<br/>AI-assisted steps"]
   end
 
   subgraph SHARED["Shared layer: runs on a schedule, same for every user"]
     direction LR
-    FUN["1. Event funnel<br/>thousands of markets<br/>down to ~250 events"] --> MAT["2. Matcher<br/>match score, ladders,<br/>nothing-fits rule"] --> EVI["3. Evidence<br/>odds, options, jump windows,<br/>past events, AI prior"] --> FUS["4. Fusion and quorum<br/>earned source weights,<br/>tiers A to D"] --> GRA["5. Event graph<br/>links, knock-on effects,<br/>coherence checks"]
+    FUN["1. Event funnel<br/>Laya screens thousands<br/>of markets to ~250 events"] --> MAT["2. Matcher<br/>match score, ladders,<br/>nothing-fits rule"] --> EVI["3. Evidence<br/>odds, options, jump windows,<br/>past events, AI prior"] --> FUS["4. Fusion and quorum<br/>earned source weights,<br/>tiers A to D"] --> GRA["5. Event graph<br/>links, knock-on effects,<br/>coherence checks"]
   end
 
   LIB[("Event library<br/>odds q, jump vector δ, tier<br/>saved as daily snapshots")]
