@@ -1,7 +1,7 @@
 {
  "kind": "redkeep.jumps",
  "version": 1,
- "as_of": "2026-11-08T13:40:34+00:00",
+ "as_of": "2026-11-08T13:53:01+00:00",
  "sources": {
   "since": "2025-01-01",
   "until": "2026-11-07",
@@ -31,7 +31,8 @@
     }
    },
    "one_per_event": 54
-  }
+  },
+  "rerun_of": "data/evals/jumps-2026-11-08.json"
  },
  "method": {
   "surprise": 0.15,
@@ -219,6 +220,60 @@
   }
  },
  "e6": "Not run: it needs a second source of jump readings on past events. No analogs are picked for resolved markets, the AI prior knows how they ended, and Hyperliquid's weekend windows reach back only about 200 days.",
+ "e3_by_material": {
+  "labeled": 54,
+  "material_markets": 10,
+  "material": {
+   "pairs": 70,
+   "markets": 10,
+   "days": 8,
+   "explained_share": -1.8369205944738396,
+   "explained_range": [
+    -4.040183111752282,
+    -0.4913664740786206
+   ],
+   "explained_share_resolved": -0.006426003874970387,
+   "explained_resolved_range": [
+    -0.024608252315027588,
+    0.0064692766805281585
+   ],
+   "resolved_pairs": 3,
+   "explainable": 0.2979236040738906,
+   "clear_moves": 10,
+   "clear_signs_right": 5,
+   "clear_signs_range": [
+    0.16666666666666666,
+    0.9
+   ],
+   "rank_corr": -0.07138545521623187,
+   "coverage_80": 0.8
+  },
+  "other": {
+   "pairs": 308,
+   "markets": 44,
+   "days": 38,
+   "explained_share": -2.0101977730931835,
+   "explained_range": [
+    -4.362353424609226,
+    -0.7929538597879128
+   ],
+   "explained_share_resolved": -0.26017799971666156,
+   "explained_resolved_range": [
+    -0.8648483870519575,
+    -0.009505092549122783
+   ],
+   "resolved_pairs": 9,
+   "explainable": 0.13191635782157052,
+   "clear_moves": 23,
+   "clear_signs_right": 12,
+   "clear_signs_range": [
+    0.27586206896551724,
+    0.7857142857142857
+   ],
+   "rank_corr": 0.011538770842452127,
+   "coverage_80": 0.8376623376623377
+  }
+ },
  "warnings": [
   "No price data for China and trade, Chips and AI, Gold, so the study leaves those factors out."
  ],
@@ -3625,5 +3680,61 @@
     0.4472135954999579
    ]
   }
- ]
+ ],
+ "material": {
+  "kalshi:KXSECTREASURY-26DEC31-HL": true,
+  "polymarket:517895": false,
+  "polymarket:514049": true,
+  "polymarket:519286": true,
+  "kalshi:KXTOPAI-26-JAN01-GR": false,
+  "polymarket:515905": false,
+  "kalshi:KX538APPROVE-25FEB26-T48.1": false,
+  "polymarket:519014": false,
+  "kalshi:KXBORDERBILL-25-APR01": false,
+  "polymarket:537128": false,
+  "polymarket:536514": false,
+  "polymarket:536499": false,
+  "polymarket:547742": false,
+  "polymarket:555752": false,
+  "polymarket:581826": false,
+  "polymarket:581842": false,
+  "polymarket:618474": false,
+  "polymarket:640432": false,
+  "polymarket:558107": false,
+  "polymarket:593158": false,
+  "polymarket:657442": false,
+  "polymarket:658462": false,
+  "polymarket:1065975": false,
+  "polymarket:695667": false,
+  "polymarket:1065913": false,
+  "polymarket:1032316": true,
+  "polymarket:1167607": true,
+  "kalshi:KXGOVGANOMD-26-LM": false,
+  "kalshi:KXMODELHIGH-27-CLAU": false,
+  "kalshi:KXECONSTATU3-26JAN-T4.3": true,
+  "polymarket:1198784": true,
+  "polymarket:1483739": true,
+  "polymarket:1438625": false,
+  "kalshi:KXNEWROLECEOAPPLE-27JAN-TERN": false,
+  "kalshi:KXTOL-26MAYDELI-2450": false,
+  "polymarket:1032278": true,
+  "polymarket:2354024": true,
+  "polymarket:1961527": false,
+  "polymarket:2534929": false,
+  "polymarket:2649075": false,
+  "polymarket:2648866": false,
+  "polymarket:2677010": false,
+  "polymarket:2745588": false,
+  "polymarket:2966411": false,
+  "polymarket:2584969": false,
+  "polymarket:2676730": false,
+  "polymarket:2321905": false,
+  "polymarket:4627194": false,
+  "polymarket:3093522": false,
+  "polymarket:5237636": false,
+  "polymarket:3081959": false,
+  "polymarket:2110576": false,
+  "polymarket:3212218": false,
+  "polymarket:4232165": false
+ }
 }
