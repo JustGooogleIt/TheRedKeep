@@ -305,6 +305,8 @@ a { color: var(--accent); }
 .fit { display: flex; align-items: center; gap: 12px; margin-top: 16px; padding: 12px 14px; background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r1); }
 .fit-v { font-family: var(--f-display); font-size: 24px; line-height: 1; }
 .fit p { margin: 0; font-size: 12px; color: var(--ink-3); line-height: 1.45; }
+.exp-note { margin: 12px 0 0; font-size: 12px; color: var(--ink-3); line-height: 1.45; }
+.pill-demo { margin-left: 8px; vertical-align: 1px; }
 
 /* ---------- engine column ---------- */
 .pipe { list-style: none; margin: 0; padding: 0; display: flex; overflow-x: auto; background: var(--band); color: var(--band-ink); border: 1px solid var(--card-line); border-radius: var(--r1); scrollbar-width: thin; }

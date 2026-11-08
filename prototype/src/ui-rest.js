@@ -353,9 +353,11 @@ function Footer({ ds }) {
     <div className="foot-brand"><${KeepMark} size=${18} /><span className="brand-name">The Red Keep</span><span className="foot-tag">Scenario Analysis Engine</span></div>
     <div className="foot-txt">
       <p>An independent take-home by Ashwin, built for Castle. Not affiliated with or endorsed by Castle.</p>
-      ${ds === 'live'
-        ? html`<p>Backend snapshot of ${fmtStamp(RK_LIVE.asOf)}: odds from Polymarket and Kalshi, prices and factor data from Massive and FRED, market matches judged by Claude, and jumps and exposures estimated by the engine. The April 2025 replay stays illustrative. Nothing here is investment advice.</p>`
-        : html`<p>Everything here is illustrative: prices, odds, exposures, market matches and evidence readings are made up for the prototype, shaped like the real system’s inputs. Nothing here is investment advice.</p>`}
+      ${ds !== 'live'
+        ? html`<p>Everything here is illustrative: prices, odds, exposures, market matches and evidence readings are made up for the prototype, shaped like the real system’s inputs. Nothing here is investment advice.</p>`
+        : EXPOSURES === 'live'
+          ? html`<p>Backend snapshot of ${fmtStamp(RK_LIVE.asOf)}: odds from Polymarket and Kalshi, prices and factor data from Massive and FRED, market matches judged by Claude, and jumps and exposures estimated by the engine. The April 2025 replay stays illustrative. Nothing here is investment advice.</p>`
+          : html`<p>Backend snapshot of ${fmtStamp(RK_LIVE.asOf)}: odds from Polymarket and Kalshi, factor data from ${UNMEASURED.length ? 'FRED' : 'Massive and FRED'}, market matches judged by Claude, and jumps estimated by the engine. The portfolios’ prices, holdings and exposures are illustrative, rescaled to the snapshot’s typical moves, and so is the April 2025 replay. Nothing here is investment advice.</p>`}
     </div>
   </div></footer>`;
 }
@@ -386,8 +388,9 @@ function validHoldings(h) {
 }
 
 function App({ ds, setDs }) {
-  // Holdings saved under another dataset may name tickers this one lacks: keep only the settings then.
-  const saved = useMemo(() => { const s = loadSaved(); return s && (s.dataset || 'demo') !== ds ? { tweaks: s.tweaks, tab: s.tab } : s; }, []);
+  // Holdings saved under other portfolios may name tickers these lack: keep only the settings then. An events-only
+  // snapshot keeps the illustrative portfolios, so holdings carry over between it and the illustrative data.
+  const saved = useMemo(() => { const s = loadSaved(); return s && (s.universe || s.dataset || 'demo') !== EXPOSURES ? { tweaks: s.tweaks, tab: s.tab } : s; }, []);
   const [holdings, setHoldings] = useState(() => { const h = saved && validHoldings(saved.holdings); return h && h.length ? h : sampleToHoldings(SAMPLES[0]); });
   const [sampleId, setSampleId] = useState(() => (saved && 'sampleId' in saved ? saved.sampleId : SAMPLES[0].id));
   const [tw, setTw] = useState(() => ({ ...DEFAULT_TWEAKS, ...cleanTweaks(saved && saved.tweaks) }));
@@ -409,7 +412,7 @@ function App({ ds, setDs }) {
   const dragonRef = useRef(null);
   const overDragon = useUnderNav(dragonRef, 40, tw.dragon);
 
-  useEffect(() => { saveState({ dataset: ds, holdings, sampleId, tweaks: tw, tab }); }, [ds, holdings, sampleId, tw, tab]);
+  useEffect(() => { saveState({ dataset: ds, universe: EXPOSURES, holdings, sampleId, tweaks: tw, tab }); }, [ds, holdings, sampleId, tw, tab]);
   useEffect(() => { let on = true; getSample().then(s => { if (on) setAiOK(!!s); }); return () => { on = false; }; }, []);
   useEffect(() => {
     const r = document.documentElement;

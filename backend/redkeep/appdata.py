@@ -5,6 +5,11 @@ shapes this engine produces. ``export`` writes ``live.js`` in those shapes; the
 prototype's build inlines it when it exists, and the app then switches between
 the illustrative data and this snapshot.
 
+The analyses are optional. Without any, the export carries the events alone
+(``"exposures": "illustrative"``): the app pairs them with its own illustrative
+portfolios, rescaled to the snapshot's typical moves, and says so. That needs
+only a snapshot, so only the Anthropic key; exposures need Massive's prices.
+
 Two conversions are worth knowing:
 
 * An event's jump readings are vectors, one number per factor, and the app
@@ -217,6 +222,7 @@ def build(snap: dict, analyses: list[dict]) -> dict:
     by_key = {f["key"]: f for f in snap["factors"]}
     data = {
         "kind": "redkeep.app", "version": 1, "asOf": snap["as_of"], "today": snap["today"],
+        "exposures": "backend" if analyses else "illustrative",
         "catalogue": snap["catalogue"], "windows": snap["windows"], "warnings": snap["warnings"],
         "factors": [{"k": f.key, "typical": by_key.get(f.key, {}).get("typical"),
                      "proxy": _proxy(by_key.get(f.key, {}).get("source"), f.name)} for f in FACTORS],

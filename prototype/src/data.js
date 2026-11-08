@@ -404,3 +404,5 @@ const REPLAY = {
   links: [['r_recip', 'r_retal', 0.45], ['r_recip', 'r_recess', 0.25], ['r_retal', 'r_recess', 0.10],
           ['r_recip', 'r_pause', 0.10], ['r_pause', 'r_recess', -0.15], ['r_recip', 'r_fed', 0.10]],
 };
+// The replay's jumps (d) are in these typical moves, kept here before a backend snapshot brings its own.
+REPLAY.typical = FACTORS.map(f => f.typical);

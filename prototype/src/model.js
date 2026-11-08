@@ -277,7 +277,9 @@ function replayCompute(P, knock) {
   const real = R.days.map(day => day.f.reduce((s, f, k) => s + P.b[k] * f / FACTORS[k].typical, 0));
   const links = knock ? R.links : [];
   const qAt = (e, i) => (e.res != null && i >= e.res) ? null : (e.q[i] == null ? null : e.q[i]);
-  const direct = Object.fromEntries(R.events.map(e => [e.id, dot(P.b, e.d)]));
+  // The replay's jumps are in its own typical moves, and a backend snapshot brings others: put the arrow in the replay's.
+  const bR = P.b.map((v, k) => v * R.typical[k] / FACTORS[k].typical);
+  const direct = Object.fromEntries(R.events.map(e => [e.id, dot(bR, e.d)]));
   const dTotalAt = (id, i, seen = new Set()) => {
     if (seen.has(id)) return 0; seen.add(id);
     let s = direct[id];

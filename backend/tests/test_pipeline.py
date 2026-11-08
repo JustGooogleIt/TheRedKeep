@@ -215,15 +215,47 @@ def test_app_export_reproduces_the_engine(world, snap, tmp_path):
     assert out.stdout.count("matches the engine") == 4 and "moves match the engine" in out.stdout
 
 
-def test_without_massive_the_library_still_builds(world, tmp_path):
+@pytest.fixture(scope="module")
+def keyless(world, tmp_path_factory):
+    """The clients without a Massive key, and the library they build."""
     class NoMassive(FakeMassive):
         available = False
 
     c = Clients(world.polymarket, world.kalshi, world.fred, NoMassive({}), world.judge, world.prior)
-    snap = refresh(Settings(cache_dir=tmp_path), c, today=TODAY, progress=lambda _: None)
+    return c, refresh(Settings(cache_dir=tmp_path_factory.mktemp("keyless")), c, today=TODAY, progress=lambda _: None)
+
+
+def test_without_massive_the_library_still_builds(keyless, tmp_path):
+    c, snap = keyless
     assert any("No Massive key" in w for w in snap["warnings"])
     have = {f["key"] for f in snap["factors"] if f["source"]}
     assert have == {"eq", "rates", "infl", "usd", "oil", "credit", "vix"}  # the FRED seven; the S&P 500 stands in for SPY
     assert len(snap["events"]) == 10
     with pytest.raises(RuntimeError, match="MASSIVE_API_KEY"):
         analyze(Settings(cache_dir=tmp_path), c, snap, [("QQQ", 1_000_000, "usd")], today=TODAY)
+
+
+def test_the_app_takes_the_events_alone(keyless, tmp_path):
+    """Without analyses the export carries the events, and the app keeps its illustrative portfolios."""
+    _, snap = keyless
+    data = build(snap, [])
+    assert data["exposures"] == "illustrative"
+    assert data["tickers"] == {} and data["samples"] == [] and data["results"] == []
+    assert len(data["events"]) == 10 and data["warnings"] == snap["warnings"]
+    measured = [f["k"] for f in data["factors"] if f["typical"]]
+    assert measured == ["eq", "rates", "infl", "usd", "oil", "credit", "vix"]
+    for e, x in zip(snap["events"], data["events"]):  # with no prices, only the AI prior moves China, chips and gold
+        ai = [r for r in e["delta"]["readings"] if r["kind"] == "ai"]
+        assert all(r["sigma"][k] is None for r in e["delta"]["readings"] if r["kind"] != "ai" for k in (7, 8, 9))  # no information
+        assert x["d"][7:] == pytest.approx(ai[0]["delta"][7:] if ai else [0.0] * 3, abs=1e-6)
+
+    node = shutil.which("node")
+    if not node:
+        pytest.skip("Node isn't installed")
+    live = tmp_path / "live.js"
+    live.write_text(export(snap, []))
+    out = subprocess.run([node, str(CHECK_JS), str(live)], capture_output=True, text=True, timeout=120)
+    assert out.returncode == 0, out.stdout + out.stderr
+    assert out.stdout.count("keep their size per unit of each factor") == 6
+    assert out.stdout.count("the April 2025 replay is unchanged") == 6
+    assert out.stdout.count("snapshot · ") == 6 * 5 and "matches the engine" not in out.stdout

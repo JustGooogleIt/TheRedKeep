@@ -101,7 +101,8 @@ function KeepMark({ size = 22 }) {
 /* ---------- banner, floating glass nav, hero, intro ---------- */
 function Banner({ ds, setDs }) {
   const live = ds === 'live';
-  return html`<div className="banner"><span className="banner-dot" aria-hidden="true"></span>${live ? 'Backend snapshot · ' + fmtStamp(RK_LIVE.asOf) : 'Illustrative data · Snapshot ' + fmtDate(TODAY)}
+  const what = live ? 'Backend snapshot · ' + fmtStamp(RK_LIVE.asOf) + (EXPOSURES === 'live' ? '' : ' · Exposures illustrative') : 'Illustrative data · Snapshot ' + fmtDate(TODAY);
+  return html`<div className="banner"><span className="banner-dot" aria-hidden="true"></span>${what}
     ${HAS_LIVE && html`<button className="banner-btn" onClick=${() => setDs(live ? 'demo' : 'live')}>${live ? 'Show illustrative data' : 'Show backend snapshot'}</button>`}<span className="banner-x"> · An independent take-home for Castle</span></div>`;
 }
 
@@ -270,9 +271,9 @@ function PortfolioCard({ holdings, P, sampleId, onPick, onEdit }) {
     ${sample && html`<p className="sample-note">${sample.note}</p>`}
     ${holdings.length > 0 && html`<div className="holds">${holdings.map((h, i) => html`<${HoldingRow} key=${h.id} h=${h} row=${rowById[h.id]} onChange=${x => change(i, x)} onRemove=${() => remove(i)} />`)}</div>`}
     <${AddHolding} onAdd=${add} />
-    <details className="universe"><summary>${Object.keys(TICKERS).length} tickers in this ${DATASET === 'live' ? 'snapshot' : 'prototype'}</summary>
+    <details className="universe"><summary>${Object.keys(TICKERS).length} tickers in this ${EXPOSURES === 'live' ? 'snapshot' : 'prototype'}</summary>
       <p>${Object.keys(TICKERS).join(' ')}</p>
-      <p style=${{ fontFamily: 'var(--f-body)', wordSpacing: 0, lineHeight: 1.5 }}>${DATASET === 'live' ? 'The tickers in the portfolios analyzed for this snapshot. The backend’s API analyzes any ticker Massive prices.' : 'The real system covers anything with holdings data from Massive.'}</p>
+      <p style=${{ fontFamily: 'var(--f-body)', wordSpacing: 0, lineHeight: 1.5 }}>${EXPOSURES === 'live' ? 'The tickers in the portfolios analyzed for this snapshot. The backend’s API analyzes any ticker Massive prices.' : 'The real system covers anything with holdings data from Massive.'}</p>
     </details>
   </section>`;
 }
@@ -293,7 +294,7 @@ function LookThrough({ P }) {
   const mx = items.length ? items[0].w : 1;
   const lines = items.filter(o => o.kind === 'line').length;
   return html`<section className="card" aria-labelledby="lt-h">
-    <div className="card-head"><div><span className="kicker">Step 1 · Look through</span><h3 className="h3" id="lt-h" style=${{ marginTop: 6 }}>What you actually own</h3>
+    <div className="card-head"><div><span className="kicker">Step 1 · Look through<${DemoPill} /></span><h3 className="h3" id="lt-h" style=${{ marginTop: 6 }}>What you actually own</h3>
       <p className="sub">${P.rows.length} holding${P.rows.length === 1 ? ' becomes' : 's become'} ${P.nUnderlying} named companies${lines ? ', ' + lines + ' other line' + (lines === 1 ? '' : 's') : ''} and each fund’s long tail. A company held through several funds is added up.</p></div></div>
     <ul className="lt-list">${shown.map(o => html`<li key=${o.key}>
       <div className="lt-top"><span className="tk">${ltTicker(o)}</span><span className="lt-name">${ltName(o)}</span>${o.kind === 'stock' && o.w >= 0.05 && html`<span className="pill pill-acc" title="At 5% or more, the engine also tracks this company’s own event risk">Own line</span>`}<span className="lt-w mono">${(o.w * 100).toFixed(1)}%</span></div>
@@ -308,13 +309,25 @@ function Exposure({ P }) {
   const rows = FACTORS.map((f, k) => ({ key: f.k, name: f.name, v: P.b[k], f })).concat(P.extras.map(e => ({ key: e.k, name: e.name, v: e.v, f: e, extra: true })));
   const mx = Math.max(1, ...rows.map(r => Math.abs(r.v)));
   const typ = f => +f.typical.toPrecision(2) + (f.unit === '%' ? '%' : ' ' + f.unit);
+  const gap = new Set(UNMEASURED.map(f => f.k));
+  const tip = r => r.name + ': a typical move (' + typ(r.f) + ') moves the portfolio ' + fmtPct(r.v, 2) + (gap.has(r.key) ? '. This snapshot has no price data on it, so only the AI prior estimates how events move it.' : '');
+  const note = [isDemoSide() && 'Illustrative exposures, rescaled to this snapshot’s typical moves. The engine measures real ones from each holding’s daily prices.',
+    gap.size > 0 && 'This snapshot has no price data yet on ' + listAnd(UNMEASURED.map(f => f.name)) + ', so only the AI prior estimates how events move ' + (gap.size === 1 ? 'it.' : 'them.')].filter(Boolean);
   return html`<section className="card" aria-labelledby="ex-h">
-    <div className="card-head"><div><span className="kicker">Step 2 · Exposure</span><h3 className="h3" id="ex-h" style=${{ marginTop: 6 }}>Which way it leans</h3>
-      <p className="sub">How much the portfolio moves when each factor has a typical day. Hover a row for its scale.</p></div></div>
-    <div>${rows.map(r => { const w = Math.abs(r.v) / mx * 50; return html`<div key=${r.key} className="exp-row" title=${r.name + ': a typical move (' + typ(r.f) + ') moves the portfolio ' + fmtPct(r.v, 2)}>
+    <div className="card-head"><div><span className="kicker">Step 2 · Exposure<${DemoPill} /></span><h3 className="h3" id="ex-h" style=${{ marginTop: 6 }}>Which way it leans</h3>
+      <p className="sub">How much the portfolio moves when each factor makes a typical weekly move. Hover a row for its scale.</p></div></div>
+    <div>${rows.map(r => { const w = Math.abs(r.v) / mx * 50; return html`<div key=${r.key} className="exp-row" title=${tip(r)}>
       <span className="exp-name">${r.name}${r.extra && html` <span className="pill pill-acc">added</span>`}</span>
       <span className="exp-bar"><i className=${r.v < 0 ? 'neg' : ''} style=${{ left: (r.v < 0 ? 50 - w : 50) + '%', width: (Math.abs(r.v) >= 0.005 ? Math.max(w, 0.8) : 0) + '%' }}></i></span>
       <span className=${cls('exp-v mono', Math.abs(r.v) < 0.005 && 'faint')}>${fmtPct(r.v, 2)}</span></div>`; })}</div>
     ${P.fit != null && html`<div className="fit"><span className="fit-v">${Math.round(P.fit * 100)}%</span><p>of daily moves these factors explain, tested out of sample.${P.extras.length ? ' Adding ' + P.extras.map(e => e.name.toLowerCase()).join(' and ') + ' lifted it from ' + Math.round(P.fitCore * 100) + '%.' : ' No extra factors needed.'}</p></div>`}
+    ${note.length > 0 && html`<p className="exp-note">${note.join(' ')}</p>`}
   </section>`;
 }
+
+// A backend snapshot without portfolio analyses brings events only: the portfolio side stays illustrative.
+const isDemoSide = () => DATASET === 'live' && EXPOSURES !== 'live';
+function DemoPill() {
+  return isDemoSide() ? html`<span className="pill pill-demo" title="This snapshot brings events, odds and jumps. Prices, holdings and exposures here are illustrative.">Illustrative</span>` : null;
+}
+const listAnd = xs => (xs.length < 3 ? xs.join(' and ') : xs.slice(0, -1).join(', ') + ', and ' + xs[xs.length - 1]);
