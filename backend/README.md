@@ -68,7 +68,7 @@ The API serves the latest snapshot (`GET /events`, `GET /events/{id}`, either wi
 
 ## The point-in-time store
 
-`store/` keeps every price the backend reads with two clocks: the time the price is about and the time the store first saw it (`redkeep/store.py`). The data clients write to it as they read, so `refresh`, `analyze`, `calibrate` and `check` all add to it. `redkeep record` brings it up to date between runs:
+`store/` keeps every price the backend reads with two clocks: the time the price is about and the time the store first saw it (`redkeep/store.py`). The data clients write to it as they read, so `refresh`, `analyze`, `calibrate` and `check` all add to it. `redkeep record` brings it up to date between runs, reading every source fresh rather than from the response cache (settled markets and old candles, which can't change, stay cached):
 
 - **Hyperliquid candles** for every trade[XYZ] perp, from the last one stored. The API keeps only the latest 5,000 candles of each interval, so older ones exist only here. The first run reads all that the API still has.
 - **Both catalogues**: every listed market's details and quotes, and which markets are no longer listed. Neither venue keeps past quotes.
