@@ -38,14 +38,14 @@ The engine ranks events by that two-way swing, not by how frightening the headli
 | Point-in-time store (M1) | Built and run live by hand; three bugs its first live runs found are fixed. Running it on a schedule waits for your OK | `redkeep record`, PR #10 |
 | Exposures (M2) | Built (factor regression with ETF look-through); waits for prices and holdings from Massive | `redkeep analyze` |
 | Vertical slice (M3) | Runs on live data: about 66,000 markets searched, 7 of 10 events priced from markets | `redkeep refresh`, merged |
-| Funnel (M4) | Built: Claude labels an even sample, a words model learns from it and screens every market | `redkeep funnel`, PR #13 |
+| Funnel (M4) | Built and run live: Claude labeled 2,000 markets, and the screen they taught finds 96% of the material ones while Claude reads 38% (E0) | `redkeep funnel`, PR #13 |
 | Calibration and jumps (M5) | Both have run live (E2, E3 to E5) | `redkeep calibrate`, `redkeep jumps`, PR #12 |
 | Options (M6) | Waits for the Massive key | |
 | Event graph and coherence (M7) | Built and live: knock-on links checked against odds histories, related prices checked against the rules of probability | merged |
 | App (M8) | A playable prototype with the live event library and an April 2025 replay screen | [`prototype/`](../prototype/) |
 | Evals (M9) | E8 (replay) has run live; E9 ("just ask an AI") is built | `redkeep replay`, `redkeep baseline`, PRs #11 and #14 |
 
-149 offline tests cover the backend with recorded response shapes, synthetic prices and stand-ins for Claude. None of them needs a key or the network.
+150 offline tests cover the backend with recorded response shapes, synthetic prices and stand-ins for Claude. None of them needs a key or the network.
 
 ## What the evals found
 
@@ -72,7 +72,13 @@ Each finding below is from a live run on November 8, 2026. Where a result is wea
 - The one call, the tariff pause, had the right sign on all six factors with a reading, but was far too small: +1.2% for stocks against a 9.5% rise.
 - The misses are April 3 and 4: the tariff announcement and China's answer. One market could have priced the announcement, Polymarket's general-tariff market at 50% the evening before. The judge called it an overlap, not a match, because it counted only an April 2 announcement and set no 10% minimum. That is the price of exact matching. An overlapping market could still inform an event as a flagged, lower-tier reading; the matching set (E1) is where to test whether that helps more than it misleads.
 
-**The funnel (E0)** and **"just ask an AI" (E9)** were running on live data when this was written; their results go here.
+**The funnel (E0): a cheap screen keeps 96% of what matters.** About 4,000 of the 66,000 listed markets pass the cheap filters. Claude labeled an even sample of 2,000 of them, and a words model taught by those labels was tested on 589 markets it never saw:
+
+- It found 99 of the 103 material markets while sending 38% of the markets to Claude, and 32 of the 33 it kept on its own were material.
+- The four it dropped were the weakest material calls, each one step on one factor, such as NVIDIA staying the world's largest company (chips).
+- So Claude's work per refresh falls by three fifths. Laya and Jev, the screens the design names, have to beat that.
+
+**"Just ask an AI" (E9)** was running on live data when this was written; its result goes here.
 
 ## What the findings change
 
@@ -81,7 +87,7 @@ In order of what they would improve most:
 1. **Act only on jumps the readings resolve.** E3 says vague readings add error everywhere. The quorum rule already keeps them out of tier A; the next step is to keep them out of the point estimate too.
 2. **Give the prior today's context.** Live, the prior put a December hike at 3% where the markets said 77%, because it reasons from its training data. E9 measures how much that costs, on odds and on jumps.
 3. **A second market reading on every factor.** Options (M6) add one, and Massive's prices and holdings turn on exposures, E7 and E8's portfolio metric.
-4. **The matching set (E1)** and Laya, fine-tuned on Claude's labels, once its weights can be fetched.
+4. **The matching set (E1)** and Laya, fine-tuned on Claude's labels, once its weights can be fetched. E0 sets the bar it has to clear.
 5. **Record on a schedule.** The store holds only what it has seen, so every day it doesn't run is history that can't be recovered.
 
 ## A ten-minute demo
@@ -89,7 +95,7 @@ In order of what they would improve most:
 1. **The question (1 minute).** The QQQ example above: the jump, what's priced in, the swing.
 2. **A portfolio (2 minutes).** Open [`prototype/index.html`](../prototype/index.html). Scroll the dragon story, then pick All Weather. Events are ranked by swing. Open Hormuz: two market readings that agree make it tier A. Open the Bank of Japan hike: the coherence check made it tier B. Open an event that nothing fits, with the near-misses and why they were rejected.
 3. **The replay (2 minutes).** Step through April 2025 one evening at a time: the pause call, what the events explain each day, and the two days no matched market priced, and why.
-4. **The evals (3 minutes).** E2 (market odds stand), E3 (honest error bars, vague point estimates, and the material split), E8 (28% explained) and E9 (the engine against Claude alone).
+4. **The evals (3 minutes).** E0 (the screen keeps 96% of what matters), E2 (market odds stand), E3 (honest error bars, vague point estimates, and the material split), E8 (28% explained) and E9 (the engine against Claude alone).
 5. **What's next (2 minutes).** Options, Massive, and acting only on resolved jumps.
 
 From a terminal, `cd backend && uv run pytest` runs the offline tests in about 15 seconds, and `uv run redkeep baseline --from <run>` rescores a saved E9 run without asking Claude anything.
@@ -98,4 +104,4 @@ From a terminal, `cd backend && uv run pytest` runs the offline tests in about 1
 
 - [System design](DESIGN.md): the math (section 4), each stage (6), where the AI is used (8), the evals and what they found (10), and the build plan (15).
 - [Backend](../backend/README.md): setup, keys, every command, and what doesn't work yet and why.
-- Saved runs: `backend/data/calibration.json` (E2), `backend/data/evals/` (E3 to E5), `backend/data/replays/` (E8).
+- Saved runs: `backend/data/funnel/` (Claude's labels and E0), `backend/data/calibration.json` (E2), `backend/data/evals/` (E3 to E5), `backend/data/replays/` (E8).
