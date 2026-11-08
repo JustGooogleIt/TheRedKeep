@@ -1,7 +1,10 @@
 """The AI prior: Claude's structured starting estimate of ``q`` and ``δ`` (DESIGN.md 4.5 and 8).
 
 It is a starting estimate. Its errors, ``τ_AI``, will come from backtests on
-resolved events (E3 and E6); until then they are set wide: for the jump, 0.8
+resolved events (E9 scores the prior on markets that resolved after the model's
+training data; its first run couldn't size them, since around the prior's mostly
+zero estimates the day's own noise covered 80% of the realized jumps). Until
+then they are set wide: for the jump, 0.8
 typical moves per factor and half the estimated move, added in quadrature (a
 big estimated move is uncertain in size, not only in sign); for the
 probability, one unit of log-odds. The prior's probability is only used when

@@ -352,11 +352,15 @@ def by_day_ranges(p: Pairs, stat: Callable[[Pairs], float | None], *, n: int = B
     return [float(np.percentile(vals, 2.5)), float(np.percentile(vals, 97.5))] if vals else None
 
 
+SCALES = (0.05, 50.0)  # the range fit_scale searches; at its floor, the day's noise alone covers the target
+
+
 def fit_scale(p: Pairs, target: float = 0.8) -> float | None:
-    """The scale on ``σ`` that puts ``target`` of the realized jumps inside the 80% interval."""
+    """The scale on ``σ`` that puts ``target`` of the realized jumps inside the 80% interval. ``SCALES[0]`` means
+    any width would do: around the predictions, the realized jumps' own noise already covers ``target``."""
     if len(p.z) < 20:
         return None
-    lo, hi = 0.05, 50.0
+    lo, hi = SCALES
     if (coverage(p, hi) or 0) < target:
         return None  # the realized jumps' own noise leaves too many outside, whatever the error bars
     if (coverage(p, lo) or 0) >= target:
