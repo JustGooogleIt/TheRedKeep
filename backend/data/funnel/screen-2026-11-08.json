@@ -1,32 +1,33 @@
 {
  "kind": "redkeep.funnel",
  "version": 1,
- "as_of": "2026-11-08T14:14:12+00:00",
+ "as_of": "2026-11-08T14:29:28+00:00",
  "catalogue": {
-  "listed": 65652,
-  "after_filters": 3998,
+  "listed": 65508,
+  "after_filters": 3990,
   "dropped": {
    "closed": 882,
-   "all but decided": 1091,
-   "thin": 59404,
-   "wide spread": 277
+   "all but decided": 1096,
+   "thin": 59265,
+   "wide spread": 275
   }
  },
- "labels": 1994,
+ "labels": 2356,
  "thresholds": {
   "drop": 0.2479272961902739,
   "keep": 0.7832308663142321
  },
  "screen": {
-  "dropped": 1183,
-  "kept": 238,
-  "claude": 2347,
-  "unsure_unchecked": 230,
-  "band": 592,
-  "sent_to_claude": 400,
-  "new_labels": 362
+  "dropped": 1236,
+  "kept": 249,
+  "claude": 2505,
+  "unsure_unchecked": 0,
+  "band": 200,
+  "sent_to_claude": 200,
+  "new_labels": 200,
+  "not_labeled": 0
  },
- "material_markets": 657,
+ "material_markets": 682,
  "groups": [
   {
    "group": "polymarket:34044",
@@ -36,7 +37,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.8710308922134686,
+   "p": 0.8635267037863713,
    "moves": [
     -2,
     -1,
@@ -51,7 +52,7 @@
    ],
    "reason": "A Chinese invasion of Taiwan would be a major-power war shock, crushing chips and China assets and driving a flight to safety.",
    "by": "claude",
-   "volume": 45934792.204663,
+   "volume": 45934792.20466299,
    "closes": "2027-01-01",
    "examples": [
     "Will China invade Taiwan by end of 2026?"
@@ -65,7 +66,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.8738095356177914,
+   "p": 0.8644458340067189,
    "moves": [
     -2,
     -1,
@@ -94,7 +95,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.8348510909528057,
+   "p": 0.835899781415772,
    "moves": [
     -2,
     -1,
@@ -109,7 +110,7 @@
    ],
    "reason": "A Chinese invasion of Taiwan would crush chip supply and risk assets, spike fear, oil and gold, and drive a flight to safety.",
    "by": "claude",
-   "volume": 526680.8590369998,
+   "volume": 526680.8590369999,
    "closes": "2027-07-01",
    "examples": [
     "Will China invade Taiwan by June 30, 2027?"
@@ -123,7 +124,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.768056712631035,
+   "p": 0.7684242245535059,
    "moves": [
     -2,
     -1,
@@ -152,7 +153,7 @@
    "markets": 10,
    "material": 10,
    "unsure": 0,
-   "p": 0.8641144979883423,
+   "p": 0.8422983768866877,
    "moves": [
     -2,
     1,
@@ -167,7 +168,7 @@
    ],
    "reason": "Oil at $180 would be an extreme supply shock that lifts inflation and fear and hits stocks and credit.",
    "by": "claude",
-   "volume": 1380591.1100199998,
+   "volume": 1396986.6976599998,
    "closes": "2026-12-31",
    "examples": [
     "Will the maximum WTI front month settle price reach $115.01 by Dec 31, 2026?",
@@ -183,7 +184,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.6626126270137549,
+   "p": 0.6234089062853543,
    "moves": [
     -2,
     -1,
@@ -198,7 +199,7 @@
    ],
    "reason": "Invoking Article 5 would signal a war involving NATO, a severe risk-off shock lifting oil, gold and fear.",
    "by": "claude",
-   "volume": 306740.404936,
+   "volume": 306740.40493600006,
    "closes": "2027-01-01",
    "examples": [
     "NATO article 5 before 2027?"
@@ -212,7 +213,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.7367278713980985,
+   "p": 0.7385477679575446,
    "moves": [
     -2,
     -2,
@@ -241,7 +242,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.73064656201919,
+   "p": 0.7147666142086002,
    "moves": [
     -2,
     -1,
@@ -270,7 +271,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.861978428274557,
+   "p": 0.856736045643647,
    "moves": [
     -2,
     -1,
@@ -285,7 +286,7 @@
    ],
    "reason": "A Russian attack on NATO would be a war between major powers, crushing stocks and sending fear and gold sharply higher.",
    "by": "claude",
-   "volume": 502070.80388099997,
+   "volume": 502070.8038809999,
    "closes": "2027-01-01",
    "examples": [
     "Will Russia invade a NATO country by December 31, 2026?"
@@ -299,7 +300,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.9152996471059749,
+   "p": 0.9083344817520379,
    "moves": [
     -2,
     -1,
@@ -328,7 +329,7 @@
    "markets": 5,
    "material": 5,
    "unsure": 0,
-   "p": 0.9318012555883072,
+   "p": 0.925029188726181,
    "moves": [
     -2,
     2,
@@ -359,7 +360,7 @@
    "markets": 4,
    "material": 4,
    "unsure": 0,
-   "p": 0.7598089599331098,
+   "p": 0.8411162557225037,
    "moves": [
     -2,
     -1,
@@ -390,7 +391,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.7544905698646965,
+   "p": 0.8078281493047428,
    "moves": [
     -2,
     -2,
@@ -419,7 +420,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.7356776476404949,
+   "p": 0.7302349887291165,
    "moves": [
     -2,
     -2,
@@ -448,7 +449,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.6709660803286112,
+   "p": 0.7166744002995266,
    "moves": [
     -2,
     2,
@@ -470,6 +471,35 @@
    ]
   },
   {
+   "group": "polymarket:723777",
+   "venue": "polymarket",
+   "title": "Iran invades Kuwait by...?",
+   "url": "https://polymarket.com/event/iran-invades-kuwait-byptptpt-20260720015031544",
+   "markets": 1,
+   "material": 1,
+   "unsure": 0,
+   "p": 0.7781336256952662,
+   "moves": [
+    -2,
+    -1,
+    1,
+    1,
+    2,
+    1,
+    2,
+    -1,
+    -1,
+    2
+   ],
+   "reason": "An Iranian invasion of Kuwait would threaten Gulf oil supply, spiking crude, gold and fear while hitting stocks.",
+   "by": "claude",
+   "volume": 5491.826116000001,
+   "closes": "2027-01-01",
+   "examples": [
+    "Iran invades Kuwait by December 31?"
+   ]
+  },
+  {
    "group": "polymarket:844659",
    "venue": "polymarket",
    "title": "New pandemic before 2028?",
@@ -477,7 +507,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.7241213989144725,
+   "p": 0.7116075704794521,
    "moves": [
     -2,
     -1,
@@ -492,7 +522,7 @@
    ],
    "reason": "A WHO pandemic declaration would hit growth and oil and spike fear and credit spreads.",
    "by": "claude",
-   "volume": 33460.45465700001,
+   "volume": 33460.454657,
    "closes": "2028-01-01",
    "examples": [
     "New pandemic before 2028?"
@@ -506,7 +536,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.7628271007491516,
+   "p": 0.8242203188523889,
    "moves": [
     -2,
     -2,
@@ -521,7 +551,7 @@
    ],
    "reason": "A confirmed US recession would hit stocks and credit and pull yields sharply lower.",
    "by": "claude",
-   "volume": 2434991.3674170002,
+   "volume": 2434991.3674170007,
    "closes": "2027-01-31",
    "examples": [
     "US recession by end of 2026?"
@@ -535,7 +565,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.6075392117200495,
+   "p": 0.5975923536833095,
    "moves": [
     -2,
     -1,
@@ -564,7 +594,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.8962400746114649,
+   "p": 0.8920255116335437,
    "moves": [
     -1,
     -1,
@@ -593,7 +623,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.793727019387793,
+   "p": 0.7694031121177844,
    "moves": [
     -2,
     -1,
@@ -608,7 +638,7 @@
    ],
    "reason": "A WHO pandemic declaration would hit stocks and oil, spike fear and push yields down.",
    "by": "claude",
-   "volume": 1305563.9132040003,
+   "volume": 1305563.913204,
    "closes": "2027-01-01",
    "examples": [
     "New pandemic in 2026?"
@@ -622,7 +652,7 @@
    "markets": 2,
    "material": 2,
    "unsure": 0,
-   "p": 0.8932714148757106,
+   "p": 0.8725027632523464,
    "moves": [
     -2,
     -1,
@@ -637,7 +667,7 @@
    ],
    "reason": "A Russian invasion of another country would hit stocks, spike fear and gold, and lift oil.",
    "by": "claude",
-   "volume": 756648.2067849999,
+   "volume": 756678.6362489999,
    "closes": "2027-01-01",
    "examples": [
     "Will Russia invade another country by December 31, 2027?",
@@ -652,7 +682,7 @@
    "markets": 4,
    "material": 4,
    "unsure": 0,
-   "p": 0.8471473223276086,
+   "p": 0.8404813216176695,
    "moves": [
     -2,
     2,
@@ -683,7 +713,7 @@
    "markets": 2,
    "material": 2,
    "unsure": 0,
-   "p": 0.8336883114499557,
+   "p": 0.8321482132461668,
    "moves": [
     -1,
     1,
@@ -698,7 +728,7 @@
    ],
    "reason": "Oil above its all-time high would mean a severe supply shock, pushing up inflation expectations and hurting stocks.",
    "by": "claude",
-   "volume": 2667566.3068790003,
+   "volume": 2667566.306879,
    "closes": "2027-01-01",
    "examples": [
     "Will Crude Oil reach a new all-time high by December 31?",
@@ -713,7 +743,7 @@
    "markets": 3,
    "material": 3,
    "unsure": 0,
-   "p": 0.9417455063124524,
+   "p": 0.9358396391461702,
    "moves": [
     -2,
     2,
@@ -728,7 +758,7 @@
    ],
    "reason": "A surprise Fed hike would jolt yields and the dollar higher and hit stocks.",
    "by": "claude",
-   "volume": 969131.636136,
+   "volume": 969367.046136,
    "closes": "2027-01-28",
    "examples": [
     "Will the Fed decrease interest rates by 25 bps after the January 2027 meeting?",
@@ -744,7 +774,7 @@
    "markets": 3,
    "material": 3,
    "unsure": 0,
-   "p": 0.8970324412129631,
+   "p": 0.8880563992731347,
    "moves": [
     -2,
     2,
@@ -775,7 +805,7 @@
    "markets": 2,
    "material": 2,
    "unsure": 0,
-   "p": 0.8992222768678816,
+   "p": 0.8979500159132283,
    "moves": [
     -2,
     2,
@@ -805,7 +835,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.8767935618625718,
+   "p": 0.875028002311472,
    "moves": [
     -2,
     2,
@@ -834,7 +864,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.7718767308978699,
+   "p": 0.7533984475142369,
    "moves": [
     -2,
     2,
@@ -863,7 +893,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.9082148771978811,
+   "p": 0.899493441913898,
    "moves": [
     -1,
     0,
@@ -878,7 +908,7 @@
    ],
    "reason": "A US ground offensive into Iran would spike oil and fear and hit stocks.",
    "by": "claude",
-   "volume": 78385199.45541002,
+   "volume": 78387245.17995602,
    "closes": "2027-01-01",
    "examples": [
     "Will the U.S. invade Iran before 2027?"
@@ -892,7 +922,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.6126233581730359,
+   "p": 0.7592294136772866,
    "moves": [
     -1,
     0,
@@ -907,7 +937,7 @@
    ],
    "reason": "Xi's removal would create major Chinese political instability, hitting China stocks and lifting fear and gold.",
    "by": "claude",
-   "volume": 17038880.633359004,
+   "volume": 17038890.806299,
    "closes": "2027-01-01",
    "examples": [
     "Xi Jinping out before 2027?"
@@ -921,7 +951,7 @@
    "markets": 2,
    "material": 2,
    "unsure": 0,
-   "p": 0.7653395713959544,
+   "p": 0.7566329506978164,
    "moves": [
     -2,
     -1,
@@ -951,7 +981,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.7933644381541043,
+   "p": 0.7671882711499567,
    "moves": [
     -2,
     -1,
@@ -966,7 +996,7 @@
    ],
    "reason": "A US military move on Greenland would fracture NATO, sending stocks down, fear and gold sharply up and the dollar lower.",
    "by": "claude",
-   "volume": 1472247.4143539998,
+   "volume": 1472247.414354,
    "closes": "2027-01-01",
    "examples": [
     "Will the U.S. invade Greenland in 2026?"
@@ -980,7 +1010,7 @@
    "markets": 3,
    "material": 3,
    "unsure": 0,
-   "p": 0.740829017084349,
+   "p": 0.7853603462764527,
    "moves": [
     -2,
     -1,
@@ -1011,7 +1041,7 @@
    "markets": 6,
    "material": 6,
    "unsure": 0,
-   "p": 0.9136918846610084,
+   "p": 0.9060748177540126,
    "moves": [
     -1,
     2,
@@ -1042,7 +1072,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.5391595701018046,
+   "p": 0.5719909937350282,
    "moves": [
     2,
     0,
@@ -1071,7 +1101,7 @@
    "markets": 2,
    "material": 2,
    "unsure": 0,
-   "p": 0.7857056368555906,
+   "p": 0.7736342192658595,
    "moves": [
     -1,
     2,
@@ -1101,7 +1131,7 @@
    "markets": 4,
    "material": 4,
    "unsure": 0,
-   "p": 0.7942923527682973,
+   "p": 0.8206359590424773,
    "moves": [
     -2,
     -1,
@@ -1132,7 +1162,7 @@
    "markets": 2,
    "material": 2,
    "unsure": 0,
-   "p": 0.9008896782848068,
+   "p": 0.9048404472193925,
    "moves": [
     -1,
     2,
@@ -1162,7 +1192,7 @@
    "markets": 2,
    "material": 2,
    "unsure": 0,
-   "p": 0.8141773337486848,
+   "p": 0.8032072498707634,
    "moves": [
     -1,
     2,
@@ -1192,7 +1222,7 @@
    "markets": 2,
    "material": 2,
    "unsure": 0,
-   "p": 0.9462516796758658,
+   "p": 0.9389963837314038,
    "moves": [
     -1,
     2,
@@ -1207,7 +1237,7 @@
    ],
    "reason": "A surprise Fed hike would push yields and the dollar up and weigh on stocks and gold.",
    "by": "claude",
-   "volume": 8841882.902632,
+   "volume": 8841905.253282,
    "closes": "2026-12-09",
    "examples": [
     "Will there be no change in Fed interest rates after the December 2026 meeting?",
@@ -1222,7 +1252,7 @@
    "markets": 18,
    "material": 18,
    "unsure": 0,
-   "p": 0.9247014012020534,
+   "p": 0.9122453678089649,
    "moves": [
     -2,
     2,
@@ -1253,7 +1283,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.8696113995564565,
+   "p": 0.8646125193602949,
    "moves": [
     -1,
     0,
@@ -1268,7 +1298,7 @@
    ],
    "reason": "A shooting clash between China and Japan would hit Chinese and Asian supply-chain stocks and lift fear, oil and gold.",
    "by": "claude",
-   "volume": 1470313.5989770002,
+   "volume": 1470313.598977,
    "closes": "2027-01-01",
    "examples": [
     "China x Japan military clash before 2027?"
@@ -1282,7 +1312,7 @@
    "markets": 4,
    "material": 4,
    "unsure": 0,
-   "p": 0.9139946376847239,
+   "p": 0.909126268869253,
    "moves": [
     -1,
     2,
@@ -1313,7 +1343,7 @@
    "markets": 16,
    "material": 16,
    "unsure": 0,
-   "p": 0.8441111274799987,
+   "p": 0.840235367983759,
    "moves": [
     -1,
     1,
@@ -1328,7 +1358,7 @@
    ],
    "reason": "WTI reaching $100 would signal a major oil shock, lifting inflation expectations and fear while weighing on stocks.",
    "by": "claude",
-   "volume": 1277789.80081,
+   "volume": 1277803.80081,
    "closes": "2026-12-01",
    "examples": [
     "Will WTI Crude Oil (WTI) hit (HIGH) $150 in November?",
@@ -1344,7 +1374,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.8715636186109248,
+   "p": 0.847676805151283,
    "moves": [
     -1,
     -1,
@@ -1373,7 +1403,7 @@
    "markets": 2,
    "material": 2,
    "unsure": 0,
-   "p": 0.9403642181875627,
+   "p": 0.9332994613866644,
    "moves": [
     -1,
     2,
@@ -1403,7 +1433,7 @@
    "markets": 2,
    "material": 2,
    "unsure": 0,
-   "p": 0.6567940263696653,
+   "p": 0.7318247520993156,
    "moves": [
     -2,
     -1,
@@ -1433,7 +1463,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.7376180504461967,
+   "p": 0.7404311593334602,
    "moves": [
     -2,
     0,
@@ -1462,7 +1492,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.720476209347326,
+   "p": 0.7043496560221008,
    "moves": [
     -1,
     0,
@@ -1491,7 +1521,7 @@
    "markets": 2,
    "material": 2,
    "unsure": 0,
-   "p": 0.8892190365136067,
+   "p": 0.890153730200295,
    "moves": [
     1,
     0,
@@ -1506,7 +1536,7 @@
    ],
    "reason": "A US-Iran deal reopening Hormuz shipping would sharply cut oil prices, ease inflation fears and lift stocks.",
    "by": "claude",
-   "volume": 1158899.394502,
+   "volume": 1168268.1612439998,
    "closes": "2026-12-01",
    "examples": [
     "US-Iran Hormuz Agreement by November 30?",
@@ -1521,7 +1551,7 @@
    "markets": 2,
    "material": 2,
    "unsure": 0,
-   "p": 0.8515154036768723,
+   "p": 0.8383343512075543,
    "moves": [
     -1,
     2,
@@ -1536,7 +1566,7 @@
    ],
    "reason": "Two Fed hikes versus the expected hold or cuts would push yields sharply higher, firm the dollar and weigh on stocks.",
    "by": "claude",
-   "volume": 1000037.276701,
+   "volume": 1000037.2767009999,
    "closes": "2026-12-31",
    "examples": [
     "Will 1 Fed rate hike happen in 2026?",
@@ -1551,7 +1581,7 @@
    "markets": 3,
    "material": 3,
    "unsure": 0,
-   "p": 0.8422262572583269,
+   "p": 0.8486849991198787,
    "moves": [
     -1,
     0,
@@ -1566,7 +1596,7 @@
    ],
    "reason": "Continued Hormuz disruption would keep oil sharply higher, lifting inflation expectations and weighing on stocks.",
    "by": "claude",
-   "volume": 498938.33172499994,
+   "volume": 498938.331725,
    "closes": "2027-02-01",
    "examples": [
     "Will Strait of Hormuz traffic return to normal in November?",
@@ -1582,7 +1612,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.7734785390989629,
+   "p": 0.7734521855818265,
    "moves": [
     -1,
     0,
@@ -1611,7 +1641,7 @@
    "markets": 10,
    "material": 10,
    "unsure": 0,
-   "p": 0.9246879282066207,
+   "p": 0.9274833830009754,
    "moves": [
     1,
     2,
@@ -1642,7 +1672,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.8702985352475814,
+   "p": 0.8625967573866039,
    "moves": [
     -1,
     -2,
@@ -1671,7 +1701,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.828080146687826,
+   "p": 0.8325520753892681,
    "moves": [
     -1,
     0,
@@ -1700,7 +1730,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.8365603710460046,
+   "p": 0.8391330006262091,
    "moves": [
     -1,
     0,
@@ -1729,7 +1759,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.754720028175252,
+   "p": 0.7400148912739414,
    "moves": [
     -1,
     0,
@@ -1758,7 +1788,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.8921506461265017,
+   "p": 0.8889155861996912,
    "moves": [
     1,
     0,
@@ -1787,7 +1817,7 @@
    "markets": 5,
    "material": 5,
    "unsure": 0,
-   "p": 0.8846559823891403,
+   "p": 0.8723488130070093,
    "moves": [
     1,
     0,
@@ -1802,7 +1832,7 @@
    ],
    "reason": "Holding the Israel-Iran ceasefire versus renewed strikes would keep oil sharply lower and calm markets.",
    "by": "claude",
-   "volume": 5447707.227236,
+   "volume": 5458175.640201,
    "closes": "2026-11-16",
    "examples": [
     "Israel x Iran ceasefire continues through December 31?",
@@ -1818,7 +1848,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.7333448420900193,
+   "p": 0.7236007864701389,
    "moves": [
     -1,
     0,
@@ -1833,7 +1863,7 @@
    ],
    "reason": "A strike on Saudi Arabia's Hormuz-bypass pipeline would spike oil and lift inflation expectations and fear.",
    "by": "claude",
-   "volume": 299372.711407,
+   "volume": 299489.191697,
    "closes": "2026-11-30",
    "examples": [
     "Military action against Saudi Oil Pipeline (East-West) by November 30?"
@@ -1844,10 +1874,10 @@
    "venue": "kalshi",
    "title": "Core CPI YoY in November",
    "url": "https://kalshi.com/markets/kxcpicoreyoy",
-   "markets": 9,
-   "material": 9,
+   "markets": 8,
+   "material": 8,
    "unsure": 0,
-   "p": 0.9352045825380761,
+   "p": 0.935192343522429,
    "moves": [
     -1,
     2,
@@ -1862,7 +1892,7 @@
    ],
    "reason": "Core CPI at or below 2% would be a huge downside surprise pulling yields sharply lower, so YES means much higher yields than NO.",
    "by": "claude",
-   "volume": 176943.4852,
+   "volume": 170229.8923,
    "closes": "2026-12-10",
    "examples": [
     "Will the rate of core CPI inflation be above 2.0% for the year ending in November 2026?",
@@ -1878,7 +1908,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.652671422187959,
+   "p": 0.3807949565146647,
    "moves": [
     -1,
     0,
@@ -1907,7 +1937,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.4444614858059052,
+   "p": 0.48764289228878266,
    "moves": [
     -1,
     0,
@@ -1936,7 +1966,7 @@
    "markets": 2,
    "material": 2,
    "unsure": 0,
-   "p": 0.9039747984848748,
+   "p": 0.891485458993838,
    "moves": [
     -1,
     2,
@@ -1966,7 +1996,7 @@
    "markets": 3,
    "material": 3,
    "unsure": 0,
-   "p": 0.7130581133978995,
+   "p": 0.76975687211351,
    "moves": [
     -1,
     0,
@@ -1997,7 +2027,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.712167673986624,
+   "p": 0.6873066736309724,
    "moves": [
     -1,
     0,
@@ -2012,7 +2042,7 @@
    ],
    "reason": "A confirmed Iranian nuclear weapon would spike oil and gold on Middle East risk and hit stocks.",
    "by": "claude",
-   "volume": 1598106.427111,
+   "volume": 1598111.4271109996,
    "closes": "2027-01-01",
    "examples": [
     "Iran Nuke before 2027?"
@@ -2026,7 +2056,7 @@
    "markets": 4,
    "material": 4,
    "unsure": 0,
-   "p": 0.9123648933938112,
+   "p": 0.9046121113345116,
    "moves": [
     -1,
     2,
@@ -2057,7 +2087,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.8337317680357951,
+   "p": 0.8159873744959101,
    "moves": [
     2,
     0,
@@ -2086,7 +2116,7 @@
    "markets": 7,
    "material": 7,
    "unsure": 0,
-   "p": 0.8396430338827671,
+   "p": 0.8535812486620444,
    "moves": [
     -1,
     0,
@@ -2101,7 +2131,7 @@
    ],
    "reason": "Gas above $6 would mean a severe oil shock, lifting oil and inflation expectations while hurting stocks.",
    "by": "claude",
-   "volume": 124886.63729999997,
+   "volume": 128509.0164,
    "closes": "2026-12-31",
    "examples": [
     "Will average **gas prices** be above $4.60 by Dec 31, 2026?",
@@ -2117,7 +2147,7 @@
    "markets": 6,
    "material": 6,
    "unsure": 0,
-   "p": 0.8650836158857279,
+   "p": 0.8617874326785931,
    "moves": [
     -1,
     2,
@@ -2145,10 +2175,10 @@
    "venue": "polymarket",
    "title": "Which companies announce bankruptcy before 2027?",
    "url": "https://polymarket.com/event/which-companies-announce-bankruptcy-before-2027",
-   "markets": 2,
-   "material": 2,
+   "markets": 1,
+   "material": 1,
    "unsure": 0,
-   "p": 0.5847385870405657,
+   "p": 0.6253212057906036,
    "moves": [
     -1,
     0,
@@ -2163,11 +2193,10 @@
    ],
    "reason": "An OpenAI bankruptcy would puncture the AI trade, hitting chips hard and weighing on stocks and credit.",
    "by": "claude",
-   "volume": 24973.502672000002,
+   "volume": 18102.223448,
    "closes": "2027-01-01",
    "examples": [
-    "Will OpenAI announce bankruptcy before 2027?",
-    "Will Anthropic announce bankruptcy before 2027?-kuQe"
+    "Will OpenAI announce bankruptcy before 2027?"
    ]
   },
   {
@@ -2178,7 +2207,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.644458260709731,
+   "p": 0.6407951190746017,
    "moves": [
     1,
     0,
@@ -2207,7 +2236,7 @@
    "markets": 8,
    "material": 8,
    "unsure": 0,
-   "p": 0.8138475197692737,
+   "p": 0.8401682577666839,
    "moves": [
     0,
     0,
@@ -2222,7 +2251,7 @@
    ],
    "reason": "Gold falling to $3,000 would be a large gold crash, likely alongside a firmer dollar.",
    "by": "claude",
-   "volume": 2502902.0589839993,
+   "volume": 2502904.228984,
    "closes": "2026-12-31",
    "examples": [
     "Will Gold (GC) dip to (LOW) $3,500 by end of December?",
@@ -2238,7 +2267,7 @@
    "markets": 12,
    "material": 12,
    "unsure": 0,
-   "p": 0.8701028821427289,
+   "p": 0.8545569468762318,
    "moves": [
     -2,
     0,
@@ -2269,7 +2298,7 @@
    "markets": 6,
    "material": 6,
    "unsure": 0,
-   "p": 0.7852002595310656,
+   "p": 0.8467541455595275,
    "moves": [
     -1,
     0,
@@ -2300,7 +2329,7 @@
    "markets": 6,
    "material": 6,
    "unsure": 0,
-   "p": 0.8416141977797428,
+   "p": 0.840883838326572,
    "moves": [
     0,
     1,
@@ -2315,7 +2344,7 @@
    ],
    "reason": "Gold falling to $3,600 would mean a sharp gold selloff, likely alongside a firmer dollar and yields.",
    "by": "claude",
-   "volume": 63091.115267,
+   "volume": 63161.115267,
    "closes": "2026-12-01",
    "examples": [
     "Will Gold (XAUUSD) hit (HIGH) $4,600 in November?",
@@ -2331,7 +2360,7 @@
    "markets": 5,
    "material": 5,
    "unsure": 0,
-   "p": 0.808329366590933,
+   "p": 0.7889118940331393,
    "moves": [
     -1,
     0,
@@ -2362,7 +2391,7 @@
    "markets": 5,
    "material": 5,
    "unsure": 0,
-   "p": 0.877866429363734,
+   "p": 0.8631156669146574,
    "moves": [
     0,
     2,
@@ -2393,7 +2422,7 @@
    "markets": 4,
    "material": 4,
    "unsure": 0,
-   "p": 0.6450374926868906,
+   "p": 0.7699177543453023,
    "moves": [
     -1,
     0,
@@ -2408,7 +2437,7 @@
    ],
    "reason": "Nvidia below $4T implies an AI chip slump, dragging chips and the index.",
    "by": "claude",
-   "volume": 35833.589679,
+   "volume": 35916.778568999995,
    "closes": "2026-12-31",
    "examples": [
     "Will Nvidia’s market capitalization be less than $4.00T at the end of 2026?",
@@ -2424,7 +2453,7 @@
    "markets": 4,
    "material": 4,
    "unsure": 0,
-   "p": 0.7254732605499433,
+   "p": 0.7635625730219382,
    "moves": [
     -1,
     0,
@@ -2455,7 +2484,7 @@
    "markets": 9,
    "material": 9,
    "unsure": 0,
-   "p": 0.8907790315998035,
+   "p": 0.8787184878412653,
    "moves": [
     0,
     2,
@@ -2486,7 +2515,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.8108906331205099,
+   "p": 0.796830648840008,
    "moves": [
     0,
     0,
@@ -2515,7 +2544,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.6762372143512153,
+   "p": 0.6778858134898651,
    "moves": [
     -1,
     -1,
@@ -2544,7 +2573,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.7322925335940798,
+   "p": 0.7253001991335694,
    "moves": [
     -1,
     -1,
@@ -2573,7 +2602,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.6764908614364429,
+   "p": 0.6757204820834178,
    "moves": [
     -1,
     -1,
@@ -2602,7 +2631,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.8364047342594899,
+   "p": 0.8260536211762014,
    "moves": [
     -1,
     1,
@@ -2617,7 +2646,7 @@
    ],
    "reason": "A surprise Fed hike would push yields and the dollar up and weigh on stocks.",
    "by": "claude",
-   "volume": 1586519.619404,
+   "volume": 1586519.6194039998,
    "closes": "2026-12-10",
    "examples": [
     "Another Fed rate hike in 2026?"
@@ -2631,7 +2660,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.7818133832086515,
+   "p": 0.7827121051009286,
    "moves": [
     -1,
     -1,
@@ -2660,7 +2689,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.8882923456693983,
+   "p": 0.878798961533361,
    "moves": [
     -1,
     0,
@@ -2675,7 +2704,7 @@
    ],
    "reason": "",
    "by": "screen",
-   "volume": 594350.696249,
+   "volume": 594350.6962489997,
    "closes": "2027-01-01",
    "examples": [
     "China x Philippines military clash before 2027?"
@@ -2689,7 +2718,7 @@
    "markets": 4,
    "material": 4,
    "unsure": 0,
-   "p": 0.9220678512007314,
+   "p": 0.9259560477012727,
    "moves": [
     -1,
     1,
@@ -2720,7 +2749,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.8557711613845176,
+   "p": 0.8376469504807463,
    "moves": [
     1,
     1,
@@ -2749,7 +2778,7 @@
    "markets": 2,
    "material": 2,
    "unsure": 0,
-   "p": 0.868628614638238,
+   "p": 0.8580943232542301,
    "moves": [
     -1,
     0,
@@ -2779,7 +2808,7 @@
    "markets": 2,
    "material": 2,
    "unsure": 0,
-   "p": 0.8271126494322405,
+   "p": 0.8311350154440359,
    "moves": [
     -1,
     1,
@@ -2809,7 +2838,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.7515194508420394,
+   "p": 0.7290743755138855,
    "moves": [
     -1,
     0,
@@ -2824,7 +2853,7 @@
    ],
    "reason": "Israeli ground troops in Iran would escalate the Gulf conflict, lifting oil, gold and fear while weighing on stocks.",
    "by": "claude",
-   "volume": 56578.958022000006,
+   "volume": 56578.95802199999,
    "closes": "2027-01-01",
    "examples": [
     "Will Israel launch a ground operation in Iran by December 31, 2026?"
@@ -2838,7 +2867,7 @@
    "markets": 2,
    "material": 2,
    "unsure": 0,
-   "p": 0.8127755031444593,
+   "p": 0.8155636600037177,
    "moves": [
     -1,
     0,
@@ -2868,7 +2897,7 @@
    "markets": 4,
    "material": 4,
    "unsure": 0,
-   "p": 0.7946599635731897,
+   "p": 0.8383844460451629,
    "moves": [
     1,
     -1,
@@ -2899,7 +2928,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.8792770369219917,
+   "p": 0.8680121161918846,
    "moves": [
     1,
     -1,
@@ -2928,7 +2957,7 @@
    "markets": 4,
    "material": 4,
    "unsure": 0,
-   "p": 0.923788182302608,
+   "p": 0.9211181701003971,
    "moves": [
     -1,
     1,
@@ -2959,7 +2988,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.7574830291747435,
+   "p": 0.7364251725056471,
    "moves": [
     -1,
     0,
@@ -2974,7 +3003,7 @@
    ],
    "reason": "A sudden presidential exit would raise political uncertainty, lifting fear and gold and weighing on stocks and the dollar.",
    "by": "claude",
-   "volume": 14335452.120598001,
+   "volume": 14335452.120598,
    "closes": "2027-01-01",
    "examples": [
     "Trump out as President before 2027?"
@@ -2988,7 +3017,7 @@
    "markets": 14,
    "material": 14,
    "unsure": 0,
-   "p": 0.8317045840792074,
+   "p": 0.8551074358321437,
    "moves": [
     1,
     0,
@@ -3003,7 +3032,7 @@
    ],
    "reason": "A Russia-Ukraine ceasefire would ease energy and risk premia, lifting stocks and lowering oil, gold and fear.",
    "by": "claude",
-   "volume": 4674138.982623999,
+   "volume": 4675053.2126239985,
    "closes": "2026-12-01",
    "examples": [
     "Russia x Ukraine ceasefire agreement by December 31, 2026?",
@@ -3019,7 +3048,7 @@
    "markets": 2,
    "material": 2,
    "unsure": 0,
-   "p": 0.7734307408559762,
+   "p": 0.7873171519250524,
    "moves": [
     -1,
     0,
@@ -3042,6 +3071,35 @@
    ]
   },
   {
+   "group": "polymarket:80824",
+   "venue": "polymarket",
+   "title": "Will Ukraine agree to cede territory to Russia by...?",
+   "url": "https://polymarket.com/event/will-ukraine-agree-to-cede-territory-to-russia-before-2027",
+   "markets": 1,
+   "material": 1,
+   "unsure": 0,
+   "p": 0.7687244331651365,
+   "moves": [
+    1,
+    0,
+    -1,
+    0,
+    -1,
+    0,
+    -1,
+    0,
+    0,
+    -1
+   ],
+   "reason": "A Russia-Ukraine territorial deal would ease war risk, nudging oil and gold down and stocks up.",
+   "by": "claude",
+   "volume": 835191.7442930001,
+   "closes": "2027-01-01",
+   "examples": [
+    "Will Ukraine agree to cede territory to Russia before 2027?"
+   ]
+  },
+  {
    "group": "polymarket:34349",
    "venue": "polymarket",
    "title": "Will Trump resign by December 31, 2026?",
@@ -3049,7 +3107,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.8057374584462076,
+   "p": 0.7799575153359631,
    "moves": [
     -1,
     0,
@@ -3078,7 +3136,7 @@
    "markets": 3,
    "material": 3,
    "unsure": 0,
-   "p": 0.8947842446337044,
+   "p": 0.8914788701429824,
    "moves": [
     -1,
     1,
@@ -3093,7 +3151,7 @@
    ],
    "reason": "A hotter-than-expected CPI print would push yields and the dollar up and weigh on stocks.",
    "by": "claude",
-   "volume": 558541.3232,
+   "volume": 554283.1873999999,
    "closes": "2026-11-10",
    "examples": [
     "Will CPI rise more than 0.1% in October 2026?",
@@ -3109,7 +3167,7 @@
    "markets": 10,
    "material": 10,
    "unsure": 0,
-   "p": 0.9289754369043959,
+   "p": 0.9218450295676113,
    "moves": [
     -1,
     1,
@@ -3140,7 +3198,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.632378668124081,
+   "p": 0.6060092345274635,
    "moves": [
     -1,
     0,
@@ -3155,7 +3213,7 @@
    ],
    "reason": "A member leaving the EU would hit the euro and risk appetite, lifting the dollar, gold and volatility.",
    "by": "claude",
-   "volume": 180496.74697399998,
+   "volume": 180496.746974,
    "closes": "2027-01-01",
    "examples": [
     "Any country withdraws from EU before 2027?"
@@ -3169,7 +3227,7 @@
    "markets": 9,
    "material": 9,
    "unsure": 0,
-   "p": 0.9368002490219773,
+   "p": 0.9279348029532565,
    "moves": [
     -1,
     1,
@@ -3200,7 +3258,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.6613789738532556,
+   "p": 0.6414339547042114,
    "moves": [
     -1,
     0,
@@ -3222,6 +3280,36 @@
    ]
   },
   {
+   "group": "kalshi:POWER-28",
+   "venue": "kalshi",
+   "title": "2028: Who will win the Presidency, House, and Senate?",
+   "url": "https://kalshi.com/markets/power",
+   "markets": 2,
+   "material": 2,
+   "unsure": 0,
+   "p": 0.4371721782904262,
+   "moves": [
+    -1,
+    0,
+    0,
+    -1,
+    0,
+    1,
+    1,
+    1,
+    0,
+    0
+   ],
+   "reason": "A Democratic sweep would raise tax and regulation risk for stocks while easing tariff pressure on China and the dollar.",
+   "by": "claude",
+   "volume": 99721.30757,
+   "closes": "2029-11-07",
+   "examples": [
+    "Will the Democratic party win the House, the Democratic party win the Senate, and the Democratic party win the Presidency?",
+    "Will the Republican party win the House, the Republican party win the Senate, and the Republican party win the Presidency?"
+   ]
+  },
+  {
    "group": "polymarket:1337182",
    "venue": "polymarket",
    "title": "US x Iran Effective Ceasefire begins by...? (2 week pause)",
@@ -3229,7 +3317,7 @@
    "markets": 5,
    "material": 5,
    "unsure": 0,
-   "p": 0.8687118467563953,
+   "p": 0.8599169312121214,
    "moves": [
     1,
     0,
@@ -3244,7 +3332,7 @@
    ],
    "reason": "A pause in US-Iran hostilities would ease oil risk premium and lift stocks.",
    "by": "claude",
-   "volume": 74731.60191799999,
+   "volume": 74941.601918,
    "closes": "2026-11-08",
    "examples": [
     "US x Iran Effective Ceasefire by November 8?",
@@ -3260,7 +3348,7 @@
    "markets": 3,
    "material": 3,
    "unsure": 0,
-   "p": 0.8956684300241945,
+   "p": 0.887029679689711,
    "moves": [
     -1,
     1,
@@ -3275,7 +3363,7 @@
    ],
    "reason": "A NO would mean an outright deflationary CPI print that sends yields down, so the expected YES leaves yields and the dollar higher by comparison.",
    "by": "claude",
-   "volume": 46929.9828,
+   "volume": 48244.9696,
    "closes": "2026-12-10",
    "examples": [
     "Will CPI rise more than -0.1% in November 2026?",
@@ -3291,7 +3379,7 @@
    "markets": 2,
    "material": 2,
    "unsure": 0,
-   "p": 0.9380546746856506,
+   "p": 0.9304436978091497,
    "moves": [
     -1,
     1,
@@ -3306,7 +3394,7 @@
    ],
    "reason": "A surprise Fed hike would push yields and the dollar up and weigh on stocks and gold.",
    "by": "claude",
-   "volume": 39927.479595,
+   "volume": 40217.479595,
    "closes": "2027-04-28",
    "examples": [
     "Will there be no change in Fed interest rates after the April 2027 meeting?",
@@ -3321,7 +3409,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.769622704338756,
+   "p": 0.7528492458624713,
    "moves": [
     -1,
     0,
@@ -3336,7 +3424,7 @@
    ],
    "reason": "A sudden presidential resignation would raise political uncertainty, hitting stocks and the dollar and lifting fear and gold.",
    "by": "claude",
-   "volume": 34212.812136,
+   "volume": 34212.81213600001,
    "closes": "2027-01-01",
    "examples": [
     "Will Trump resign before 2027?"
@@ -3350,7 +3438,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.5345200211078627,
+   "p": 0.5800421046512153,
    "moves": [
     -1,
     1,
@@ -3379,7 +3467,7 @@
    "markets": 2,
    "material": 2,
    "unsure": 0,
-   "p": 0.8948304009737305,
+   "p": 0.8927370696701249,
    "moves": [
     -1,
     1,
@@ -3409,7 +3497,7 @@
    "markets": 3,
    "material": 3,
    "unsure": 0,
-   "p": 0.9173784084964268,
+   "p": 0.9202637891497802,
    "moves": [
     -1,
     1,
@@ -3440,7 +3528,7 @@
    "markets": 7,
    "material": 7,
    "unsure": 0,
-   "p": 0.5977179950003305,
+   "p": 0.7593536914759006,
    "moves": [
     -1,
     0,
@@ -3455,7 +3543,7 @@
    ],
    "reason": "A surprise populist Carlson win would raise policy and trade uncertainty, weighing on stocks and China.",
    "by": "claude",
-   "volume": 105269751.37180899,
+   "volume": 105270051.371809,
    "closes": "2028-11-08",
    "examples": [
     "Will JD Vance win the 2028 US Presidential Election?",
@@ -3471,7 +3559,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.8214948938659855,
+   "p": 0.7987582817028445,
    "moves": [
     -1,
     1,
@@ -3500,7 +3588,7 @@
    "markets": 4,
    "material": 4,
    "unsure": 0,
-   "p": 0.8355652299628871,
+   "p": 0.8835085280174885,
    "moves": [
     1,
     0,
@@ -3515,7 +3603,7 @@
    ],
    "reason": "Ending the Iran blockade would ease oil supply fears, pulling crude down and lifting stocks.",
    "by": "claude",
-   "volume": 8985407.544481002,
+   "volume": 8995365.324201,
    "closes": "2026-11-16",
    "examples": [
     "US announces end of Iranian blockade by December 31, 2026?",
@@ -3531,7 +3619,7 @@
    "markets": 2,
    "material": 2,
    "unsure": 0,
-   "p": 0.7927994368467137,
+   "p": 0.7781045820071268,
    "moves": [
     -1,
     1,
@@ -3546,7 +3634,7 @@
    ],
    "reason": "A year with no Fed cuts versus some cuts means a more hawkish path, higher yields and dollar, and softer stocks and gold.",
    "by": "claude",
-   "volume": 2991432.6943499995,
+   "volume": 2984269.2426,
    "closes": "2027-01-01",
    "examples": [
     "Will the Fed cut rates 0 times?",
@@ -3561,7 +3649,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.7668580457849408,
+   "p": 0.7597720826937925,
    "moves": [
     1,
     0,
@@ -3576,7 +3664,7 @@
    ],
    "reason": "An Iranian deal to give up enriched uranium would ease Middle East risk, lowering oil and gold and lifting stocks.",
    "by": "claude",
-   "volume": 2647721.076446,
+   "volume": 2647721.0764459996,
    "closes": "2027-01-01",
    "examples": [
     "Iran agrees to surrender enriched uranium stockpile by December 31, 2026?"
@@ -3590,7 +3678,7 @@
    "markets": 3,
    "material": 3,
    "unsure": 0,
-   "p": 0.8220545907491249,
+   "p": 0.8294295218360176,
    "moves": [
     1,
     0,
@@ -3605,7 +3693,7 @@
    ],
    "reason": "A Russia-Ukraine ceasefire would ease geopolitical risk, lowering oil, gold and fear and modestly lifting stocks.",
    "by": "claude",
-   "volume": 1785610.88567,
+   "volume": 1786111.0319250003,
    "closes": "2026-12-31",
    "examples": [
     "Russia x Ukraine ceasefire by December 31, 2026?",
@@ -3621,7 +3709,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.6340693330932986,
+   "p": 0.7041529623662066,
    "moves": [
     1,
     1,
@@ -3650,7 +3738,7 @@
    "markets": 2,
    "material": 2,
    "unsure": 0,
-   "p": 0.7373263841508159,
+   "p": 0.8109040510515044,
    "moves": [
     -1,
     0,
@@ -3680,7 +3768,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.6236885905573697,
+   "p": 0.5946010400170102,
    "moves": [
     -1,
     0,
@@ -3709,7 +3797,7 @@
    "markets": 3,
    "material": 3,
    "unsure": 0,
-   "p": 0.7407324924198463,
+   "p": 0.7972370491584505,
    "moves": [
     -1,
     0,
@@ -3740,7 +3828,7 @@
    "markets": 2,
    "material": 2,
    "unsure": 0,
-   "p": 0.651353546441015,
+   "p": 0.6920766837529276,
    "moves": [
     1,
     1,
@@ -3770,7 +3858,7 @@
    "markets": 5,
    "material": 5,
    "unsure": 0,
-   "p": 0.9303754497611071,
+   "p": 0.925755278039287,
    "moves": [
     -1,
     1,
@@ -3801,7 +3889,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.6925925135654659,
+   "p": 0.6926108665726872,
    "moves": [
     -1,
     0,
@@ -3830,7 +3918,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.7098973408599372,
+   "p": 0.6957288190140172,
    "moves": [
     -1,
     0,
@@ -3859,7 +3947,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.8151019363651154,
+   "p": 0.8090885306598391,
    "moves": [
     1,
     0,
@@ -3874,7 +3962,7 @@
    ],
    "reason": "The fall of Iran's regime would likely ease Gulf supply fears, lowering oil and gold and lifting stocks.",
    "by": "claude",
-   "volume": 122135.31133199998,
+   "volume": 122135.311332,
    "closes": "2028-01-01",
    "examples": [
     "Will the Iranian regime fall before 2028?"
@@ -3888,7 +3976,7 @@
    "markets": 3,
    "material": 3,
    "unsure": 0,
-   "p": 0.6963103941389303,
+   "p": 0.6662925076074092,
    "moves": [
     1,
     0,
@@ -3903,7 +3991,7 @@
    ],
    "reason": "More Hormuz transits would mean oil flows resuming, pulling crude lower.",
    "by": "claude",
-   "volume": 116409.97859999999,
+   "volume": 116271.64159999999,
    "closes": "2026-11-10",
    "examples": [
     "Will there be more than 15 transit calls through the Strait of Hormuz from Nov 2, 2026 to Nov 8, 2026?",
@@ -3919,7 +4007,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.776450045144525,
+   "p": 0.742825998619208,
    "moves": [
     1,
     0,
@@ -3948,7 +4036,7 @@
    "markets": 8,
    "material": 8,
    "unsure": 0,
-   "p": 0.9411871842199073,
+   "p": 0.9395685001836066,
    "moves": [
     -1,
     1,
@@ -3979,7 +4067,7 @@
    "markets": 2,
    "material": 2,
    "unsure": 0,
-   "p": 0.8348340912263522,
+   "p": 0.8297148463218784,
    "moves": [
     -1,
     1,
@@ -4009,7 +4097,7 @@
    "markets": 3,
    "material": 3,
    "unsure": 0,
-   "p": 0.7550754654052136,
+   "p": 0.7884649963420032,
    "moves": [
     -1,
     0,
@@ -4040,7 +4128,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.8032251997655692,
+   "p": 0.7996740547094943,
    "moves": [
     1,
     0,
@@ -4055,7 +4143,7 @@
    ],
    "reason": "An Iranian regime collapse would likely end the conflict and ease oil risk premia, supporting stocks.",
    "by": "claude",
-   "volume": 45392.458172,
+   "volume": 45472.458172,
    "closes": "2027-07-01",
    "examples": [
     "Will the Iranian regime fall by June 30, 2027?"
@@ -4069,7 +4157,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.6539159039932725,
+   "p": 0.6181388694754268,
    "moves": [
     -1,
     0,
@@ -4098,7 +4186,7 @@
    "markets": 2,
    "material": 2,
    "unsure": 0,
-   "p": 0.8899218241031568,
+   "p": 0.8900136264652124,
    "moves": [
     1,
     -1,
@@ -4128,7 +4216,7 @@
    "markets": 2,
    "material": 2,
    "unsure": 0,
-   "p": 0.8990899571806482,
+   "p": 0.8925848959026191,
    "moves": [
     -1,
     1,
@@ -4158,7 +4246,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.6402289149367174,
+   "p": 0.6419258228056514,
    "moves": [
     1,
     0,
@@ -4187,7 +4275,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.6633210225905805,
+   "p": 0.6307979000914544,
    "moves": [
     -1,
     0,
@@ -4216,7 +4304,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.873278709230106,
+   "p": 0.8669880582224273,
    "moves": [
     -1,
     0,
@@ -4231,7 +4319,7 @@
    ],
    "reason": "Saudi strikes on Iran would widen the Gulf conflict, lifting oil, fear and gold and weighing on stocks.",
    "by": "claude",
-   "volume": 10331.756109,
+   "volume": 10331.756108999998,
    "closes": "2026-12-31",
    "examples": [
     "Saudi Arabia military action against Iran by December 31, 2026?"
@@ -4245,7 +4333,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.6996936715149499,
+   "p": 0.7008843539155413,
    "moves": [
     1,
     1,
@@ -4274,7 +4362,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.6313943688356125,
+   "p": 0.6416334833182472,
    "moves": [
     -1,
     1,
@@ -4303,7 +4391,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.7405561043123768,
+   "p": 0.7221919560285613,
    "moves": [
     -1,
     0,
@@ -4318,7 +4406,7 @@
    ],
    "reason": "Renewed Israel-Iran strikes would lift oil, gold and fear while weighing on stocks.",
    "by": "claude",
-   "volume": 6754.219469000001,
+   "volume": 7169.834383000001,
    "closes": "2027-07-01",
    "examples": [
     "Israel x Iran ceasefire ends before Netanyahu out?"
@@ -4332,7 +4420,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.835692029936043,
+   "p": 0.8235176354466561,
    "moves": [
     0,
     0,
@@ -4347,41 +4435,10 @@
    ],
    "reason": "A collapse of Iran's regime would raise oil supply risk and fear in the short run.",
    "by": "claude",
-   "volume": 29632100.080888,
+   "volume": 29632172.080887996,
    "closes": "2027-01-01",
    "examples": [
     "Will the Iranian regime fall before 2027?"
-   ]
-  },
-  {
-   "group": "kalshi:KXPRESPERSON-28",
-   "venue": "kalshi",
-   "title": "2028 U.S. Presidential Election winner?",
-   "url": "https://kalshi.com/markets/kxpresperson",
-   "markets": 11,
-   "material": 3,
-   "unsure": 8,
-   "p": 0.3972747546527248,
-   "moves": [
-    -1,
-    0,
-    0,
-    0,
-    0,
-    0,
-    1,
-    0,
-    0,
-    1
-   ],
-   "reason": "A third Trump term would signal a constitutional shock, lifting fear and gold and weighing on stocks.",
-   "by": "claude",
-   "volume": 4123445.139,
-   "closes": "2029-11-07",
-   "examples": [
-    "Who will win the next presidential election?",
-    "Who will win the next presidential election?",
-    "Who will win the next presidential election?"
    ]
   },
   {
@@ -4392,7 +4449,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.8690820662398001,
+   "p": 0.8464738704184973,
    "moves": [
     -1,
     0,
@@ -4407,10 +4464,41 @@
    ],
    "reason": "A US invasion of Cuba would raise geopolitical risk, lifting fear and gold modestly.",
    "by": "claude",
-   "volume": 3724944.8353110002,
+   "volume": 3724989.845311,
    "closes": "2027-01-01",
    "examples": [
     "Will the U.S. invade Cuba in 2026?"
+   ]
+  },
+  {
+   "group": "kalshi:KXPRESPERSON-28",
+   "venue": "kalshi",
+   "title": "2028 U.S. Presidential Election winner?",
+   "url": "https://kalshi.com/markets/kxpresperson",
+   "markets": 6,
+   "material": 6,
+   "unsure": 0,
+   "p": 0.6560013956996085,
+   "moves": [
+    -1,
+    0,
+    0,
+    0,
+    0,
+    1,
+    1,
+    0,
+    0,
+    0
+   ],
+   "reason": "A progressive presidency would raise fears of higher taxes and regulation, weighing on stocks.",
+   "by": "claude",
+   "volume": 2500709.25215,
+   "closes": "2029-11-07",
+   "examples": [
+    "Who will win the next presidential election?",
+    "Who will win the next presidential election?",
+    "Who will win the next presidential election?"
    ]
   },
   {
@@ -4421,7 +4509,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.8072142004908621,
+   "p": 0.7985423201349493,
    "moves": [
     0,
     0,
@@ -4436,7 +4524,7 @@
    ],
    "reason": "An Iranian pledge to end enrichment would ease Middle East risk, lowering oil and gold.",
    "by": "claude",
-   "volume": 2183062.6958310003,
+   "volume": 2183477.1285360004,
    "closes": "2027-01-01",
    "examples": [
     " Iran agrees to end enrichment of uranium by December 31?"
@@ -4450,7 +4538,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.6560446379142004,
+   "p": 0.6186740811706108,
    "moves": [
     0,
     0,
@@ -4465,7 +4553,7 @@
    ],
    "reason": "A power vacuum in Iran would raise Gulf supply risk, lifting oil, gold and fear.",
    "by": "claude",
-   "volume": 1194540.71541,
+   "volume": 1194540.7154100002,
    "closes": "2026-12-31",
    "examples": [
     "Will there be no Head of State in Iran end of 2026?"
@@ -4479,7 +4567,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.7712981475988127,
+   "p": 0.7517208255562939,
    "moves": [
     0,
     0,
@@ -4508,7 +4596,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.8056467929899808,
+   "p": 0.7853421204832493,
    "moves": [
     0,
     0,
@@ -4523,7 +4611,7 @@
    ],
    "reason": "A clash between Israel and NATO member Turkey would raise Middle East risk premia, lifting oil, gold and fear.",
    "by": "claude",
-   "volume": 562809.0376579999,
+   "volume": 562809.037658,
    "closes": "2027-01-01",
    "examples": [
     "Israel x Turkey military clash before 2027?"
@@ -4537,7 +4625,7 @@
    "markets": 2,
    "material": 2,
    "unsure": 0,
-   "p": 0.7977939160116848,
+   "p": 0.7927679099824081,
    "moves": [
     0,
     0,
@@ -4552,7 +4640,7 @@
    ],
    "reason": "An Israeli airspace closure would signal a major regional conflict, lifting oil, gold and fear.",
    "by": "claude",
-   "volume": 431683.98155599996,
+   "volume": 432449.67155599996,
    "closes": "2026-12-01",
    "examples": [
     "Israeli airspace closed by December 31, 2026?",
@@ -4567,7 +4655,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.6759188745720087,
+   "p": 0.688895278692821,
    "moves": [
     0,
     0,
@@ -4589,37 +4677,6 @@
    ]
   },
   {
-   "group": "kalshi:KXLEADERSOUT-27JAN01",
-   "venue": "kalshi",
-   "title": "Which leaders will leave office in 2026?",
-   "url": "https://kalshi.com/markets/kxleadersout",
-   "markets": 4,
-   "material": 3,
-   "unsure": 1,
-   "p": 0.44624401072535047,
-   "moves": [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    1,
-    -1,
-    0,
-    1
-   ],
-   "reason": "An unexpected Xi exit would create leadership uncertainty in China, hitting Chinese stocks and lifting fear and gold.",
-   "by": "claude",
-   "volume": 357180.93166,
-   "closes": "2027-01-02",
-   "examples": [
-    "Will Benjamin Netanyahu leave Prime Minister of Israel before Jan 1, 2027?",
-    "Will Xi Jinping leave General Secretary of the Communist Party of China before Jan 1, 2027?",
-    "Will Vladimir Putin leave President of Russia before Jan 1, 2027?"
-   ]
-  },
-  {
    "group": "kalshi:KXUSAIRANAGREEMENT-27",
    "venue": "kalshi",
    "title": "US-Iran nuclear deal?",
@@ -4627,7 +4684,7 @@
    "markets": 5,
    "material": 5,
    "unsure": 0,
-   "p": 0.8646849762143591,
+   "p": 0.8704058899785312,
    "moves": [
     0,
     0,
@@ -4651,6 +4708,36 @@
    ]
   },
   {
+   "group": "kalshi:KXFRENCHPRES-27",
+   "venue": "kalshi",
+   "title": "Next French presidential election winner?",
+   "url": "https://kalshi.com/markets/kxfrenchpres",
+   "markets": 2,
+   "material": 2,
+   "unsure": 0,
+   "p": 0.6152454514019373,
+   "moves": [
+    0,
+    0,
+    0,
+    1,
+    0,
+    0,
+    1,
+    0,
+    0,
+    1
+   ],
+   "reason": "A far-left French win would stoke euro-area fiscal fears, lifting the dollar, fear and gold.",
+   "by": "claude",
+   "volume": 193626.94679999998,
+   "closes": "2028-05-30",
+   "examples": [
+    "Will Marine Le Pen win the 2027 French presidential election?",
+    "Will Jean-Luc Mélenchon win the 2027 French presidential election?"
+   ]
+  },
+  {
    "group": "polymarket:906699",
    "venue": "polymarket",
    "title": "Will Russia announce a new forced mobilization by...?",
@@ -4658,7 +4745,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.6422054588640881,
+   "p": 0.6843001541742081,
    "moves": [
     0,
     0,
@@ -4687,7 +4774,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.7005401288868972,
+   "p": 0.6960867137582762,
    "moves": [
     0,
     0,
@@ -4702,41 +4789,10 @@
    ],
    "reason": "Iranian sabotage of undersea cables would raise Middle East risk, lifting oil, gold and volatility.",
    "by": "claude",
-   "volume": 121217.79221500001,
+   "volume": 121217.792215,
    "closes": "2027-01-01",
    "examples": [
     "Will Iran sabotage undersea internet cables by December 31?"
-   ]
-  },
-  {
-   "group": "polymarket:431592",
-   "venue": "polymarket",
-   "title": "Who will be arrested before 2027?",
-   "url": "https://polymarket.com/event/who-will-be-arrested-before-2027",
-   "markets": 5,
-   "material": 1,
-   "unsure": 4,
-   "p": 0.3357788803619754,
-   "moves": [
-    0,
-    0,
-    1,
-    -1,
-    0,
-    0,
-    0,
-    0,
-    0,
-    1
-   ],
-   "reason": "Arresting a sitting Fed governor would raise Fed-independence fears, weakening the dollar and lifting gold and breakevens.",
-   "by": "claude",
-   "volume": 115748.53569,
-   "closes": "2027-01-01",
-   "examples": [
-    "Will James Clapper be arrested before 2027?",
-    "Will José Luis Rodríguez Zapatero be arrested before 2027?",
-    "Will Letitia James be arrested before 2027?"
    ]
   },
   {
@@ -4747,7 +4803,7 @@
    "markets": 2,
    "material": 2,
    "unsure": 0,
-   "p": 0.8234935677332904,
+   "p": 0.8312386944011575,
    "moves": [
     1,
     0,
@@ -4762,11 +4818,42 @@
    ],
    "reason": "A soft landing rather than recession or stagflation would support stocks and tighten credit spreads, though much is known beforehand.",
    "by": "claude",
-   "volume": 109871.961936,
+   "volume": 109871.96193599999,
    "closes": "2027-02-01",
    "examples": [
     "Will the US economy be in a soft landing at the end of 2026?",
     "Will the US economy be overheating at the end of 2026?"
+   ]
+  },
+  {
+   "group": "kalshi:KXLEADERSOUT-27JAN01",
+   "venue": "kalshi",
+   "title": "Which leaders will leave office in 2026?",
+   "url": "https://kalshi.com/markets/kxleadersout",
+   "markets": 3,
+   "material": 3,
+   "unsure": 0,
+   "p": 0.7711921839463763,
+   "moves": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    1,
+    -1,
+    0,
+    1
+   ],
+   "reason": "An unexpected Xi exit would create leadership uncertainty in China, hitting Chinese stocks and lifting fear and gold.",
+   "by": "claude",
+   "volume": 41557.51706,
+   "closes": "2027-01-02",
+   "examples": [
+    "Will Xi Jinping leave General Secretary of the Communist Party of China before Jan 1, 2027?",
+    "Will Vladimir Putin leave President of Russia before Jan 1, 2027?",
+    "Will Mohammed bin Salman leave Crown Prince of Saudi Arabia before Jan 1, 2027?"
    ]
   },
   {
@@ -4777,7 +4864,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.6679749533198651,
+   "p": 0.6630025941894667,
    "moves": [
     -1,
     0,
@@ -4806,7 +4893,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.6314908764484376,
+   "p": 0.6250782254188213,
    "moves": [
     0,
     0,
@@ -4835,7 +4922,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.6536804252029007,
+   "p": 0.7703325763289721,
    "moves": [
     0,
     -1,
@@ -4864,7 +4951,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.44776595179018863,
+   "p": 0.6433881968602472,
    "moves": [
     -1,
     1,
@@ -4886,35 +4973,6 @@
    ]
   },
   {
-   "group": "kalshi:KXFRENCHPRES-27",
-   "venue": "kalshi",
-   "title": "Next French presidential election winner?",
-   "url": "https://kalshi.com/markets/kxfrenchpres",
-   "markets": 1,
-   "material": 1,
-   "unsure": 0,
-   "p": 0.37351068017373656,
-   "moves": [
-    0,
-    0,
-    0,
-    1,
-    0,
-    0,
-    1,
-    0,
-    0,
-    1
-   ],
-   "reason": "A far-left French win would stoke euro-area fiscal fears, lifting the dollar, fear and gold.",
-   "by": "claude",
-   "volume": 17773.485800000002,
-   "closes": "2028-05-30",
-   "examples": [
-    "Will Jean-Luc Mélenchon win the 2027 French presidential election?"
-   ]
-  },
-  {
    "group": "polymarket:185924",
    "venue": "polymarket",
    "title": "Tariff increase on Canada in effect by...?",
@@ -4922,7 +4980,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.7846252378340624,
+   "p": 0.7532251430819605,
    "moves": [
     -1,
     0,
@@ -4944,6 +5002,35 @@
    ]
   },
   {
+   "group": "kalshi:KXTRUMPADMINLEAVE-26DEC31",
+   "venue": "kalshi",
+   "title": "Who will leave their role in the Trump administration in 2026?",
+   "url": "https://kalshi.com/markets/kxtrumpadminleave",
+   "markets": 1,
+   "material": 1,
+   "unsure": 0,
+   "p": 0.3635561317653963,
+   "moves": [
+    0,
+    1,
+    0,
+    -1,
+    0,
+    0,
+    0,
+    0,
+    0,
+    1
+   ],
+   "reason": "Losing a market-friendly Treasury Secretary would unsettle bond markets, pushing yields and gold up and the dollar down.",
+   "by": "claude",
+   "volume": 12432.62202,
+   "closes": "2027-01-01",
+   "examples": [
+    "Will Scott Bessent leaves Secretary of the Treasury in before 2027?"
+   ]
+  },
+  {
    "group": "polymarket:1189688",
    "venue": "polymarket",
    "title": "Core CPI MoM - October 2026",
@@ -4951,7 +5038,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.7590348187719465,
+   "p": 0.8085663106410598,
    "moves": [
     1,
     -1,
@@ -4966,7 +5053,7 @@
    ],
    "reason": "A softer 0.2% core print versus hotter alternatives would pull yields and the dollar down and lift stocks.",
    "by": "claude",
-   "volume": 11202.684963000002,
+   "volume": 11202.684963,
    "closes": "2026-11-11",
    "examples": [
     "Will Core CPI MoM be 0.2% in October?"
@@ -4980,7 +5067,7 @@
    "markets": 2,
    "material": 2,
    "unsure": 0,
-   "p": 0.8028622212092713,
+   "p": 0.7906807132660921,
    "moves": [
     1,
     0,
@@ -5010,7 +5097,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.5684464017732348,
+   "p": 0.7305555685047528,
    "moves": [
     0,
     0,
@@ -5039,7 +5126,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.7183596583426368,
+   "p": 0.6906623179973288,
    "moves": [
     -1,
     0,
@@ -5061,6 +5148,35 @@
    ]
   },
   {
+   "group": "polymarket:431592",
+   "venue": "polymarket",
+   "title": "Who will be arrested before 2027?",
+   "url": "https://polymarket.com/event/who-will-be-arrested-before-2027",
+   "markets": 1,
+   "material": 1,
+   "unsure": 0,
+   "p": 0.368785092107664,
+   "moves": [
+    0,
+    0,
+    1,
+    -1,
+    0,
+    0,
+    0,
+    0,
+    0,
+    1
+   ],
+   "reason": "Arresting a sitting Fed governor would raise Fed-independence fears, weakening the dollar and lifting gold and breakevens.",
+   "by": "claude",
+   "volume": 6747.579575,
+   "closes": "2027-01-01",
+   "examples": [
+    "Will Lisa Cook be arrested before 2027?"
+   ]
+  },
+  {
    "group": "polymarket:148292",
    "venue": "polymarket",
    "title": "Will the US acquire part of Greenland in 2026?",
@@ -5068,7 +5184,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.7062124209991364,
+   "p": 0.6722230773854422,
    "moves": [
     0,
     0,
@@ -5083,10 +5199,39 @@
    ],
    "reason": "A US takeover of Greenland territory would raise geopolitical tension with Europe, nudging fear and gold up.",
    "by": "claude",
-   "volume": 11039089.096903998,
+   "volume": 11039099.238891996,
    "closes": "2027-01-01",
    "examples": [
     "Will the US acquire part of Greenland in 2026?"
+   ]
+  },
+  {
+   "group": "polymarket:79987",
+   "venue": "polymarket",
+   "title": "Next French Presidential Election",
+   "url": "https://polymarket.com/event/next-french-presidential-election",
+   "markets": 1,
+   "material": 1,
+   "unsure": 0,
+   "p": 0.3245119219070811,
+   "moves": [
+    0,
+    0,
+    0,
+    1,
+    0,
+    0,
+    0,
+    0,
+    0,
+    1
+   ],
+   "reason": "A far-left French presidency would raise eurozone fiscal fears, lifting the dollar and gold.",
+   "by": "claude",
+   "volume": 3393177.3181290007,
+   "closes": "2027-04-19",
+   "examples": [
+    "Will Jean-Luc Mélenchon win the 2027 French presidential election?"
    ]
   },
   {
@@ -5097,7 +5242,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.8671228303531772,
+   "p": 0.8763024167597975,
    "moves": [
     0,
     0,
@@ -5112,7 +5257,7 @@
    ],
    "reason": "Normal Hormuz shipping would ease Gulf supply risk, pulling oil and inflation expectations down.",
    "by": "claude",
-   "volume": 1557601.2393010003,
+   "volume": 1557601.2393009998,
    "closes": "2026-12-01",
    "examples": [
     "Strait of Hormuz traffic returns to normal by November 30?"
@@ -5126,7 +5271,7 @@
    "markets": 2,
    "material": 2,
    "unsure": 0,
-   "p": 0.6843492079271309,
+   "p": 0.7731130107119991,
    "moves": [
     0,
     0,
@@ -5141,7 +5286,7 @@
    ],
    "reason": "Upheaval in Iran's leadership would raise Gulf supply risk, lifting oil and gold.",
    "by": "claude",
-   "volume": 1511649.97127,
+   "volume": 1512519.9712699999,
    "closes": "2026-12-01",
    "examples": [
     "Iran leadership change by June 30, 2027?",
@@ -5156,7 +5301,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.8540913442346503,
+   "p": 0.8369023262424922,
    "moves": [
     1,
     0,
@@ -5178,36 +5323,6 @@
    ]
   },
   {
-   "group": "kalshi:KXSENATESEATSD-27",
-   "venue": "kalshi",
-   "title": "How many Senate seats will Democrats hold after the 2026 election? (Directional)",
-   "url": "https://kalshi.com/markets/kxsenateseatsd",
-   "markets": 2,
-   "material": 1,
-   "unsure": 1,
-   "p": 0.4376079933467084,
-   "moves": [
-    -1,
-    0,
-    0,
-    0,
-    0,
-    0,
-    1,
-    0,
-    0,
-    0
-   ],
-   "reason": "A Democratic wave in the Senate would raise odds of tax and regulatory changes, weighing modestly on stocks.",
-   "by": "claude",
-   "volume": 380154.3684,
-   "closes": "2027-02-01",
-   "examples": [
-    "Will Democrats hold at least 54 Senate seats after the 2026 election?",
-    "Will Democrats hold at least 56 Senate seats after the 2026 election?"
-   ]
-  },
-  {
    "group": "polymarket:956930",
    "venue": "polymarket",
    "title": "How low will 30-year Treasury yield get before 2027?",
@@ -5215,7 +5330,7 @@
    "markets": 10,
    "material": 10,
    "unsure": 0,
-   "p": 0.908423237620666,
+   "p": 0.8987003353975803,
    "moves": [
     1,
     -1,
@@ -5230,7 +5345,7 @@
    ],
    "reason": "The 30-year yield dipping below 5.25% would mean lower long rates, a mild support for stocks.",
    "by": "claude",
-   "volume": 272949.13865700003,
+   "volume": 272949.1386569999,
    "closes": "2026-12-31",
    "examples": [
     "Will the 30-year Treasury yield dip below 4.60% before 2027?",
@@ -5239,14 +5354,43 @@
    ]
   },
   {
+   "group": "kalshi:KXSENATESEATSD-27",
+   "venue": "kalshi",
+   "title": "How many Senate seats will Democrats hold after the 2026 election? (Directional)",
+   "url": "https://kalshi.com/markets/kxsenateseatsd",
+   "markets": 1,
+   "material": 1,
+   "unsure": 0,
+   "p": 0.35970197927122904,
+   "moves": [
+    -1,
+    0,
+    0,
+    0,
+    0,
+    0,
+    1,
+    0,
+    0,
+    0
+   ],
+   "reason": "A Democratic wave in the Senate would raise odds of tax and regulatory changes, weighing modestly on stocks.",
+   "by": "claude",
+   "volume": 244055.7708,
+   "closes": "2027-02-01",
+   "examples": [
+    "Will Democrats hold at least 56 Senate seats after the 2026 election?"
+   ]
+  },
+  {
    "group": "polymarket:73897",
    "venue": "polymarket",
    "title": "Who will leave Trump Administration before 2027?",
    "url": "https://polymarket.com/event/who-will-leave-trump-administration-before-2027",
    "markets": 2,
-   "material": 1,
-   "unsure": 1,
-   "p": 0.34813743415051734,
+   "material": 2,
+   "unsure": 0,
+   "p": 0.40206467418761893,
    "moves": [
     -1,
     0,
@@ -5276,7 +5420,7 @@
    "markets": 2,
    "material": 2,
    "unsure": 0,
-   "p": 0.5458626894656946,
+   "p": 0.6293516482758706,
    "moves": [
     0,
     0,
@@ -5291,7 +5435,7 @@
    ],
    "reason": "A Chinese model in the top 3 would dent US AI leadership pricing in chips and lift Chinese tech.",
    "by": "claude",
-   "volume": 200640.83723199996,
+   "volume": 200746.10037200002,
    "closes": "2027-01-01",
    "examples": [
     "Will a Chinese company have one of the top 3 AI models by December 31?",
@@ -5303,10 +5447,10 @@
    "venue": "kalshi",
    "title": "Nasdaq-100 close price end of 2026?",
    "url": "https://kalshi.com/markets/kxnasdaq100y",
-   "markets": 15,
-   "material": 15,
+   "markets": 16,
+   "material": 16,
    "unsure": 0,
-   "p": 0.8568573030541858,
+   "p": 0.8425170594746876,
    "moves": [
     1,
     0,
@@ -5321,12 +5465,12 @@
    ],
    "reason": "A Nasdaq-100 close near 30,000 is an upper bracket, implying stronger stocks and lower fear than other outcomes.",
    "by": "claude",
-   "volume": 169306.3684,
+   "volume": 175921.6691,
    "closes": "2026-12-31",
    "examples": [
     "Will the Nasdaq-100 be below 19000 at the end of Dec 31, 2026 at 4pm EST?",
-    "Will the Nasdaq-100 be between 25000 and 25499.99 at the end of Dec 31, 2026 at 4pm EST?",
-    "Will the Nasdaq-100 be between 25500 and 25999.99 at the end of Dec 31, 2026 at 4pm EST?"
+    "Will the Nasdaq-100 be between 24500 and 24999.99 at the end of Dec 31, 2026 at 4pm EST?",
+    "Will the Nasdaq-100 be between 25000 and 25499.99 at the end of Dec 31, 2026 at 4pm EST?"
    ]
   },
   {
@@ -5337,7 +5481,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.6950781338315473,
+   "p": 0.6996142787667812,
    "moves": [
     0,
     0,
@@ -5352,7 +5496,7 @@
    ],
    "reason": "A presidential resignation would raise political uncertainty, lifting fear and gold, with unclear direction for stocks.",
    "by": "claude",
-   "volume": 154102.212,
+   "volume": 168116.2512,
    "closes": "2029-01-21",
    "examples": [
     "Will President Trump resign before his term is up?"
@@ -5366,7 +5510,7 @@
    "markets": 6,
    "material": 6,
    "unsure": 0,
-   "p": 0.7464813809300412,
+   "p": 0.8624288948592179,
    "moves": [
     0,
     0,
@@ -5390,6 +5534,36 @@
    ]
   },
   {
+   "group": "kalshi:KXINXMAXY-01JAN2027",
+   "venue": "kalshi",
+   "title": "How high will the S&P get this year?",
+   "url": "https://kalshi.com/markets/kxinxmaxy",
+   "markets": 2,
+   "material": 2,
+   "unsure": 0,
+   "p": 0.8093151132503406,
+   "moves": [
+    1,
+    0,
+    0,
+    0,
+    0,
+    0,
+    -1,
+    0,
+    0,
+    0
+   ],
+   "reason": "The S&P reaching 8,000 means stocks are higher and volatility lower on the day it resolves.",
+   "by": "claude",
+   "volume": 126790.32205000002,
+   "closes": "2027-01-01",
+   "examples": [
+    "Will the maximum SP500 value reach 7999.99 by Jan 1, 2027?",
+    "Will the maximum SP500 value reach 8199.99 by Jan 1, 2027?"
+   ]
+  },
+  {
    "group": "kalshi:KXINSURRECTION-29",
    "venue": "kalshi",
    "title": "Will Trump invoke the Insurrection Act?",
@@ -5397,7 +5571,7 @@
    "markets": 2,
    "material": 2,
    "unsure": 0,
-   "p": 0.8095530521357146,
+   "p": 0.8158948108679698,
    "moves": [
     -1,
     0,
@@ -5412,7 +5586,7 @@
    ],
    "reason": "Invoking the Insurrection Act would signal domestic unrest, lifting fear and weighing on stocks.",
    "by": "claude",
-   "volume": 117897.6384,
+   "volume": 120202.2196,
    "closes": "2027-01-01",
    "examples": [
     "Will Trump invoke the Insurrection Act during his Presidency?",
@@ -5427,7 +5601,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.7544364090546076,
+   "p": 0.8108266138390938,
    "moves": [
     0,
     0,
@@ -5456,7 +5630,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.6024481827129071,
+   "p": 0.5833094732957429,
    "moves": [
     0,
     0,
@@ -5471,70 +5645,10 @@
    ],
    "reason": "A collapse of US-Iran diplomacy would raise Gulf supply risk, lifting oil and gold.",
    "by": "claude",
-   "volume": 107415.94615100003,
+   "volume": 107545.47948300002,
    "closes": "2027-01-01",
    "examples": [
     "Will no qualifying US-Iran senior diplomatic meeting take place by December 31, 2026?"
-   ]
-  },
-  {
-   "group": "kalshi:KXINXMAXY-01JAN2027",
-   "venue": "kalshi",
-   "title": "How high will the S&P get this year?",
-   "url": "https://kalshi.com/markets/kxinxmaxy",
-   "markets": 2,
-   "material": 2,
-   "unsure": 0,
-   "p": 0.8005010829008523,
-   "moves": [
-    1,
-    0,
-    0,
-    0,
-    0,
-    0,
-    -1,
-    0,
-    0,
-    0
-   ],
-   "reason": "The S&P reaching 8,000 means stocks are higher and volatility lower on the day it resolves.",
-   "by": "claude",
-   "volume": 103781.95843,
-   "closes": "2027-01-01",
-   "examples": [
-    "Will the maximum SP500 value reach 7999.99 by Jan 1, 2027?",
-    "Will the maximum SP500 value reach 8199.99 by Jan 1, 2027?"
-   ]
-  },
-  {
-   "group": "kalshi:POWER-28",
-   "venue": "kalshi",
-   "title": "2028: Who will win the Presidency, House, and Senate?",
-   "url": "https://kalshi.com/markets/power",
-   "markets": 2,
-   "material": 1,
-   "unsure": 1,
-   "p": 0.45664113792742983,
-   "moves": [
-    1,
-    1,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-   ],
-   "reason": "A Republican sweep would point to tax cuts and deregulation, lifting stocks and yields.",
-   "by": "claude",
-   "volume": 99721.30757,
-   "closes": "2029-11-07",
-   "examples": [
-    "Will the Democratic party win the House, the Democratic party win the Senate, and the Democratic party win the Presidency?",
-    "Will the Republican party win the House, the Republican party win the Senate, and the Republican party win the Presidency?"
    ]
   },
   {
@@ -5545,7 +5659,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.7168985424122666,
+   "p": 0.6957103694456038,
    "moves": [
     0,
     0,
@@ -5567,6 +5681,35 @@
    ]
   },
   {
+   "group": "kalshi:KXPRESNOMR-28",
+   "venue": "kalshi",
+   "title": "2028 Republican presidential nominee",
+   "url": "https://kalshi.com/markets/kxpresnomr",
+   "markets": 1,
+   "material": 1,
+   "unsure": 0,
+   "p": 0.2724299928235227,
+   "moves": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    1,
+    0,
+    0,
+    1
+   ],
+   "reason": "A constitutionally contested third-term nomination would raise institutional uncertainty, lifting fear and gold.",
+   "by": "claude",
+   "volume": 69726.13816,
+   "closes": "2028-11-07",
+   "examples": [
+    "Will Donald J. Trump be the nominee for the Presidency for the Republican party?"
+   ]
+  },
+  {
    "group": "kalshi:KXDIESELW-26NOV09",
    "venue": "kalshi",
    "title": "Diesel prices this week",
@@ -5574,7 +5717,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.628090891718446,
+   "p": 0.5954330553440913,
    "moves": [
     0,
     0,
@@ -5589,7 +5732,7 @@
    ],
    "reason": "Higher diesel prices would coincide with higher oil and inflation expectations.",
    "by": "claude",
-   "volume": 63268.31,
+   "volume": 61982.1024,
    "closes": "2026-11-09",
    "examples": [
     "Will Diesel Price on November 9, 2026 be above $6.16?"
@@ -5603,7 +5746,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.6505122075916177,
+   "p": 0.6420936520348962,
    "moves": [
     0,
     1,
@@ -5632,7 +5775,7 @@
    "markets": 3,
    "material": 3,
    "unsure": 0,
-   "p": 0.6728374304063297,
+   "p": 0.548554408690367,
    "moves": [
     0,
     0,
@@ -5663,7 +5806,7 @@
    "markets": 2,
    "material": 2,
    "unsure": 0,
-   "p": 0.7710141809572681,
+   "p": 0.8204063301299217,
    "moves": [
     0,
     0,
@@ -5693,7 +5836,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.6716064398505736,
+   "p": 0.6628679038358822,
    "moves": [
     0,
     0,
@@ -5722,7 +5865,7 @@
    "markets": 3,
    "material": 3,
    "unsure": 0,
-   "p": 0.85362749191062,
+   "p": 0.8870602665421905,
    "moves": [
     0,
     0,
@@ -5735,8 +5878,8 @@
     0,
     0
    ],
-   "reason": "California gas above $7 would reflect an oil and refining squeeze, nudging up oil and inflation expectations.",
-   "by": "claude",
+   "reason": "California gas above $6.60 would likely coincide with higher crude prices, though local refinery issues also matter.",
+   "by": "screen",
    "volume": 25839.3932,
    "closes": "2026-12-31",
    "examples": [
@@ -5753,7 +5896,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.5488079019851227,
+   "p": 0.659289551279945,
    "moves": [
     0,
     1,
@@ -5782,7 +5925,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.7769372928879915,
+   "p": 0.785397686059161,
    "moves": [
     0,
     0,
@@ -5811,7 +5954,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.6353648957643658,
+   "p": 0.6082653430698023,
    "moves": [
     1,
     0,
@@ -5833,35 +5976,6 @@
    ]
   },
   {
-   "group": "kalshi:KXBESTLLMCHINA-27",
-   "venue": "kalshi",
-   "title": "Will a Chinese AI model be #1 this year?",
-   "url": "https://kalshi.com/markets/kxbestllmchina",
-   "markets": 1,
-   "material": 1,
-   "unsure": 0,
-   "p": 0.5228685792126556,
-   "moves": [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    1,
-    -1,
-    0
-   ],
-   "reason": "A Chinese model topping the leaderboard could revive DeepSeek-style worries, hurting US chips and helping Chinese tech.",
-   "by": "claude",
-   "volume": 15315.358,
-   "closes": "2027-01-01",
-   "examples": [
-    "Will a Chinese AI model be #1 this year?"
-   ]
-  },
-  {
    "group": "kalshi:KXGDP-27JAN28",
    "venue": "kalshi",
    "title": "US real GDP growth in Q4 2026?",
@@ -5869,7 +5983,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.8233972773389798,
+   "p": 0.818163188236253,
    "moves": [
     0,
     1,
@@ -5898,7 +6012,7 @@
    "markets": 2,
    "material": 2,
    "unsure": 0,
-   "p": 0.7809243499771961,
+   "p": 0.7998483686934704,
    "moves": [
     -1,
     0,
@@ -5921,6 +6035,35 @@
    ]
   },
   {
+   "group": "kalshi:KXBESTLLMCHINA-27",
+   "venue": "kalshi",
+   "title": "Will a Chinese AI model be #1 this year?",
+   "url": "https://kalshi.com/markets/kxbestllmchina",
+   "markets": 1,
+   "material": 1,
+   "unsure": 0,
+   "p": 0.5168089004332228,
+   "moves": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    1,
+    -1,
+    0
+   ],
+   "reason": "A Chinese model topping the leaderboard could revive DeepSeek-style worries, hurting US chips and helping Chinese tech.",
+   "by": "claude",
+   "volume": 10720.9004,
+   "closes": "2027-01-01",
+   "examples": [
+    "Will a Chinese AI model be #1 this year?"
+   ]
+  },
+  {
    "group": "kalshi:KXCANTERRITORY-29",
    "venue": "kalshi",
    "title": "Will the US take control of any part of Canada?",
@@ -5928,7 +6071,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.7070368244153753,
+   "p": 0.6905373949022625,
    "moves": [
     -1,
     0,
@@ -5957,7 +6100,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.8381603127797218,
+   "p": 0.8278998699878496,
    "moves": [
     1,
     0,
@@ -5986,7 +6129,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.6778150612399636,
+   "p": 0.7043398938650564,
    "moves": [
     0,
     0,
@@ -6015,7 +6158,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.670169445993974,
+   "p": 0.6701934236282041,
    "moves": [
     0,
     1,
@@ -6044,7 +6187,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.7507670723113957,
+   "p": 0.7434227031812115,
    "moves": [
     0,
     1,
@@ -6073,7 +6216,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.7378393626937435,
+   "p": 0.7228305420406699,
    "moves": [
     1,
     0,
@@ -6102,7 +6245,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.8182968936358622,
+   "p": 0.8270047727317458,
    "moves": [
     0,
     0,
@@ -6131,7 +6274,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.49716364761733345,
+   "p": 0.6743729827484715,
    "moves": [
     -1,
     0,
@@ -6160,7 +6303,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.46718570082839045,
+   "p": 0.6676670945344049,
    "moves": [
     -1,
     1,
@@ -6189,7 +6332,7 @@
    "markets": 2,
    "material": 2,
    "unsure": 0,
-   "p": 0.8210005891160519,
+   "p": 0.8098695879967801,
    "moves": [
     0,
     0,
@@ -6219,7 +6362,7 @@
    "markets": 2,
    "material": 2,
    "unsure": 0,
-   "p": 0.8857742706513098,
+   "p": 0.8738879596786472,
    "moves": [
     0,
     0,
@@ -6234,7 +6377,7 @@
    ],
    "reason": "A final US-Iran nuclear deal would ease supply risk and sanctions, pushing oil lower.",
    "by": "claude",
-   "volume": 4512479.596263,
+   "volume": 4513479.596263,
    "closes": "2026-12-01",
    "examples": [
     "US-Iran Final Nuclear Deal by December 31, 2026?",
@@ -6249,7 +6392,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.7558345204888706,
+   "p": 0.7431000237314149,
    "moves": [
     0,
     0,
@@ -6264,7 +6407,7 @@
    ],
    "reason": "A signed Ukraine-Russia peace deal would ease supply risk and pull oil lower.",
    "by": "claude",
-   "volume": 2962245.843442999,
+   "volume": 2962245.8434429993,
    "closes": "2027-01-01",
    "examples": [
     "Ukraine signs peace deal with Russia by December 31, 2026?"
@@ -6278,7 +6421,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.508897399482105,
+   "p": 0.5953595582095793,
    "moves": [
     0,
     0,
@@ -6293,7 +6436,7 @@
    ],
    "reason": "NVIDIA staying largest implies chips outperforming other megacaps.",
    "by": "claude",
-   "volume": 1729563.4765830005,
+   "volume": 1729570.2865829999,
    "closes": "2027-01-01",
    "examples": [
     "Will NVIDIA be the largest company in the world by market cap on December 31?"
@@ -6307,7 +6450,7 @@
    "markets": 21,
    "material": 21,
    "unsure": 0,
-   "p": 0.8508393225011047,
+   "p": 0.8392914024620804,
    "moves": [
     0,
     0,
@@ -6338,7 +6481,7 @@
    "markets": 6,
    "material": 6,
    "unsure": 0,
-   "p": 0.8743025840817431,
+   "p": 0.8673155431482591,
    "moves": [
     0,
     0,
@@ -6353,7 +6496,7 @@
    ],
    "reason": "A signed US-Iran nuclear deal would lower the Middle East risk premium and push oil down.",
    "by": "claude",
-   "volume": 1603230.737855,
+   "volume": 1603230.7378550002,
    "closes": "2027-01-01",
    "examples": [
     "Will a 1+ Year Enrichment Moratorium be in a US-Iran deal in 2026?",
@@ -6369,7 +6512,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.6633488085734465,
+   "p": 0.6395220809187483,
    "moves": [
     0,
     0,
@@ -6384,7 +6527,7 @@
    ],
    "reason": "A US strike on Mexican soil would raise geopolitical and trade worries and lift volatility somewhat.",
    "by": "claude",
-   "volume": 774830.643704,
+   "volume": 774830.6437039999,
    "closes": "2027-01-01",
    "examples": [
     "US strike on Mexico by December 31?"
@@ -6398,7 +6541,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.7272414756278601,
+   "p": 0.7156207618511782,
    "moves": [
     0,
     0,
@@ -6413,7 +6556,7 @@
    ],
    "reason": "Renewed US-Iran talks would lower Gulf supply risk and ease oil.",
    "by": "claude",
-   "volume": 649024.8750469999,
+   "volume": 653767.365211,
    "closes": "2026-12-31",
    "examples": [
     "Next US-Iran senior diplomatic meeting by December 31, 2026?"
@@ -6427,7 +6570,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.4351435494077619,
+   "p": 0.6066349432611481,
    "moves": [
     0,
     0,
@@ -6442,7 +6585,7 @@
    ],
    "reason": "Direct Russia–Ukraine peace talks would trim the oil risk premium.",
    "by": "claude",
-   "volume": 642895.7133859999,
+   "volume": 642895.713386,
    "closes": "2026-12-01",
    "examples": [
     "Russia-Ukraine peace talks by November 30, 2026?"
@@ -6456,7 +6599,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.7212354534146478,
+   "p": 0.6742335813499637,
    "moves": [
     0,
     0,
@@ -6478,6 +6621,37 @@
    ]
   },
   {
+   "group": "polymarket:79123",
+   "venue": "polymarket",
+   "title": "How low will 10-year Treasury yield get before 2027?",
+   "url": "https://polymarket.com/event/how-low-will-10-year-treasury-yield-get-before-2027",
+   "markets": 16,
+   "material": 16,
+   "unsure": 0,
+   "p": 0.8407040206893307,
+   "moves": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    1,
+    0,
+    0,
+    0
+   ],
+   "reason": "",
+   "by": "screen",
+   "volume": 489005.511013,
+   "closes": "2026-12-31",
+   "examples": [
+    "Will the 10-year Treasury yield dip below 3.5% before 2027?",
+    "Will the 10-year Treasury yield dip below 3.0% before 2027?",
+    "Will the 10-year Treasury yield dip below 2.0% before 2027?"
+   ]
+  },
+  {
    "group": "polymarket:994461",
    "venue": "polymarket",
    "title": "OpenAI announces another Millennium Prize solution by...?",
@@ -6485,7 +6659,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.6335362057259611,
+   "p": 0.5947971273760271,
    "moves": [
     0,
     0,
@@ -6500,7 +6674,7 @@
    ],
    "reason": "An AI solving a Millennium Prize problem would boost AI enthusiasm and chip stocks.",
    "by": "claude",
-   "volume": 477931.95371,
+   "volume": 477931.95371000003,
    "closes": "2027-01-01",
    "examples": [
     "Will OpenAI announce another Millennium Prize solution by December 31, 2026?"
@@ -6514,7 +6688,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.6895250977685111,
+   "p": 0.6520031772399127,
    "moves": [
     0,
     0,
@@ -6529,7 +6703,7 @@
    ],
    "reason": "US annexation of Venezuela would signal more Venezuelan oil supply, pressuring crude.",
    "by": "claude",
-   "volume": 402567.66403399984,
+   "volume": 402567.664034,
    "closes": "2027-01-01",
    "examples": [
     "Will Venezuela become 51st state?"
@@ -6543,7 +6717,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.6648226270163722,
+   "p": 0.6735500865056214,
    "moves": [
     0,
     0,
@@ -6558,7 +6732,7 @@
    ],
    "reason": "An AGI claim by OpenAI could fuel AI enthusiasm and lift chip stocks modestly.",
    "by": "claude",
-   "volume": 367408.8609239999,
+   "volume": 367458.8509239999,
    "closes": "2027-01-01",
    "examples": [
     "OpenAI announces it has achieved AGI before 2027?"
@@ -6572,7 +6746,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.5504964171157722,
+   "p": 0.6565491206189212,
    "moves": [
     0,
     0,
@@ -6587,7 +6761,7 @@
    ],
    "reason": "A total Iranian blackout would signal unrest or conflict, adding an oil risk premium.",
    "by": "claude",
-   "volume": 342893.70598,
+   "volume": 342893.7059800001,
    "closes": "2026-12-31",
    "examples": [
     "Total Internet Blackout in Iran by December 31, 2026?"
@@ -6601,7 +6775,7 @@
    "markets": 10,
    "material": 10,
    "unsure": 0,
-   "p": 0.9056339815888603,
+   "p": 0.8979772414376743,
    "moves": [
     0,
     -1,
@@ -6616,7 +6790,7 @@
    ],
    "reason": "Resolving YES requires the 5-year yield to fall below the threshold, so it means lower rates.",
    "by": "claude",
-   "volume": 342582.152024,
+   "volume": 342587.15202400007,
    "closes": "2026-12-31",
    "examples": [
     "Will the 5-year Treasury yield dip below 4.00% before 2027?",
@@ -6632,7 +6806,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.7987381979859978,
+   "p": 0.7818546622570468,
    "moves": [
     0,
     0,
@@ -6661,7 +6835,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.8419603506819778,
+   "p": 0.8306474990959472,
    "moves": [
     0,
     0,
@@ -6676,7 +6850,7 @@
    ],
    "reason": "A US-Cuba clash would raise geopolitical fear modestly but is too small to move broader markets.",
    "by": "claude",
-   "volume": 294478.12005499995,
+   "volume": 294478.12005500006,
    "closes": "2027-01-01",
    "examples": [
     "US x Cuba military clash in 2026?"
@@ -6690,7 +6864,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.7630922665441109,
+   "p": 0.7037031617038624,
    "moves": [
     0,
     0,
@@ -6705,7 +6879,7 @@
    ],
    "reason": "Direct Zelenskyy-Putin talks would signal peace progress, modestly lowering oil.",
    "by": "claude",
-   "volume": 244165.69038699995,
+   "volume": 244165.69038699998,
    "closes": "2027-01-01",
    "examples": [
     "Will Zelenskyy talk to Putin by December 31?"
@@ -6719,7 +6893,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.6480135015662145,
+   "p": 0.6356488824525053,
    "moves": [
     0,
     0,
@@ -6734,7 +6908,7 @@
    ],
    "reason": "Another OPEC exit would further weaken supply discipline and push oil lower.",
    "by": "claude",
-   "volume": 213865.06869800005,
+   "volume": 213865.06869800002,
    "closes": "2026-12-31",
    "examples": [
     "Will another country leave OPEC in 2026?"
@@ -6748,7 +6922,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.698702256557888,
+   "p": 0.6891576041032309,
    "moves": [
     0,
     0,
@@ -6763,7 +6937,7 @@
    ],
    "reason": "A vice president's exit would add some political uncertainty but little else.",
    "by": "claude",
-   "volume": 187499.735483,
+   "volume": 187499.73548300003,
    "closes": "2027-01-01",
    "examples": [
     "JD Vance out as VP by December 31?"
@@ -6777,7 +6951,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.7862440226096111,
+   "p": 0.7897883636681361,
    "moves": [
     0,
     0,
@@ -6792,7 +6966,7 @@
    ],
    "reason": "A Ukraine NATO concession signals a peace deal that would ease energy risk premia somewhat.",
    "by": "claude",
-   "volume": 179291.45000799999,
+   "volume": 179291.45000800004,
    "closes": "2027-01-01",
    "examples": [
     "Ukraine agrees not to join NATO by December 31, 2026?"
@@ -6806,7 +6980,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.7503755937001046,
+   "p": 0.7300265840628528,
    "moves": [
     0,
     0,
@@ -6835,7 +7009,7 @@
    "markets": 2,
    "material": 2,
    "unsure": 0,
-   "p": 0.5785602518814487,
+   "p": 0.5562090668500357,
    "moves": [
     0,
     0,
@@ -6865,7 +7039,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.7163397457382461,
+   "p": 0.7478640377811887,
    "moves": [
     0,
     0,
@@ -6894,7 +7068,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.5916879432635749,
+   "p": 0.5619311602483379,
    "moves": [
     0,
     0,
@@ -6916,37 +7090,6 @@
    ]
   },
   {
-   "group": "polymarket:1178436",
-   "venue": "polymarket",
-   "title": "French Presidential Election First Round Winner",
-   "url": "https://polymarket.com/event/french-presidential-election-first-round-winner",
-   "markets": 3,
-   "material": 1,
-   "unsure": 2,
-   "p": 0.35512340085625493,
-   "moves": [
-    0,
-    0,
-    0,
-    1,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-   ],
-   "reason": "A far-left first-round win in France would weigh on the euro, nudging the dollar up.",
-   "by": "claude",
-   "volume": 80382.526893,
-   "closes": "2027-04-18",
-   "examples": [
-    "Will Marine Le Pen win the most votes in the first round of the 2027 French presidential election?",
-    "Will Édouard Philippe win the most votes in the first round of the 2027 French presidential election?",
-    "Will Jean-Luc Mélenchon win the most votes in the first round of the 2027 French presidential election?"
-   ]
-  },
-  {
    "group": "polymarket:700842",
    "venue": "polymarket",
    "title": "Who will be added to Chinese Military Companies list by June 30, 2027?",
@@ -6954,7 +7097,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.5223187603785319,
+   "p": 0.5620235290628318,
    "moves": [
     0,
     0,
@@ -6983,7 +7126,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.6609516467999201,
+   "p": 0.6389149926852838,
    "moves": [
     0,
     0,
@@ -6998,7 +7141,7 @@
    ],
    "reason": "A Putin-Zelenskyy meeting would signal peace progress, easing energy risk premiums and nudging oil lower.",
    "by": "claude",
-   "volume": 76233.52260899999,
+   "volume": 76233.522609,
    "closes": "2027-01-01",
    "examples": [
     "Will Putin meet with Zelenskyy by December 31, 2026?"
@@ -7012,7 +7155,7 @@
    "markets": 4,
    "material": 4,
    "unsure": 0,
-   "p": 0.8022259433617739,
+   "p": 0.7891543482331301,
    "moves": [
     0,
     0,
@@ -7027,7 +7170,7 @@
    ],
    "reason": "Gold closing the year above 4,400 rather than below means a higher gold price on that day.",
    "by": "claude",
-   "volume": 74674.70479999999,
+   "volume": 68069.26659999999,
    "closes": "2026-12-31",
    "examples": [
     "Will the price of Gold be above 4300 on December 31, 2026 at 05:00 PM EST?",
@@ -7043,7 +7186,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.5015285311813009,
+   "p": 0.6436196061708244,
    "moves": [
     0,
     0,
@@ -7072,7 +7215,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.6857986865872988,
+   "p": 0.7049119267135555,
    "moves": [
     0,
     0,
@@ -7101,7 +7244,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.6898617304331074,
+   "p": 0.636774935887728,
    "moves": [
     0,
     0,
@@ -7130,7 +7273,7 @@
    "markets": 5,
    "material": 5,
    "unsure": 0,
-   "p": 0.8051907977838015,
+   "p": 0.7992965522351113,
    "moves": [
     0,
     0,
@@ -7145,7 +7288,7 @@
    ],
    "reason": "Silver reaching a higher level signals a precious-metals rally that would come with stronger gold.",
    "by": "claude",
-   "volume": 60884.916027,
+   "volume": 60911.936026999996,
    "closes": "2026-12-01",
    "examples": [
     "Will Silver (XAGUSD) hit (HIGH) $66 in November?",
@@ -7161,7 +7304,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.5670862456122312,
+   "p": 0.5615708874230363,
    "moves": [
     0,
     0,
@@ -7190,7 +7333,7 @@
    "markets": 6,
    "material": 6,
    "unsure": 0,
-   "p": 0.7130164053789629,
+   "p": 0.8584508206676331,
    "moves": [
     0,
     0,
@@ -7221,7 +7364,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.6845047304190665,
+   "p": 0.6694035214545356,
    "moves": [
     0,
     0,
@@ -7250,7 +7393,7 @@
    "markets": 4,
    "material": 4,
    "unsure": 0,
-   "p": 0.5886356565426047,
+   "p": 0.6752026626199635,
    "moves": [
     0,
     0,
@@ -7281,7 +7424,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.7465075786304336,
+   "p": 0.7281123665758632,
    "moves": [
     1,
     0,
@@ -7310,7 +7453,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.8436508711763957,
+   "p": 0.891200823620828,
    "moves": [
     0,
     0,
@@ -7325,7 +7468,7 @@
    ],
    "reason": "",
    "by": "screen",
-   "volume": 44326.94930100001,
+   "volume": 44346.94930100001,
    "closes": "2026-12-31",
    "examples": [
     "Iran blockade lifted before Iran-Oman Hormuz agreement?"
@@ -7339,7 +7482,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.6842840076827444,
+   "p": 0.6626747751937971,
    "moves": [
     0,
     0,
@@ -7354,7 +7497,7 @@
    ],
    "reason": "Scheduling a peace referendum would signal a Ukraine settlement and ease oil and energy risk premia somewhat.",
    "by": "claude",
-   "volume": 43580.01963099999,
+   "volume": 43580.019630999974,
    "closes": "2027-01-01",
    "examples": [
     "Ukraine peace referendum scheduled by December 31?"
@@ -7368,7 +7511,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.4496398342105596,
+   "p": 0.5410211546177407,
    "moves": [
     0,
     0,
@@ -7397,7 +7540,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.7094834230383317,
+   "p": 0.7063559361836904,
    "moves": [
     0,
     0,
@@ -7426,7 +7569,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.5169772567748481,
+   "p": 0.5061408331212782,
    "moves": [
     -1,
     0,
@@ -7448,36 +7591,6 @@
    ]
   },
   {
-   "group": "polymarket:1285994",
-   "venue": "polymarket",
-   "title": "Who will Trump meet with by November 30?",
-   "url": "https://polymarket.com/event/who-will-trump-meet-with-by-november-30-2026",
-   "markets": 2,
-   "material": 1,
-   "unsure": 1,
-   "p": 0.455212199467372,
-   "moves": [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    1,
-    0,
-    0
-   ],
-   "reason": "A Trump–Xi meeting would signal easing trade tensions and lift Chinese stocks.",
-   "by": "claude",
-   "volume": 34325.466908999995,
-   "closes": "2026-12-01",
-   "examples": [
-    "Will Trump meet with Xi Jinping by November 30, 2026?",
-    "Will Trump meet with Mark Carney by November 30, 2026?"
-   ]
-  },
-  {
    "group": "polymarket:199695",
    "venue": "polymarket",
    "title": "Will USD/JPY hit __ in 2026?",
@@ -7485,7 +7598,7 @@
    "markets": 3,
    "material": 3,
    "unsure": 0,
-   "p": 0.7208348483097168,
+   "p": 0.7726120354006109,
    "moves": [
     0,
     0,
@@ -7516,7 +7629,7 @@
    "markets": 2,
    "material": 2,
    "unsure": 0,
-   "p": 0.7044548990297885,
+   "p": 0.6661022599524183,
    "moves": [
     0,
     0,
@@ -7546,7 +7659,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.634420398529587,
+   "p": 0.6021787572254748,
    "moves": [
     0,
     0,
@@ -7561,10 +7674,39 @@
    ],
    "reason": "A surprise ECB hike would lift the euro and weaken the dollar.",
    "by": "claude",
-   "volume": 30360.391152,
+   "volume": 30360.391152000004,
    "closes": "2026-12-17",
    "examples": [
     "Will the ECB announce a 25 bps increase at the December 2026 meeting?"
+   ]
+  },
+  {
+   "group": "polymarket:1178436",
+   "venue": "polymarket",
+   "title": "French Presidential Election First Round Winner",
+   "url": "https://polymarket.com/event/french-presidential-election-first-round-winner",
+   "markets": 1,
+   "material": 1,
+   "unsure": 0,
+   "p": 0.41473759927561943,
+   "moves": [
+    0,
+    0,
+    0,
+    1,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "reason": "A far-left first-round win in France would weigh on the euro, nudging the dollar up.",
+   "by": "claude",
+   "volume": 28507.884718,
+   "closes": "2027-04-18",
+   "examples": [
+    "Will Jean-Luc Mélenchon win the most votes in the first round of the 2027 French presidential election?"
    ]
   },
   {
@@ -7575,7 +7717,7 @@
    "markets": 2,
    "material": 2,
    "unsure": 0,
-   "p": 0.5215447267163369,
+   "p": 0.5295539003259611,
    "moves": [
     0,
     0,
@@ -7605,7 +7747,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.8627963118344756,
+   "p": 0.8641626068987963,
    "moves": [
     0,
     1,
@@ -7634,7 +7776,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.6627381100609134,
+   "p": 0.6636350903825866,
    "moves": [
     0,
     0,
@@ -7656,37 +7798,6 @@
    ]
   },
   {
-   "group": "kalshi:KXEBOLACOUNTRY-27",
-   "venue": "kalshi",
-   "title": "Which countries will report an Ebola case in 2026?",
-   "url": "https://kalshi.com/markets/kxebolacountry",
-   "markets": 3,
-   "material": 1,
-   "unsure": 2,
-   "p": 0.37247098157270775,
-   "moves": [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    1,
-    0,
-    0,
-    0
-   ],
-   "reason": "A confirmed US Ebola case would cause a brief scare, nudging VIX up.",
-   "by": "claude",
-   "volume": 22126.6297,
-   "closes": "2027-01-01",
-   "examples": [
-    "Will a human case of Ebola disease in United States be reported before Jan 1, 2027?",
-    "Will a human case of Ebola disease in Rwanda be reported before Jan 1, 2027?",
-    "Will a human case of Ebola disease in Central African Republic be reported before Jan 1, 2027?"
-   ]
-  },
-  {
    "group": "polymarket:1038621",
    "venue": "polymarket",
    "title": "NATO troops fighting in Yemen before 2027?",
@@ -7694,7 +7805,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.6961757513300378,
+   "p": 0.6891312051260455,
    "moves": [
     0,
     0,
@@ -7709,7 +7820,7 @@
    ],
    "reason": "NATO ground combat in Yemen would raise Red Sea shipping and supply risk, lifting oil.",
    "by": "claude",
-   "volume": 21625.377168,
+   "volume": 21625.377168000006,
    "closes": "2027-01-01",
    "examples": [
     "NATO troops fighting in Yemen before 2027?"
@@ -7723,7 +7834,7 @@
    "markets": 2,
    "material": 2,
    "unsure": 0,
-   "p": 0.7160377871335006,
+   "p": 0.6885017305377193,
    "moves": [
     0,
     0,
@@ -7753,7 +7864,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.5258214235633308,
+   "p": 0.5028851393166951,
    "moves": [
     1,
     0,
@@ -7775,6 +7886,35 @@
    ]
   },
   {
+   "group": "polymarket:1285994",
+   "venue": "polymarket",
+   "title": "Who will Trump meet with by November 30?",
+   "url": "https://polymarket.com/event/who-will-trump-meet-with-by-november-30-2026",
+   "markets": 1,
+   "material": 1,
+   "unsure": 0,
+   "p": 0.5370622851688956,
+   "moves": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    1,
+    0,
+    0
+   ],
+   "reason": "A Trump–Xi meeting would signal easing trade tensions and lift Chinese stocks.",
+   "by": "claude",
+   "volume": 17848.99655,
+   "closes": "2026-12-01",
+   "examples": [
+    "Will Trump meet with Xi Jinping by November 30, 2026?"
+   ]
+  },
+  {
    "group": "kalshi:KXTRUMPXIPUTIN-28JAN01",
    "venue": "kalshi",
    "title": "When will Trump, Xi and Putin meet together?",
@@ -7782,7 +7922,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.691213542003707,
+   "p": 0.7140739807077462,
    "moves": [
     0,
     0,
@@ -7811,7 +7951,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.6273893387041538,
+   "p": 0.5112460457060177,
    "moves": [
     0,
     0,
@@ -7840,7 +7980,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.6931803034765356,
+   "p": 0.6688956157344157,
    "moves": [
     0,
     0,
@@ -7869,7 +8009,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.6506362574045741,
+   "p": 0.6147191726672855,
    "moves": [
     0,
     0,
@@ -7884,7 +8024,7 @@
    ],
    "reason": "A government shutdown starting would modestly raise fear, though short shutdowns barely move markets.",
    "by": "claude",
-   "volume": 14193.472174999999,
+   "volume": 14193.472175,
    "closes": "2027-01-01",
    "examples": [
     "Government shutdown by December 31?"
@@ -7898,7 +8038,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.5590478558404041,
+   "p": 0.5120477570634865,
    "moves": [
     0,
     0,
@@ -7913,7 +8053,7 @@
    ],
    "reason": "A surprise Bank of England hike would lift sterling against the dollar, with little effect on US assets.",
    "by": "claude",
-   "volume": 13938.546606,
+   "volume": 13938.546605999998,
    "closes": "2027-02-04",
    "examples": [
     "Will the Bank of England increase the Bank Rate by 25 bps at the February meeting?"
@@ -7927,7 +8067,7 @@
    "markets": 2,
    "material": 2,
    "unsure": 0,
-   "p": 0.7410463416739458,
+   "p": 0.7307128868919184,
    "moves": [
     0,
     -1,
@@ -7957,7 +8097,7 @@
    "markets": 2,
    "material": 2,
    "unsure": 0,
-   "p": 0.6593201307227282,
+   "p": 0.7219941335024272,
    "moves": [
     0,
     0,
@@ -7987,7 +8127,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.5428251553446723,
+   "p": 0.5300404133760124,
    "moves": [
     0,
     0,
@@ -8002,7 +8142,7 @@
    ],
    "reason": "Three carriers in the region would signal higher Gulf tension, adding a modest oil risk premium.",
    "by": "claude",
-   "volume": 11956.323623,
+   "volume": 11973.973623,
    "closes": "2026-12-01",
    "examples": [
     "Will there be 3 US aircraft carriers in CENTCOM on November 30, 2026?"
@@ -8016,7 +8156,7 @@
    "markets": 2,
    "material": 2,
    "unsure": 0,
-   "p": 0.8739218697603379,
+   "p": 0.864662175503657,
    "moves": [
     0,
     -1,
@@ -8046,7 +8186,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.6773187051824248,
+   "p": 0.656587065378911,
    "moves": [
     0,
     0,
@@ -8075,7 +8215,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.5872751388030467,
+   "p": 0.589036342702618,
    "moves": [
     0,
     0,
@@ -8104,7 +8244,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.6241575508288967,
+   "p": 0.5804614600771825,
    "moves": [
     0,
     0,
@@ -8133,7 +8273,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.6059651140840332,
+   "p": 0.6833506207404471,
    "moves": [
     1,
     0,
@@ -8155,6 +8295,35 @@
    ]
   },
   {
+   "group": "kalshi:KXEBOLACOUNTRY-27",
+   "venue": "kalshi",
+   "title": "Which countries will report an Ebola case in 2026?",
+   "url": "https://kalshi.com/markets/kxebolacountry",
+   "markets": 1,
+   "material": 1,
+   "unsure": 0,
+   "p": 0.6067922766459888,
+   "moves": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    1,
+    0,
+    0,
+    0
+   ],
+   "reason": "A confirmed US Ebola case would cause a brief scare, nudging VIX up.",
+   "by": "claude",
+   "volume": 7269.928400000001,
+   "closes": "2027-01-01",
+   "examples": [
+    "Will a human case of Ebola disease in United States be reported before Jan 1, 2027?"
+   ]
+  },
+  {
    "group": "polymarket:1123963",
    "venue": "polymarket",
    "title": "People's Bank of China rate change by December 31?",
@@ -8162,7 +8331,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.6915471008531264,
+   "p": 0.6629623135167892,
    "moves": [
     0,
     0,
@@ -8177,7 +8346,7 @@
    ],
    "reason": "A PBoC rate cut would modestly lift Chinese stocks on easing hopes.",
    "by": "claude",
-   "volume": 6665.064330000001,
+   "volume": 6665.06433,
    "closes": "2026-12-31",
    "examples": [
     "Will the People’s Bank of China decrease rates by December 31?"
@@ -8191,7 +8360,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.8034954723972494,
+   "p": 0.7968207961006798,
    "moves": [
     0,
     1,
@@ -8220,7 +8389,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.4680505999588551,
+   "p": 0.5089073511053898,
    "moves": [
     0,
     0,
@@ -8249,7 +8418,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.5766001460244151,
+   "p": 0.549892405388128,
    "moves": [
     0,
     0,
@@ -8278,7 +8447,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.7014257149219701,
+   "p": 0.605825854450533,
    "moves": [
     0,
     0,
@@ -8307,7 +8476,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.7840126424992981,
+   "p": 0.7723691649496695,
    "moves": [
     0,
     0,
@@ -8336,7 +8505,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.7481419174143411,
+   "p": 0.7523287819336154,
    "moves": [
     0,
     0,
@@ -8365,7 +8534,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.7777275315364364,
+   "p": 0.7921750819117402,
    "moves": [
     0,
     0,
@@ -8394,7 +8563,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.6487996385371575,
+   "p": 0.712831504171023,
    "moves": [
     0,
     0,
@@ -8416,6 +8585,35 @@
    ]
   },
   {
+   "group": "polymarket:850753",
+   "venue": "polymarket",
+   "title": "Next DeepSeek Pro released by...?",
+   "url": "https://polymarket.com/event/next-deepseek-pro-released-byptptpt",
+   "markets": 1,
+   "material": 1,
+   "unsure": 0,
+   "p": 0.2697175897880495,
+   "moves": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    -1,
+    0
+   ],
+   "reason": "A new efficient Chinese AI model could revive worries about AI chip demand, weighing on chip stocks.",
+   "by": "claude",
+   "volume": 5161.156290999999,
+   "closes": "2027-01-01",
+   "examples": [
+    "Next DeepSeek Pro released by December 31, 2026?"
+   ]
+  },
+  {
    "group": "kalshi:KXCBDECISIONENGLAND-26DEC17",
    "venue": "kalshi",
    "title": "Bank of England rate decision in December",
@@ -8423,7 +8621,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.7431741495947272,
+   "p": 0.7284156546920032,
    "moves": [
     0,
     0,
@@ -8452,7 +8650,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.8001308901603745,
+   "p": 0.7933100793085386,
    "moves": [
     0,
     0,
@@ -8467,68 +8665,10 @@
    ],
    "reason": "",
    "by": "",
-   "volume": 898735.1166970001,
+   "volume": 898745.320779,
    "closes": "2027-01-01",
    "examples": [
     "Will the US officially declare war on Iran by December 31, 2026?"
-   ]
-  },
-  {
-   "group": "polymarket:80824",
-   "venue": "polymarket",
-   "title": "Will Ukraine agree to cede territory to Russia by...?",
-   "url": "https://polymarket.com/event/will-ukraine-agree-to-cede-territory-to-russia-before-2027",
-   "markets": 1,
-   "material": 1,
-   "unsure": 0,
-   "p": 0.7857266543829241,
-   "moves": [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-   ],
-   "reason": "",
-   "by": "",
-   "volume": 835191.7442930001,
-   "closes": "2027-01-01",
-   "examples": [
-    "Will Ukraine agree to cede territory to Russia before 2027?"
-   ]
-  },
-  {
-   "group": "polymarket:723777",
-   "venue": "polymarket",
-   "title": "Iran invades Kuwait by...?",
-   "url": "https://polymarket.com/event/iran-invades-kuwait-byptptpt-20260720015031544",
-   "markets": 1,
-   "material": 1,
-   "unsure": 0,
-   "p": 0.8144399569030482,
-   "moves": [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-   ],
-   "reason": "",
-   "by": "",
-   "volume": 5491.826116,
-   "closes": "2027-01-01",
-   "examples": [
-    "Iran invades Kuwait by December 31?"
    ]
   },
   {
@@ -8539,7 +8679,7 @@
    "markets": 1,
    "material": 1,
    "unsure": 0,
-   "p": 0.837667054899947,
+   "p": 0.8156231834342044,
    "moves": [
     0,
     0,
@@ -8558,2877 +8698,6 @@
    "closes": "2026-12-31",
    "examples": [
     "Will the Nasdaq-100 be below 22800.01 after issuance and before Dec 31, 2026 at 4pm EST?"
-   ]
-  },
-  {
-   "group": "polymarket:86832",
-   "venue": "polymarket",
-   "title": "Which companies will be acquired before 2027?",
-   "url": "https://polymarket.com/event/which-companies-will-be-acquired-before-2027",
-   "markets": 12,
-   "material": 0,
-   "unsure": 12,
-   "p": 0.29025892646477564,
-   "moves": [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-   ],
-   "reason": "",
-   "by": "",
-   "volume": 16598105.329011,
-   "closes": "2027-01-01",
-   "examples": [
-    "Will MGM Resorts be acquired before 2027?",
-    "Will Snapchat be acquired before 2027?",
-    "Will Zoom Video Communications be acquired before 2027?"
-   ]
-  },
-  {
-   "group": "polymarket:91942",
-   "venue": "polymarket",
-   "title": "Measles cases in U.S. in 2026?",
-   "url": "https://polymarket.com/event/measles-cases-in-us-in-2026",
-   "markets": 5,
-   "material": 0,
-   "unsure": 5,
-   "p": 0.30197168395635826,
-   "moves": [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-   ],
-   "reason": "",
-   "by": "",
-   "volume": 7067872.767780995,
-   "closes": "2027-01-01",
-   "examples": [
-    "Will there be at least 10000 measles cases in the U.S. in 2026?",
-    "Will there be at least 6000 measles cases in the U.S. in 2026?",
-    "Will there be at least 5500 measles cases in the U.S. in 2026?"
-   ]
-  },
-  {
-   "group": "polymarket:500753",
-   "venue": "polymarket",
-   "title": "Will Anthropic’s valuation hit __ by December 31?",
-   "url": "https://polymarket.com/event/will-anthropics-valuation-hit-by-december-31",
-   "markets": 7,
-   "material": 0,
-   "unsure": 7,
-   "p": 0.30261767491968755,
-   "moves": [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-   ],
-   "reason": "",
-   "by": "",
-   "volume": 4476693.898539,
-   "closes": "2027-01-05",
-   "examples": [
-    "Will Anthropic's valuation hit (HIGH) $3.0T by December 31?",
-    "Will Anthropic's valuation hit (HIGH) $2.0T by December 31?",
-    "Will Anthropic's valuation hit (HIGH) $1.5T by December 31?"
-   ]
-  },
-  {
-   "group": "polymarket:34051",
-   "venue": "polymarket",
-   "title": "Netanyahu out by...?",
-   "url": "https://polymarket.com/event/netanyahu-out-before-2027",
-   "markets": 1,
-   "material": 0,
-   "unsure": 1,
-   "p": 0.32897814175994516,
-   "moves": [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-   ],
-   "reason": "",
-   "by": "",
-   "volume": 3254783.787899,
-   "closes": "2027-01-01",
-   "examples": [
-    "Netanyahu out by end of 2026?"
-   ]
-  },
-  {
-   "group": "kalshi:KXLLM1-26DEC31",
-   "venue": "kalshi",
-   "title": "Best AI at the end of 2026?",
-   "url": "https://kalshi.com/markets/kxllm1",
-   "markets": 2,
-   "material": 0,
-   "unsure": 2,
-   "p": 0.26443202855235526,
-   "moves": [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-   ],
-   "reason": "",
-   "by": "",
-   "volume": 3002230.82039,
-   "closes": "2026-12-31",
-   "examples": [
-    "Best AI on Dec 31, 2026?",
-    "Best AI on Dec 31, 2026?"
-   ]
-  },
-  {
-   "group": "kalshi:RSENATESEATS-27",
-   "venue": "kalshi",
-   "title": "How many Senate seats will Republicans hold after the Midterms?",
-   "url": "https://kalshi.com/markets/rsenateseats",
-   "markets": 1,
-   "material": 0,
-   "unsure": 1,
-   "p": 0.25399192236217427,
-   "moves": [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-   ],
-   "reason": "",
-   "by": "",
-   "volume": 2432026.4868,
-   "closes": "2027-02-01",
-   "examples": [
-    "Will the Republican party hold fewer than 45 Senate seats in the 120th Congress?"
-   ]
-  },
-  {
-   "group": "polymarket:549019",
-   "venue": "polymarket",
-   "title": "Anthropic IPO by __?",
-   "url": "https://polymarket.com/event/anthropic-ipo-by",
-   "markets": 1,
-   "material": 0,
-   "unsure": 1,
-   "p": 0.2765537308257033,
-   "moves": [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-   ],
-   "reason": "",
-   "by": "",
-   "volume": 1735809.373828,
-   "closes": "2027-01-01",
-   "examples": [
-    "Will Anthropic IPO by December 31, 2026?"
-   ]
-  },
-  {
-   "group": "kalshi:KXDSENATESEATSH-27",
-   "venue": "kalshi",
-   "title": "How many Senate seats will Democrats hold after the Midterms? (Higher strikes)",
-   "url": "https://kalshi.com/markets/kxdsenateseatsh",
-   "markets": 1,
-   "material": 0,
-   "unsure": 1,
-   "p": 0.27870332942557663,
-   "moves": [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-   ],
-   "reason": "",
-   "by": "",
-   "volume": 1344943.188,
-   "closes": "2027-02-01",
-   "examples": [
-    "Will the Democratic party hold exactly 56 Senate seats in the 120th Congress?"
-   ]
-  },
-  {
-   "group": "kalshi:KXVENEZUELALEADER-26DEC31",
-   "venue": "kalshi",
-   "title": "Who will officially lead Venezuela at the end of 2026?",
-   "url": "https://kalshi.com/markets/kxvenezuelaleader",
-   "markets": 1,
-   "material": 0,
-   "unsure": 1,
-   "p": 0.32997385917705024,
-   "moves": [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-   ],
-   "reason": "",
-   "by": "",
-   "volume": 1089744.6552000002,
-   "closes": "2026-12-31",
-   "examples": [
-    "Will Nicolás Maduro be the head of state of Venezuela on Dec 31, 2026?"
-   ]
-  },
-  {
-   "group": "kalshi:KXGREENLANDPRICE-29JAN21",
-   "venue": "kalshi",
-   "title": "How much will the US acquire Greenland for?",
-   "url": "https://kalshi.com/markets/kxgreenlandprice",
-   "markets": 1,
-   "material": 0,
-   "unsure": 1,
-   "p": 0.29523073490040785,
-   "moves": [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-   ],
-   "reason": "",
-   "by": "",
-   "volume": 811338.71472,
-   "closes": "2029-01-22",
-   "examples": [
-    "Will there be no U.S. acquisition of Greenland during Trump's term?"
-   ]
-  },
-  {
-   "group": "kalshi:KXALIENS-27",
-   "venue": "kalshi",
-   "title": "Will the U.S. confirm that aliens exist?",
-   "url": "https://kalshi.com/markets/kxaliens",
-   "markets": 1,
-   "material": 0,
-   "unsure": 1,
-   "p": 0.30315667475128355,
-   "moves": [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-   ],
-   "reason": "",
-   "by": "",
-   "volume": 702832.3025999999,
-   "closes": "2027-01-01",
-   "examples": [
-    "Will the U.S. confirm that aliens exist before 2027?"
-   ]
-  },
-  {
-   "group": "polymarket:89519",
-   "venue": "polymarket",
-   "title": "What price will Ethereum hit in 2026?",
-   "url": "https://polymarket.com/event/what-price-will-ethereum-hit-before-2027",
-   "markets": 1,
-   "material": 0,
-   "unsure": 1,
-   "p": 0.2608434164843294,
-   "moves": [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-   ],
-   "reason": "",
-   "by": "",
-   "volume": 698300.548157,
-   "closes": "2027-01-01",
-   "examples": [
-    "Will Ethereum dip to $2,000 by December 31, 2026?"
-   ]
-  },
-  {
-   "group": "polymarket:556382",
-   "venue": "polymarket",
-   "title": "Which company has best AI model end of 2026?",
-   "url": "https://polymarket.com/event/which-company-has-best-ai-model-end-of-2026",
-   "markets": 1,
-   "material": 0,
-   "unsure": 1,
-   "p": 0.2933869422270681,
-   "moves": [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-   ],
-   "reason": "",
-   "by": "",
-   "volume": 572809.266339,
-   "closes": "2026-12-31",
-   "examples": [
-    "Will Google have the best AI model at the end of December 2026?"
-   ]
-  },
-  {
-   "group": "polymarket:83804",
-   "venue": "polymarket",
-   "title": "Who will Trump pardon before 2027?",
-   "url": "https://polymarket.com/event/who-will-trump-pardon-before-2027",
-   "markets": 18,
-   "material": 0,
-   "unsure": 18,
-   "p": 0.3015130970389142,
-   "moves": [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-   ],
-   "reason": "",
-   "by": "",
-   "volume": 505544.08536,
-   "closes": "2027-01-01",
-   "examples": [
-    "Will Trump pardon Sam Bankman-Fried before 2027?",
-    "Will Trump pardon Roger Ver before 2027?",
-    "Will Trump pardon Julian Assange before 2027?"
-   ]
-  },
-  {
-   "group": "polymarket:141230",
-   "venue": "polymarket",
-   "title": "Maduro Prison Time?",
-   "url": "https://polymarket.com/event/maduro-prison-time-527",
-   "markets": 3,
-   "material": 0,
-   "unsure": 3,
-   "p": 0.30070970400021685,
-   "moves": [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-   ],
-   "reason": "",
-   "by": "",
-   "volume": 399794.06352400006,
-   "closes": "2027-12-31",
-   "examples": [
-    "Will Nicolás Maduro be sentenced to less than 20 years in prison?",
-    "Will Nicolás Maduro be sentenced to between 40 and 60 years in prison?",
-    "Will Nicolás Maduro be sentenced to at least 60 years in prison?"
-   ]
-  },
-  {
-   "group": "kalshi:KXBTCMAXY-26DEC31",
-   "venue": "kalshi",
-   "title": "How high will Bitcoin get in 2026?",
-   "url": "https://kalshi.com/markets/kxbtcmaxy",
-   "markets": 4,
-   "material": 0,
-   "unsure": 4,
-   "p": 0.28075579201602063,
-   "moves": [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-   ],
-   "reason": "",
-   "by": "",
-   "volume": 254721.57179999998,
-   "closes": "2027-01-01",
-   "examples": [
-    "Will Bitcoin be above $99,999.99 by Dec 31, 2026 at 11:59 PM ET?",
-    "Will Bitcoin be above $119,999.99 by Dec 31, 2026 at 11:59 PM ET?",
-    "Will Bitcoin be above $139,999.99 by Dec 31, 2026 at 11:59 PM ET?"
-   ]
-  },
-  {
-   "group": "kalshi:KXCODINGMODEL-26DEC",
-   "venue": "kalshi",
-   "title": "Which AI company will have the best coding model at the end of 2026?",
-   "url": "https://kalshi.com/markets/kxcodingmodel",
-   "markets": 1,
-   "material": 0,
-   "unsure": 1,
-   "p": 0.33424977742725703,
-   "moves": [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-   ],
-   "reason": "",
-   "by": "",
-   "volume": 219929.2212,
-   "closes": "2026-12-31",
-   "examples": [
-    "Which AI company will have the best coding model on Dec 31, 2026?"
-   ]
-  },
-  {
-   "group": "polymarket:528018",
-   "venue": "polymarket",
-   "title": "TIME Person of the Year 2026",
-   "url": "https://polymarket.com/event/time-person-of-the-year-2026",
-   "markets": 9,
-   "material": 0,
-   "unsure": 9,
-   "p": 0.2855742784333889,
-   "moves": [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-   ],
-   "reason": "",
-   "by": "",
-   "volume": 204582.293153,
-   "closes": "2026-12-31",
-   "examples": [
-    "Will Benjamin Netanyahu be TIME Person of the Year 2026?",
-    "Will Mohammad-Bagher Ghalibaf be TIME Person of the Year 2026?",
-    "Will Donald Trump be TIME Person of the Year 2026?"
-   ]
-  },
-  {
-   "group": "polymarket:192873",
-   "venue": "polymarket",
-   "title": "What kind of product will OpenAI announce in 2026?",
-   "url": "https://polymarket.com/event/what-kind-of-product-will-openai-announce-in-2026",
-   "markets": 3,
-   "material": 0,
-   "unsure": 3,
-   "p": 0.3356168788334863,
-   "moves": [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-   ],
-   "reason": "",
-   "by": "",
-   "volume": 200424.84354600005,
-   "closes": "2027-01-01",
-   "examples": [
-    "Will OpenAI announce earbuds or headphones in 2026?",
-    "Will OpenAI announce a clip-on device for clothing in 2026?",
-    "Will OpenAI announce a computer (Laptop/Desktop) in 2026?"
-   ]
-  },
-  {
-   "group": "polymarket:73191",
-   "venue": "polymarket",
-   "title": "Which country will join Abraham Accords before 2027?",
-   "url": "https://polymarket.com/event/which-country-will-join-abraham-accords-before-2027",
-   "markets": 3,
-   "material": 0,
-   "unsure": 3,
-   "p": 0.3399209839805422,
-   "moves": [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-   ],
-   "reason": "",
-   "by": "",
-   "volume": 192296.99236299997,
-   "closes": "2027-01-01",
-   "examples": [
-    "Will Egypt join the Abraham Accords before 2027?",
-    "Will Jordan join the Abraham Accords before 2027?",
-    "Will Syria join the Abraham Accords before 2027?"
-   ]
-  },
-  {
-   "group": "polymarket:1273395",
-   "venue": "polymarket",
-   "title": "Israeli Knesset election annulled?",
-   "url": "https://polymarket.com/event/israeli-knesset-election-annulled",
-   "markets": 1,
-   "material": 0,
-   "unsure": 1,
-   "p": 0.304010054415683,
-   "moves": [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-   ],
-   "reason": "",
-   "by": "",
-   "volume": 157315.68983999998,
-   "closes": "2027-01-01",
-   "examples": [
-    "Israeli Knesset election annulled?"
-   ]
-  },
-  {
-   "group": "polymarket:352344",
-   "venue": "polymarket",
-   "title": "Pete Hegseth impeached by...?",
-   "url": "https://polymarket.com/event/pete-hegseth-impeached-by-june-30",
-   "markets": 1,
-   "material": 0,
-   "unsure": 1,
-   "p": 0.33659907722200805,
-   "moves": [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-   ],
-   "reason": "",
-   "by": "",
-   "volume": 155171.70295,
-   "closes": "2027-01-01",
-   "examples": [
-    "Pete Hegseth impeached by December 31, 2026?"
-   ]
-  },
-  {
-   "group": "kalshi:KXFEDERALCHARGE-27JAN01",
-   "venue": "kalshi",
-   "title": "Who will be charged with a federal crime in 2026?",
-   "url": "https://kalshi.com/markets/kxfederalcharge",
-   "markets": 3,
-   "material": 0,
-   "unsure": 3,
-   "p": 0.3020889691028729,
-   "moves": [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-   ],
-   "reason": "",
-   "by": "",
-   "volume": 152245.78464,
-   "closes": "2027-01-01",
-   "examples": [
-    "Will Tim Walz be charged with a any crime before Jan 1, 2027?",
-    "Will John Brennan be charged with a any crime before Jan 1, 2027?",
-    "Will Ilhan Omar be charged with a any crime before Jan 1, 2027?"
-   ]
-  },
-  {
-   "group": "kalshi:KXPRESNOMR-28",
-   "venue": "kalshi",
-   "title": "2028 Republican presidential nominee",
-   "url": "https://kalshi.com/markets/kxpresnomr",
-   "markets": 3,
-   "material": 0,
-   "unsure": 3,
-   "p": 0.30452220898882515,
-   "moves": [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-   ],
-   "reason": "",
-   "by": "",
-   "volume": 140265.47686,
-   "closes": "2028-11-07",
-   "examples": [
-    "Will Donald J. Trump be the nominee for the Presidency for the Republican party?",
-    "Will Donald J. Trump Jr. be the nominee for the Presidency for the Republican party?",
-    "Will Marjorie Taylor Greene be the nominee for the Presidency for the Republican party?"
-   ]
-  },
-  {
-   "group": "polymarket:89559",
-   "venue": "polymarket",
-   "title": "What price will Hyperliquid hit in 2026?",
-   "url": "https://polymarket.com/event/what-price-will-hyperliquid-hit-before-2027",
-   "markets": 4,
-   "material": 0,
-   "unsure": 4,
-   "p": 0.3387946799300517,
-   "moves": [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-   ],
-   "reason": "",
-   "by": "",
-   "volume": 139553.99365299998,
-   "closes": "2027-01-01",
-   "examples": [
-    "Will Hyperliquid reach $200 by December 31, 2026?",
-    "Will Hyperliquid dip to $60 by December 31, 2026?",
-    "Will Hyperliquid reach $130 by December 31, 2026?"
-   ]
-  },
-  {
-   "group": "kalshi:KXWAYMOCITY-26DEC",
-   "venue": "kalshi",
-   "title": "Where will Waymo operate in 2026?",
-   "url": "https://kalshi.com/markets/kxwaymocity",
-   "markets": 2,
-   "material": 0,
-   "unsure": 2,
-   "p": 0.2669371557138743,
-   "moves": [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-   ],
-   "reason": "",
-   "by": "",
-   "volume": 131893.61980000001,
-   "closes": "2026-12-31",
-   "examples": [
-    "Will Waymo operate ride-hailing in Las Vegas, NV before Jan 1, 2027?",
-    "Will Waymo operate ride-hailing in Denver, CO before Jan 1, 2027?"
-   ]
-  },
-  {
-   "group": "kalshi:KXTRUMPPARDONS-29JAN21",
-   "venue": "kalshi",
-   "title": "Who will Trump pardon?",
-   "url": "https://kalshi.com/markets/kxtrumppardons",
-   "markets": 6,
-   "material": 0,
-   "unsure": 6,
-   "p": 0.29945690898787664,
-   "moves": [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-   ],
-   "reason": "",
-   "by": "",
-   "volume": 130872.48049999999,
-   "closes": "2029-01-21",
-   "examples": [
-    "Will Sam Bankman-Fried receive a presidential pardon before Jan 21, 2029?",
-    "Will Donald Trump receive a presidential pardon before Jan 21, 2029?",
-    "Will Donald Trump Jr. receive a presidential pardon before Jan 21, 2029?"
-   ]
-  },
-  {
-   "group": "polymarket:181671",
-   "venue": "polymarket",
-   "title": "Brazil Annual Inflation 2026",
-   "url": "https://polymarket.com/event/brazil-annual-inflation-2026",
-   "markets": 4,
-   "material": 0,
-   "unsure": 4,
-   "p": 0.298833411750186,
-   "moves": [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-   ],
-   "reason": "",
-   "by": "",
-   "volume": 107276.519223,
-   "closes": "2027-01-13",
-   "examples": [
-    "Will Brazil’s Annual Inflation in 2026 be between 4.00% and 4.49%?",
-    "Will Brazil’s Annual Inflation in 2026 be between 5.00% and 5.49%?",
-    "Will Brazil’s Annual Inflation in 2026 be between 5.50% and 5.99%?"
-   ]
-  },
-  {
-   "group": "polymarket:745118",
-   "venue": "polymarket",
-   "title": "Will CMI declare a Millennium Prize Problem solved by ___?",
-   "url": "https://polymarket.com/event/will-cmi-declare-a-millennium-prize-problem-solved-by-20260723160122979",
-   "markets": 1,
-   "material": 0,
-   "unsure": 1,
-   "p": 0.2718307300427911,
-   "moves": [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-   ],
-   "reason": "",
-   "by": "",
-   "volume": 98115.40143099999,
-   "closes": "2028-01-01",
-   "examples": [
-    "Will CMI declare a Millennium Prize Problem solved by December 31, 2027?"
-   ]
-  },
-  {
-   "group": "polymarket:995361",
-   "venue": "polymarket",
-   "title": "Which Millennium Prize Problem will AI solve next?",
-   "url": "https://polymarket.com/event/which-millennium-prize-problem-will-ai-solve-next",
-   "markets": 1,
-   "material": 0,
-   "unsure": 1,
-   "p": 0.33226973881918004,
-   "moves": [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-   ],
-   "reason": "",
-   "by": "",
-   "volume": 91499.84571799995,
-   "closes": "2028-01-01",
-   "examples": [
-    "Will the Hodge Conjecture be the next Millennium Prize Problem solved by AI?"
-   ]
-  },
-  {
-   "group": "polymarket:1283691",
-   "venue": "polymarket",
-   "title": "Who will be in the 2027 Big Game halftime show?",
-   "url": "https://polymarket.com/event/who-will-be-in-the-2027-big-game-halftime-show",
-   "markets": 8,
-   "material": 0,
-   "unsure": 8,
-   "p": 0.25626932350105985,
-   "moves": [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-   ],
-   "reason": "",
-   "by": "",
-   "volume": 91336.23066900001,
-   "closes": "2027-02-18",
-   "examples": [
-    "Will Taylor Swift appear at the 2027 Big Game halftime show?",
-    "Will Kanye West appear at the 2027 Big Game halftime show?",
-    "Will Drake appear at the 2027 Big Game halftime show?"
-   ]
-  },
-  {
-   "group": "polymarket:121853",
-   "venue": "polymarket",
-   "title": "Which artists will release new albums in 2026?",
-   "url": "https://polymarket.com/event/which-artists-will-release-new-albums-in-2026",
-   "markets": 8,
-   "material": 0,
-   "unsure": 8,
-   "p": 0.2550632229199096,
-   "moves": [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-   ],
-   "reason": "",
-   "by": "",
-   "volume": 88573.54598,
-   "closes": "2027-01-01",
-   "examples": [
-    "Will Lil Uzi Vert release an album in 2026? ",
-    "Will Justin Bieber release an album in 2026?",
-    "Will Frank Ocean release an album in 2026?"
-   ]
-  },
-  {
-   "group": "kalshi:KXAPTROT-26DEC1708",
-   "venue": "kalshi",
-   "title": "SMM CIF Rotterdam APT price on December 17, 2026",
-   "url": "https://kalshi.com/markets/kxaptrot",
-   "markets": 1,
-   "material": 0,
-   "unsure": 1,
-   "p": 0.2608884221700218,
-   "moves": [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-   ],
-   "reason": "",
-   "by": "",
-   "volume": 82870.0686,
-   "closes": "2026-12-17",
-   "examples": [
-    "Will the CIF Rotterdam 88.5% APT price (SMM-WU-APT-003) be above $1,750/MTU on Dec 17, 2026?"
-   ]
-  },
-  {
-   "group": "polymarket:201624",
-   "venue": "polymarket",
-   "title": "Mexico Annual Inflation 2026",
-   "url": "https://polymarket.com/event/mexico-annual-inflation-2026",
-   "markets": 3,
-   "material": 0,
-   "unsure": 3,
-   "p": 0.30476191013400367,
-   "moves": [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-   ],
-   "reason": "",
-   "by": "",
-   "volume": 80158.84337500001,
-   "closes": "2027-01-09",
-   "examples": [
-    "Will Mexico’s 2026 Annual Inflation be between 3.00% and 3.49%?",
-    "Will Mexico’s 2026 Annual Inflation be between 4.00% and 4.49%?",
-    "Will Mexico’s 2026 Annual Inflation be between 4.50% and 4.99%?"
-   ]
-  },
-  {
-   "group": "polymarket:638396",
-   "venue": "polymarket",
-   "title": "Discord IPO Closing Market Cap",
-   "url": "https://polymarket.com/event/discord-ipo-closing-market-cap-20260626185933220",
-   "markets": 4,
-   "material": 0,
-   "unsure": 4,
-   "p": 0.3311227892676355,
-   "moves": [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-   ],
-   "reason": "",
-   "by": "",
-   "volume": 77141.626613,
-   "closes": "2028-01-01",
-   "examples": [
-    "Will Discord’s market cap be less than $5B at market close on IPO day by December 31, 2027?",
-    "Will Discord’s market cap be between $5B and $8B at market close on IPO day by December 31, 2027?",
-    "Will Discord’s market cap be between $8B and $11B at market close on IPO day by December 31, 2027?"
-   ]
-  },
-  {
-   "group": "polymarket:85704",
-   "venue": "polymarket",
-   "title": "Who will announce Presidential run before 2027?",
-   "url": "https://polymarket.com/event/who-will-announce-presidential-run-before-2027",
-   "markets": 1,
-   "material": 0,
-   "unsure": 1,
-   "p": 0.25034761712016396,
-   "moves": [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-   ],
-   "reason": "",
-   "by": "",
-   "volume": 74747.17046099999,
-   "closes": "2027-01-01",
-   "examples": [
-    "Will Donald Trump announce a presidential run before 2027?"
-   ]
-  },
-  {
-   "group": "polymarket:500863",
-   "venue": "polymarket",
-   "title": "Will Kraken's valuation hit __ by December 31?",
-   "url": "https://polymarket.com/event/will-krakens-valuation-hit-by-december-31",
-   "markets": 3,
-   "material": 0,
-   "unsure": 3,
-   "p": 0.3000190495503775,
-   "moves": [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-   ],
-   "reason": "",
-   "by": "",
-   "volume": 67267.499676,
-   "closes": "2027-01-05",
-   "examples": [
-    "Will Kraken's valuation hit (HIGH) $25B by December 31?",
-    "Will Kraken's valuation hit (HIGH) $17.5B by December 31?",
-    "Will Kraken's valuation hit (HIGH) $12.5B by December 31?"
-   ]
-  },
-  {
-   "group": "kalshi:KXFDAAPPROVALPSYCHEDELIC-27",
-   "venue": "kalshi",
-   "title": "Will the FDA approve any psychedelic substance for medical use this year?",
-   "url": "https://kalshi.com/markets/kxfdaapprovalpsychedelic",
-   "markets": 1,
-   "material": 0,
-   "unsure": 1,
-   "p": 0.28984210101149455,
-   "moves": [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-   ],
-   "reason": "",
-   "by": "",
-   "volume": 65408.2995,
-   "closes": "2027-01-01",
-   "examples": [
-    "Will the FDA approve Any psychedelic substance for medical use this year?"
-   ]
-  },
-  {
-   "group": "polymarket:872248",
-   "venue": "polymarket",
-   "title": "Will AOC announce a run for Senate or President before 2028?",
-   "url": "https://polymarket.com/event/will-aoc-announce-a-run-for-senate-or-president-before-2028",
-   "markets": 1,
-   "material": 0,
-   "unsure": 1,
-   "p": 0.24838939472256158,
-   "moves": [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-   ],
-   "reason": "",
-   "by": "",
-   "volume": 61908.339213,
-   "closes": "2027-12-31",
-   "examples": [
-    "Will Alexandria Ocasio-Cortez run for President in 2028?"
-   ]
-  },
-  {
-   "group": "kalshi:KXRIRESPOWER-27FEB28",
-   "venue": "kalshi",
-   "title": "Rhode Island average residential electricity price in 2026",
-   "url": "https://kalshi.com/markets/kxrirespower",
-   "markets": 3,
-   "material": 0,
-   "unsure": 3,
-   "p": 0.27321327723781413,
-   "moves": [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-   ],
-   "reason": "",
-   "by": "",
-   "volume": 61713.8872,
-   "closes": "2027-02-28",
-   "examples": [
-    "Will Rhode Island’s average residential electricity price for 2026 be above 28.0¢/kWh?",
-    "Will Rhode Island’s average residential electricity price for 2026 be above 29.0¢/kWh?",
-    "Will Rhode Island’s average residential electricity price for 2026 be above 30.0¢/kWh?"
-   ]
-  },
-  {
-   "group": "kalshi:KXTESLADELIVERYBY-27",
-   "venue": "kalshi",
-   "title": "How much will Tesla deliveries grow this year?",
-   "url": "https://kalshi.com/markets/kxtesladeliveryby",
-   "markets": 1,
-   "material": 0,
-   "unsure": 1,
-   "p": 0.33486781421622336,
-   "moves": [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-   ],
-   "reason": "",
-   "by": "",
-   "volume": 57638.158200000005,
-   "closes": "2027-04-01",
-   "examples": [
-    "How much will Tesla deliveries grow before 2027?"
-   ]
-  },
-  {
-   "group": "polymarket:89525",
-   "venue": "polymarket",
-   "title": "What price will Solana hit in 2026?",
-   "url": "https://polymarket.com/event/what-price-will-solana-hit-before-2027",
-   "markets": 2,
-   "material": 0,
-   "unsure": 2,
-   "p": 0.2906965665810394,
-   "moves": [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-   ],
-   "reason": "",
-   "by": "",
-   "volume": 54102.61389,
-   "closes": "2027-01-01",
-   "examples": [
-    "Will Solana dip to $70 by December 31, 2026?",
-    "Will Solana dip to $80 by December 31, 2026?"
-   ]
-  },
-  {
-   "group": "kalshi:KXTRUMPADMINLEAVE-26DEC31",
-   "venue": "kalshi",
-   "title": "Who will leave their role in the Trump administration in 2026?",
-   "url": "https://kalshi.com/markets/kxtrumpadminleave",
-   "markets": 2,
-   "material": 0,
-   "unsure": 2,
-   "p": 0.26125201313913904,
-   "moves": [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-   ],
-   "reason": "",
-   "by": "",
-   "volume": 46967.243500000004,
-   "closes": "2027-01-01",
-   "examples": [
-    "Will Amy Gleason leaves Acting Administrator of the US DOGE Service in before 2027?",
-    "Will Steve Witkoff leaves Special Envoy to the Middle East in before 2027?"
-   ]
-  },
-  {
-   "group": "kalshi:KXUSACOMPANYSTAKE-27JAN01",
-   "venue": "kalshi",
-   "title": "Which companies will the US take a stake in this year?",
-   "url": "https://kalshi.com/markets/kxusacompanystake",
-   "markets": 4,
-   "material": 0,
-   "unsure": 4,
-   "p": 0.2831139651958559,
-   "moves": [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-   ],
-   "reason": "",
-   "by": "",
-   "volume": 44954.31020000001,
-   "closes": "2027-01-01",
-   "examples": [
-    "Will any part of the United States federal government take a stake of above 0% in any legal vehicle that owns, directly or indirectly, OpenAI’s for-profit operating entity?",
-    "Will any part of the United States federal government take a stake of above 0% in Anduril?",
-    "Will any part of the United States federal government take a stake of above 0% in Palantir?"
-   ]
-  },
-  {
-   "group": "polymarket:89583",
-   "venue": "polymarket",
-   "title": "What price will Zcash hit in 2026?",
-   "url": "https://polymarket.com/event/what-price-will-zcash-hit-before-2027",
-   "markets": 2,
-   "material": 0,
-   "unsure": 2,
-   "p": 0.2938659294141658,
-   "moves": [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-   ],
-   "reason": "",
-   "by": "",
-   "volume": 39935.636755,
-   "closes": "2027-01-01",
-   "examples": [
-    "Will Zcash dip to $700 by December 31, 2026?",
-    "Will Zcash dip to $600 by December 31, 2026?"
-   ]
-  },
-  {
-   "group": "kalshi:KXBTC70VS100-BTC-26DEC31",
-   "venue": "kalshi",
-   "title": "Will BTC hit $70,000 before $100,000 by Dec 31, 2026?",
-   "url": "https://kalshi.com/markets/kxbtc70vs100",
-   "markets": 1,
-   "material": 0,
-   "unsure": 1,
-   "p": 0.3242802755582197,
-   "moves": [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-   ],
-   "reason": "",
-   "by": "",
-   "volume": 38668.389899999995,
-   "closes": "2027-01-01",
-   "examples": [
-    "Will BTC hit $70,000 before $100,000 by Dec 31, 2026?"
-   ]
-  },
-  {
-   "group": "polymarket:197077",
-   "venue": "polymarket",
-   "title": "Which companies will the US take a stake in?",
-   "url": "https://polymarket.com/event/which-companies-will-the-us-take-a-stake-in",
-   "markets": 3,
-   "material": 0,
-   "unsure": 3,
-   "p": 0.33651069584271576,
-   "moves": [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-   ],
-   "reason": "",
-   "by": "",
-   "volume": 35602.658082,
-   "closes": "2027-01-01",
-   "examples": [
-    "Will the US federal government take a stake in The Boeing Company?",
-    "Will the US federal government take a stake in OpenAI?",
-    "Will the US federal government take a stake in Anthropic PBC?"
-   ]
-  },
-  {
-   "group": "polymarket:407284",
-   "venue": "polymarket",
-   "title": "2027 French Presidential Election: who will be on the ballot?",
-   "url": "https://polymarket.com/event/2027-french-presidential-election-who-will-be-on-the-ballot",
-   "markets": 1,
-   "material": 0,
-   "unsure": 1,
-   "p": 0.2727212294296995,
-   "moves": [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-   ],
-   "reason": "",
-   "by": "",
-   "volume": 33868.967656,
-   "closes": "2027-07-01",
-   "examples": [
-    "Will Jean-Luc Mélenchon be on the ballot for the 2027 French presidential election?"
-   ]
-  },
-  {
-   "group": "polymarket:1320942",
-   "venue": "polymarket",
-   "title": "Marco Rubio out as Secretary of State by...?",
-   "url": "https://polymarket.com/event/marco-rubio-out-as-secretary-of-state-byptptpt",
-   "markets": 1,
-   "material": 0,
-   "unsure": 1,
-   "p": 0.2636675854999779,
-   "moves": [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-   ],
-   "reason": "",
-   "by": "",
-   "volume": 33404.471696,
-   "closes": "2026-12-01",
-   "examples": [
-    "Marco Rubio out as Secretary of State by November 30, 2026?"
-   ]
-  },
-  {
-   "group": "kalshi:KXNEWSCOTUSCONF-29JAN20",
-   "venue": "kalshi",
-   "title": "How many Supreme Court justices will the President confirm?",
-   "url": "https://kalshi.com/markets/kxnewscotusconf",
-   "markets": 1,
-   "material": 0,
-   "unsure": 1,
-   "p": 0.283768395546339,
-   "moves": [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-   ],
-   "reason": "",
-   "by": "",
-   "volume": 33002.672399999996,
-   "closes": "2029-01-20",
-   "examples": [
-    "Will the next President confirm 0 Supreme Court justices?"
-   ]
-  },
-  {
-   "group": "kalshi:KXDEPORTATIONS-27JAN01",
-   "venue": "kalshi",
-   "title": "Deportations in 2026?",
-   "url": "https://kalshi.com/markets/kxdeportations",
-   "markets": 1,
-   "material": 0,
-   "unsure": 1,
-   "p": 0.25803081867780375,
-   "moves": [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-   ],
-   "reason": "",
-   "by": "",
-   "volume": 32040.466579999997,
-   "closes": "2027-01-01",
-   "examples": [
-    "Will the number of ICE removals be above 400000 in FY2026?"
-   ]
-  },
-  {
-   "group": "kalshi:KXIPHONERELEASE-IPHONE18",
-   "venue": "kalshi",
-   "title": "When will Apple release the iPhone 18?",
-   "url": "https://kalshi.com/markets/kxiphonerelease",
-   "markets": 1,
-   "material": 0,
-   "unsure": 1,
-   "p": 0.26645906838271,
-   "moves": [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-   ],
-   "reason": "",
-   "by": "",
-   "volume": 31795.781000000003,
-   "closes": "2027-01-01",
-   "examples": [
-    "Will Apple Inc. release iPhone 18 before Jan 1, 2027?"
-   ]
-  },
-  {
-   "group": "polymarket:638245",
-   "venue": "polymarket",
-   "title": "Which cities will Waymo launch in by December 31?",
-   "url": "https://polymarket.com/event/which-cities-will-waymo-launch-in-by-december-31-20260626201631463",
-   "markets": 3,
-   "material": 0,
-   "unsure": 3,
-   "p": 0.27426229591844925,
-   "moves": [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-   ],
-   "reason": "",
-   "by": "",
-   "volume": 30744.847983,
-   "closes": "2027-01-01",
-   "examples": [
-    "Will Waymo launch in Detroit, MI by December 31 2026?",
-    "Will Waymo launch in Denver, CO by December 31 2026?",
-    "Will Waymo launch in Las Vegas, NV by December 31 2026?"
-   ]
-  },
-  {
-   "group": "polymarket:500825",
-   "venue": "polymarket",
-   "title": "Will Perplexity's valuation hit __ by December 31?",
-   "url": "https://polymarket.com/event/will-perplexitys-valuation-hit-by-december-31",
-   "markets": 3,
-   "material": 0,
-   "unsure": 3,
-   "p": 0.301954290617483,
-   "moves": [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-   ],
-   "reason": "",
-   "by": "",
-   "volume": 30286.691085000006,
-   "closes": "2027-01-01",
-   "examples": [
-    "Will Perplexity's valuation hit (HIGH) $40B by December 31?",
-    "Will Perplexity's valuation hit (HIGH) $30B by December 31?",
-    "Will Perplexity's valuation hit (LOW) $15B by December 31?"
-   ]
-  },
-  {
-   "group": "polymarket:1065589",
-   "venue": "polymarket",
-   "title": "Lowest Mississippi level at Baton Rouge by November 30?",
-   "url": "https://polymarket.com/event/lowest-mississippi-level-at-baton-rouge-by-november-30",
-   "markets": 1,
-   "material": 0,
-   "unsure": 1,
-   "p": 0.26698711621856175,
-   "moves": [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-   ],
-   "reason": "",
-   "by": "",
-   "volume": 29863.837560999997,
-   "closes": "2026-12-02",
-   "examples": [
-    "Will the lowest Baton Rouge river level be 6.00 ft or more by November 30?"
-   ]
-  },
-  {
-   "group": "polymarket:689476",
-   "venue": "polymarket",
-   "title": "GPU rental prices (B200) hit___ in 2026?",
-   "url": "https://polymarket.com/event/gpu-rental-prices-b200-hit-in-2026-20260709171530825",
-   "markets": 2,
-   "material": 0,
-   "unsure": 2,
-   "p": 0.2773558721614756,
-   "moves": [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-   ],
-   "reason": "",
-   "by": "",
-   "volume": 28475.511939000004,
-   "closes": "2027-01-01",
-   "examples": [
-    "Will the Ornn B200 Index hit $5.50 (LOW) by December 31, 2026?",
-    "Will the Ornn B200 Index hit $4.50 (LOW) by December 31, 2026?"
-   ]
-  },
-  {
-   "group": "polymarket:1065587",
-   "venue": "polymarket",
-   "title": "Lowest Mississippi level at St. Louis by November 30?",
-   "url": "https://polymarket.com/event/lowest-mississippi-level-at-st-louis-by-november-30",
-   "markets": 1,
-   "material": 0,
-   "unsure": 1,
-   "p": 0.2500476986291603,
-   "moves": [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-   ],
-   "reason": "",
-   "by": "",
-   "volume": 27890.544945999998,
-   "closes": "2026-12-02",
-   "examples": [
-    "Will the lowest St. Louis river level be 1.00 to 2.99 ft by November 30?"
-   ]
-  },
-  {
-   "group": "polymarket:1303078",
-   "venue": "polymarket",
-   "title": "Will Jason or Lucia die in GTA VI?",
-   "url": "https://polymarket.com/event/will-jason-or-lucia-die-in-gta-vi",
-   "markets": 1,
-   "material": 0,
-   "unsure": 1,
-   "p": 0.2499440637416239,
-   "moves": [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-   ],
-   "reason": "",
-   "by": "",
-   "volume": 23345.419871000002,
-   "closes": "2026-12-20",
-   "examples": [
-    "Will Jason or Lucia die in GTA VI?"
-   ]
-  },
-  {
-   "group": "kalshi:KXPJMEMERGENCY-26DEC31",
-   "venue": "kalshi",
-   "title": "How many PJM capacity emergency days will there be in 2026?",
-   "url": "https://kalshi.com/markets/kxpjmemergency",
-   "markets": 1,
-   "material": 0,
-   "unsure": 1,
-   "p": 0.2769289499546779,
-   "moves": [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-   ],
-   "reason": "",
-   "by": "",
-   "volume": 23246.86,
-   "closes": "2027-01-01",
-   "examples": [
-    "Will the number of calendar days on which an RTO-wide PJM Maximum Generation Emergency/Load Management Alert – Capacity Emergency – NERC EEA 1 was applicable in 2026 be above 15 days?"
-   ]
-  },
-  {
-   "group": "kalshi:KXARREST-27JAN",
-   "venue": "kalshi",
-   "title": "Who will be arrested in 2026?",
-   "url": "https://kalshi.com/markets/kxarrest",
-   "markets": 3,
-   "material": 0,
-   "unsure": 3,
-   "p": 0.29464412096800213,
-   "moves": [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-   ],
-   "reason": "",
-   "by": "",
-   "volume": 23223.2857,
-   "closes": "2027-01-01",
-   "examples": [
-    "Will Hillary Clinton be arrested before Jan 2027?",
-    "Will Letitia James be arrested before Jan 2027?",
-    "Will Ilhan Omar be arrested before Jan 2027?"
-   ]
-  },
-  {
-   "group": "polymarket:659673",
-   "venue": "polymarket",
-   "title": "Who will die in Avengers: Doomsday?",
-   "url": "https://polymarket.com/event/who-will-die-in-avengers-doomsday-20260701214257877",
-   "markets": 3,
-   "material": 0,
-   "unsure": 3,
-   "p": 0.2649168588762304,
-   "moves": [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-   ],
-   "reason": "",
-   "by": "",
-   "volume": 22882.560767000003,
-   "closes": "2027-02-01",
-   "examples": [
-    "Will Steve Rogers die in Avengers: Doomsday?",
-    "Will Ant-Man die in Avengers: Doomsday?",
-    "Will Spider-Man die in Avengers: Doomsday?"
-   ]
-  },
-  {
-   "group": "polymarket:73128",
-   "venue": "polymarket",
-   "title": "How low will Trump's approval rating go in 2026?",
-   "url": "https://polymarket.com/event/how-low-will-trumps-approval-rating-go-in-2026",
-   "markets": 1,
-   "material": 0,
-   "unsure": 1,
-   "p": 0.321845798502619,
-   "moves": [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-   ],
-   "reason": "",
-   "by": "",
-   "volume": 21160.559970000002,
-   "closes": "2027-01-04",
-   "examples": [
-    "Will Trump's approval rating hit 30% in 2026?"
-   ]
-  },
-  {
-   "group": "polymarket:1178453",
-   "venue": "polymarket",
-   "title": "French Presidential Election First Round: 2nd Place",
-   "url": "https://polymarket.com/event/french-presidential-election-first-round-2nd-place",
-   "markets": 1,
-   "material": 0,
-   "unsure": 1,
-   "p": 0.3354211147973586,
-   "moves": [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-   ],
-   "reason": "",
-   "by": "",
-   "volume": 20810.704878,
-   "closes": "2027-04-18",
-   "examples": [
-    "Will Jean-Luc Mélenchon win the second-most votes in the first round of the 2027 French presidential election?"
-   ]
-  },
-  {
-   "group": "polymarket:147587",
-   "venue": "polymarket",
-   "title": "U.K. Annual Inflation 2026",
-   "url": "https://polymarket.com/event/uk-annual-inflation-in-2026",
-   "markets": 1,
-   "material": 0,
-   "unsure": 1,
-   "p": 0.3023289557180451,
-   "moves": [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-   ],
-   "reason": "",
-   "by": "",
-   "volume": 19912.244377000003,
-   "closes": "2027-01-21",
-   "examples": [
-    "Will the UK’s 2026 inflation be between 2.0% and 2.4%?"
-   ]
-  },
-  {
-   "group": "kalshi:KXCOMPANYACTIONMERGER-27",
-   "venue": "kalshi",
-   "title": "When will Tesla and SpaceX merge?",
-   "url": "https://kalshi.com/markets/kxcompanyactionmerger",
-   "markets": 1,
-   "material": 0,
-   "unsure": 1,
-   "p": 0.2516520643440509,
-   "moves": [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-   ],
-   "reason": "",
-   "by": "",
-   "volume": 14558.3339,
-   "closes": "2027-01-01",
-   "examples": [
-    "Will Tesla or SpaceX announce a definitive, binding agreement for Tesla to acquire SpaceX, SpaceX to acquire Tesla, or the two entities to merge or combine in any structure that results in a transfer of controlling interest or consolidation of the two entities under common corporate ownership before Jan 1, 2027?"
-   ]
-  },
-  {
-   "group": "polymarket:704579",
-   "venue": "polymarket",
-   "title": "Deepseek IPO by...?",
-   "url": "https://polymarket.com/event/deepseek-ipo-byptptpt-20260714175933543",
-   "markets": 1,
-   "material": 0,
-   "unsure": 1,
-   "p": 0.27506690044326926,
-   "moves": [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-   ],
-   "reason": "",
-   "by": "",
-   "volume": 13167.095834000003,
-   "closes": "2027-01-01",
-   "examples": [
-    "Will DeepSeek IPO by December 31, 2026?"
-   ]
-  },
-  {
-   "group": "kalshi:KXUSGDPSHARE-27JUL01",
-   "venue": "kalshi",
-   "title": "US share of global GDP in 2026",
-   "url": "https://kalshi.com/markets/kxusgdpshare",
-   "markets": 1,
-   "material": 0,
-   "unsure": 1,
-   "p": 0.32443462093050757,
-   "moves": [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-   ],
-   "reason": "",
-   "by": "",
-   "volume": 12715.6392,
-   "closes": "2027-07-01",
-   "examples": [
-    "Will U.S. share of global GDP for 2026 be above 25.2%?"
-   ]
-  },
-  {
-   "group": "kalshi:KXIRSCOLLECT-26",
-   "venue": "kalshi",
-   "title": "Will the IRS collect more in taxes this year than last year?",
-   "url": "https://kalshi.com/markets/kxirscollect",
-   "markets": 1,
-   "material": 0,
-   "unsure": 1,
-   "p": 0.29739312530441725,
-   "moves": [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-   ],
-   "reason": "",
-   "by": "",
-   "volume": 12565.6872,
-   "closes": "2027-12-31",
-   "examples": [
-    "Will the IRS collect more in taxes this year than last year?"
-   ]
-  },
-  {
-   "group": "kalshi:KX2028RRUN-28",
-   "venue": "kalshi",
-   "title": "Who will run for the 2028 Republican presidential nomination?",
-   "url": "https://kalshi.com/markets/kx2028rrun",
-   "markets": 1,
-   "material": 0,
-   "unsure": 1,
-   "p": 0.25790038810468835,
-   "moves": [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-   ],
-   "reason": "",
-   "by": "",
-   "volume": 12564.2924,
-   "closes": "2028-01-01",
-   "examples": [
-    "Who will run for the Republican presidential nomination in 2028?"
-   ]
-  },
-  {
-   "group": "kalshi:KXFULLTERMSKPRES-29",
-   "venue": "kalshi",
-   "title": "Will South Korean President Lee Jae-myung serve their full term?",
-   "url": "https://kalshi.com/markets/kxfulltermskpres",
-   "markets": 1,
-   "material": 0,
-   "unsure": 1,
-   "p": 0.3299462041284467,
-   "moves": [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-   ],
-   "reason": "",
-   "by": "",
-   "volume": 12493.45,
-   "closes": "2030-07-01",
-   "examples": [
-    "Will South Korean President Lee Jae-myung serve their full term?"
-   ]
-  },
-  {
-   "group": "polymarket:73223",
-   "venue": "polymarket",
-   "title": "Friedrich Merz out as Chancellor of Germany by...?",
-   "url": "https://polymarket.com/event/friedrich-merz-out-as-chancellor-of-germany-before-2027",
-   "markets": 1,
-   "material": 0,
-   "unsure": 1,
-   "p": 0.29792122699623347,
-   "moves": [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-   ],
-   "reason": "",
-   "by": "",
-   "volume": 11837.854321,
-   "closes": "2027-07-01",
-   "examples": [
-    "Friedrich Merz out as Chancellor of Germany before June 30, 2027?"
-   ]
-  },
-  {
-   "group": "polymarket:89530",
-   "venue": "polymarket",
-   "title": "What price will XRP hit in 2026?",
-   "url": "https://polymarket.com/event/what-price-will-xrp-hit-before-2027",
-   "markets": 1,
-   "material": 0,
-   "unsure": 1,
-   "p": 0.29390232129151583,
-   "moves": [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-   ],
-   "reason": "",
-   "by": "",
-   "volume": 11381.223563999998,
-   "closes": "2027-01-01",
-   "examples": [
-    "Will XRP dip to $1.00 by December 31, 2026?"
-   ]
-  },
-  {
-   "group": "kalshi:KXXRPMAXY-XRP-26DEC31",
-   "venue": "kalshi",
-   "title": "How high will XRP get in 2026?",
-   "url": "https://kalshi.com/markets/kxxrpmaxy",
-   "markets": 1,
-   "material": 0,
-   "unsure": 1,
-   "p": 0.3227262390890636,
-   "moves": [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-   ],
-   "reason": "",
-   "by": "",
-   "volume": 11307.759,
-   "closes": "2027-01-01",
-   "examples": [
-    "Will XRP trimmed mean be above $2.00 by 11:59 PM ET on Dec 31, 2026?"
-   ]
-  },
-  {
-   "group": "polymarket:1202280",
-   "venue": "polymarket",
-   "title": "Which of these people will be impeached first by the end of 2027?",
-   "url": "https://polymarket.com/event/which-of-these-people-will-be-impeached-first-by-the-end-of-2027",
-   "markets": 1,
-   "material": 0,
-   "unsure": 1,
-   "p": 0.29284466534937276,
-   "moves": [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-   ],
-   "reason": "",
-   "by": "",
-   "volume": 10922.487679999998,
-   "closes": "2028-01-01",
-   "examples": [
-    "Will none of these people be impeached by December 31, 2027?"
-   ]
-  },
-  {
-   "group": "kalshi:KXTHC3MG-FED",
-   "venue": "kalshi",
-   "title": "Will 3 mg THC beverages qualify as hemp under federal law?",
-   "url": "https://kalshi.com/markets/kxthc3mg",
-   "markets": 1,
-   "material": 0,
-   "unsure": 1,
-   "p": 0.3345206613004649,
-   "moves": [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-   ],
-   "reason": "",
-   "by": "",
-   "volume": 10572.9624,
-   "closes": "2026-12-11",
-   "examples": [
-    "Will 3 mg THC beverages qualify as hemp under federal law on Dec 10, 2026?"
-   ]
-  },
-  {
-   "group": "polymarket:628948",
-   "venue": "polymarket",
-   "title": "Nigel Farage out as Reform UK leader by...?",
-   "url": "https://polymarket.com/event/nigel-farage-out-as-reform-uk-leader-in-2026-20260622233131512",
-   "markets": 1,
-   "material": 0,
-   "unsure": 1,
-   "p": 0.29266888969686045,
-   "moves": [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-   ],
-   "reason": "",
-   "by": "",
-   "volume": 10064.772808999998,
-   "closes": "2027-04-01",
-   "examples": [
-    "Nigel Farage out as Reform UK leader by March 31, 2027?"
-   ]
-  },
-  {
-   "group": "polymarket:1124933",
-   "venue": "polymarket",
-   "title": "USS George Washington departs CENTCOM by...?",
-   "url": "https://polymarket.com/event/uss-george-washington-departs-centcom-byptptpt",
-   "markets": 1,
-   "material": 0,
-   "unsure": 1,
-   "p": 0.3321733458879077,
-   "moves": [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-   ],
-   "reason": "",
-   "by": "",
-   "volume": 9639.687177,
-   "closes": "2027-01-01",
-   "examples": [
-    "Will the USS George Washington depart CENTCOM by December 31, 2026?"
-   ]
-  },
-  {
-   "group": "kalshi:KXSOLMAXY-27JAN01",
-   "venue": "kalshi",
-   "title": "How high will Solana get in 2026?",
-   "url": "https://kalshi.com/markets/kxsolmaxy",
-   "markets": 1,
-   "material": 0,
-   "unsure": 1,
-   "p": 0.2921072820290715,
-   "moves": [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-   ],
-   "reason": "",
-   "by": "",
-   "volume": 9159.0608,
-   "closes": "2027-01-01",
-   "examples": [
-    "Will the spot price of Solana be above $150.00 before Jan 1, 2027 at 12:00 AM ET?"
-   ]
-  },
-  {
-   "group": "kalshi:KXNEXTDEF-29",
-   "venue": "kalshi",
-   "title": "Who will be Trump's next Secretary of Defense?",
-   "url": "https://kalshi.com/markets/kxnextdef",
-   "markets": 1,
-   "material": 0,
-   "unsure": 1,
-   "p": 0.25923377060410885,
-   "moves": [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-   ],
-   "reason": "",
-   "by": "",
-   "volume": 9081.050000000001,
-   "closes": "2029-01-20",
-   "examples": [
-    "Who will be Trump's next Secretary of Defense?"
-   ]
-  },
-  {
-   "group": "kalshi:KXPOPCHANGENYC-28JUN01",
-   "venue": "kalshi",
-   "title": "NYC population change (July 2025 – July 2027)?",
-   "url": "https://kalshi.com/markets/kxpopchangenyc",
-   "markets": 1,
-   "material": 0,
-   "unsure": 1,
-   "p": 0.25744398306875016,
-   "moves": [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-   ],
-   "reason": "",
-   "by": "",
-   "volume": 8137.0534,
-   "closes": "2028-06-01",
-   "examples": [
-    "Will New York City experience population change between -0.99% and 0% during 2025-2027?"
-   ]
-  },
-  {
-   "group": "polymarket:700891",
-   "venue": "polymarket",
-   "title": "Switzerland’s November Referendum: What will pass?",
-   "url": "https://polymarket.com/event/switzerlands-november-referendum-what-will-pass-20260713145059520",
-   "markets": 1,
-   "material": 0,
-   "unsure": 1,
-   "p": 0.2736144550134156,
-   "moves": [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-   ],
-   "reason": "",
-   "by": "",
-   "volume": 8113.0426050000015,
-   "closes": "2026-11-29",
-   "examples": [
-    "Will the Popular initiative ‘Yes to fair federal taxation for married couples – To finally put an end to marriage discrimination!’ be approved in Switzerland’s November 29, 2026 popular vote?"
-   ]
-  },
-  {
-   "group": "kalshi:KXVPRESNOMR-28",
-   "venue": "kalshi",
-   "title": "2028 Republican VP nominee",
-   "url": "https://kalshi.com/markets/kxvpresnomr",
-   "markets": 1,
-   "material": 0,
-   "unsure": 1,
-   "p": 0.2538933522896805,
-   "moves": [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-   ],
-   "reason": "",
-   "by": "",
-   "volume": 7451.7480399999995,
-   "closes": "2028-11-07",
-   "examples": [
-    "Will Erika Kirk be the nominee for the Vice Presidency for the Republican party?"
-   ]
-  },
-  {
-   "group": "kalshi:KXLAMEDUCKCONF-27JAN03",
-   "venue": "kalshi",
-   "title": "How many nominees will the Senate confirm in the lame duck?",
-   "url": "https://kalshi.com/markets/kxlameduckconf",
-   "markets": 1,
-   "material": 0,
-   "unsure": 1,
-   "p": 0.2702661345676762,
-   "moves": [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-   ],
-   "reason": "",
-   "by": "",
-   "volume": 7417.5232,
-   "closes": "2027-01-04",
-   "examples": [
-    "Will the number of civilian nominees confirmed by the Senate be at least 50 after Issuance and before the 119th Congress ends on Jan 3, 2027?"
-   ]
-  },
-  {
-   "group": "kalshi:KXIMPEACHCABINET",
-   "venue": "kalshi",
-   "title": "Will a cabinet member be impeached?",
-   "url": "https://kalshi.com/markets/kximpeachcabinet",
-   "markets": 1,
-   "material": 0,
-   "unsure": 1,
-   "p": 0.2735098635911394,
-   "moves": [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-   ],
-   "reason": "",
-   "by": "",
-   "volume": 7055.75877,
-   "closes": "2029-01-20",
-   "examples": [
-    "Will any member of the Cabinet (defined as: the Vice President, Secretary of State, Secretary of the Treasury, Secretary of Defense, Attorney General, Secretary of the Interior, Secretary of Agriculture, Secretary of Commerce, Secretary of Labor, Secretary of Health and Human Services, Secretary of Housing and Urban Development, Secretary of Transportation, Secretary of Energy, Secretary of Education, Secretary of Veterans Affairs, Secretary of Homeland Security, Administrator of the Environmental Protection Agency, Director of the Office of Management and Budget, Director of National Intelligence, Trade Representative, Administrator of the Small Business Administration, White House Chief of Staff) be impeached before Jan 20, 2029?"
-   ]
-  },
-  {
-   "group": "polymarket:137182",
-   "venue": "polymarket",
-   "title": "Canada Annual Inflation 2026",
-   "url": "https://polymarket.com/event/canada-annual-inflation-2026",
-   "markets": 1,
-   "material": 0,
-   "unsure": 1,
-   "p": 0.305335972374454,
-   "moves": [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-   ],
-   "reason": "",
-   "by": "",
-   "volume": 7007.950766999999,
-   "closes": "2027-01-18",
-   "examples": [
-    "Will Canada’s 2026 inflation be between 1.0% and 1.4%?"
-   ]
-  },
-  {
-   "group": "kalshi:KXGOVBAL-27APR20GB",
-   "venue": "kalshi",
-   "title": "United Kingdom’s government budget balance in 2026",
-   "url": "https://kalshi.com/markets/kxgovbal",
-   "markets": 1,
-   "material": 0,
-   "unsure": 1,
-   "p": 0.2514407740724927,
-   "moves": [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-   ],
-   "reason": "",
-   "by": "",
-   "volume": 6954.0352,
-   "closes": "2027-04-20",
-   "examples": [
-    "Will the United Kingdom’s general government net lending/borrowing balance for 2026 be above -4.5% of GDP?"
-   ]
-  },
-  {
-   "group": "kalshi:KXISRAELGOVT-28JAN01",
-   "venue": "kalshi",
-   "title": "Who will be a part of the next government of Israel?",
-   "url": "https://kalshi.com/markets/kxisraelgovt",
-   "markets": 1,
-   "material": 0,
-   "unsure": 1,
-   "p": 0.25467345281843007,
-   "moves": [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-   ],
-   "reason": "",
-   "by": "",
-   "volume": 6928.7663999999995,
-   "closes": "2028-01-01",
-   "examples": [
-    "Will Ra’am be a part of the next government in Israel?"
-   ]
-  },
-  {
-   "group": "kalshi:CONTROLS-2028",
-   "venue": "kalshi",
-   "title": "2028 U.S. Senate winner?",
-   "url": "https://kalshi.com/markets/controls",
-   "markets": 1,
-   "material": 0,
-   "unsure": 1,
-   "p": 0.2554792984948136,
-   "moves": [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-   ],
-   "reason": "",
-   "by": "",
-   "volume": 6882.031199999999,
-   "closes": "2029-02-01",
-   "examples": [
-    "Will the Republican party win the Senate in 2028?"
-   ]
-  },
-  {
-   "group": "polymarket:1316810",
-   "venue": "polymarket",
-   "title": "What will be the #2 US Netflix show this week? (November 10)",
-   "url": "https://polymarket.com/event/what-will-be-the-2-us-netflix-show-this-week-november-10",
-   "markets": 1,
-   "material": 0,
-   "unsure": 1,
-   "p": 0.25305801876588163,
-   "moves": [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-   ],
-   "reason": "",
-   "by": "",
-   "volume": 6348.883158,
-   "closes": "2026-11-11",
-   "examples": [
-    "Will \"The One About Matthew Perry: Season 1\" be the #2 US Netflix show this week?"
-   ]
-  },
-  {
-   "group": "polymarket:648392",
-   "venue": "polymarket",
-   "title": "What price will $ANSEM hit in 2026?",
-   "url": "https://polymarket.com/event/what-price-will-ansem-hit-in-2026",
-   "markets": 1,
-   "material": 0,
-   "unsure": 1,
-   "p": 0.30514589780283957,
-   "moves": [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-   ],
-   "reason": "",
-   "by": "",
-   "volume": 6247.987938,
-   "closes": "2027-01-01",
-   "examples": [
-    "Will $ANSEM reach $0.8 before 2027?"
-   ]
-  },
-  {
-   "group": "polymarket:200713",
-   "venue": "polymarket",
-   "title": "South Korea Annual Inflation 2026",
-   "url": "https://polymarket.com/event/south-korea-annual-inflation-2026",
-   "markets": 1,
-   "material": 0,
-   "unsure": 1,
-   "p": 0.3002244433040257,
-   "moves": [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-   ],
-   "reason": "",
-   "by": "",
-   "volume": 6094.304406,
-   "closes": "2027-01-01",
-   "examples": [
-    "Will South Korea’s 2026 Annual Inflation be between 2.1% and 2.3%?"
-   ]
-  },
-  {
-   "group": "polymarket:127122",
-   "venue": "polymarket",
-   "title": "Which guests will appear on the UpOnly podcast before 2027?",
-   "url": "https://polymarket.com/event/which-guests-will-appear-on-the-uponly-podcast-before-2027",
-   "markets": 1,
-   "material": 0,
-   "unsure": 1,
-   "p": 0.27771368675919456,
-   "moves": [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-   ],
-   "reason": "",
-   "by": "",
-   "volume": 5907.763271999999,
-   "closes": "2027-01-01",
-   "examples": [
-    "Will Guy Young appear on the UpOnly podcast by December 31?"
-   ]
-  },
-  {
-   "group": "polymarket:1124934",
-   "venue": "polymarket",
-   "title": "USS Theodore Roosevelt arrives in CENTCOM by...?",
-   "url": "https://polymarket.com/event/uss-theodore-roosevelt-arrives-in-centcom-byptptpt",
-   "markets": 1,
-   "material": 0,
-   "unsure": 1,
-   "p": 0.29912434297380996,
-   "moves": [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-   ],
-   "reason": "",
-   "by": "",
-   "volume": 5721.794661,
-   "closes": "2026-12-01",
-   "examples": [
-    "Will the USS Theodore Roosevelt arrive in CENTCOM by November 30, 2026?"
-   ]
-  },
-  {
-   "group": "kalshi:KXIDGROUNDWATER-26AUG17",
-   "venue": "kalshi",
-   "title": "How many Idaho groundwater rights will be curtailed in 2027?",
-   "url": "https://kalshi.com/markets/kxidgroundwater",
-   "markets": 1,
-   "material": 0,
-   "unsure": 1,
-   "p": 0.2645346674933422,
-   "moves": [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-   ],
-   "reason": "",
-   "by": "",
-   "volume": 5627.9625,
-   "closes": "2027-10-31",
-   "examples": [
-    "Will the total number of ground water rights listed as subject to curtailment for the 2027 irrigation season under the Idaho Department of Water Resources' operative curtailment orders in the Surface Water Coalition delivery call be above 800 as of October 31, 2027?"
-   ]
-  },
-  {
-   "group": "polymarket:1108628",
-   "venue": "polymarket",
-   "title": "OpenAI’s valuation end of November 2026?",
-   "url": "https://polymarket.com/event/openais-valuation-end-of-november-2026",
-   "markets": 1,
-   "material": 0,
-   "unsure": 1,
-   "p": 0.2543382244898484,
-   "moves": [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-   ],
-   "reason": "",
-   "by": "",
-   "volume": 5233.489137,
-   "closes": "2026-11-30",
-   "examples": [
-    "Will OpenAI’s valuation be between $1.10T and $1.20T at the end of November 2026?"
-   ]
-  },
-  {
-   "group": "polymarket:850753",
-   "venue": "polymarket",
-   "title": "Next DeepSeek Pro released by...?",
-   "url": "https://polymarket.com/event/next-deepseek-pro-released-byptptpt",
-   "markets": 1,
-   "material": 0,
-   "unsure": 1,
-   "p": 0.26957197545139366,
-   "moves": [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-   ],
-   "reason": "",
-   "by": "",
-   "volume": 5161.156290999999,
-   "closes": "2027-01-01",
-   "examples": [
-    "Next DeepSeek Pro released by December 31, 2026?"
-   ]
-  },
-  {
-   "group": "polymarket:1280263",
-   "venue": "polymarket",
-   "title": "Number of North Korea Missile Tests in November 2026?",
-   "url": "https://polymarket.com/event/number-of-north-korea-missile-tests-in-november-2026",
-   "markets": 1,
-   "material": 0,
-   "unsure": 1,
-   "p": 0.2812885739021015,
-   "moves": [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-   ],
-   "reason": "",
-   "by": "",
-   "volume": 5156.524364,
-   "closes": "2026-12-01",
-   "examples": [
-    "Will there be exactly 2 North Korea tests in November 2026?"
    ]
   }
  ]
