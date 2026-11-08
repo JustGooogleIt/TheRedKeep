@@ -1,0 +1,43 @@
+[
+  {
+    "id": "90001", "slug": "fed-decision-in-december", "title": "Fed decision in December?",
+    "description": "This event resolves based on the FOMC statement for the December 8-9, 2026 meeting.",
+    "endDate": "2026-12-09T00:00:00Z", "negRisk": true, "active": true, "closed": false,
+    "markets": [
+      {"id": "71001", "question": "Will the Fed decrease interest rates by 25 bps after the December 2026 meeting?",
+       "groupItemTitle": "25 bps decrease", "description": "This market will resolve to \"Yes\" if the Fed lowers the upper bound of the target range by 25 bps at its December 2026 meeting.",
+       "endDate": "2026-12-09T00:00:00Z", "outcomes": "[\"Yes\", \"No\"]", "outcomePrices": "[\"0.62\", \"0.38\"]",
+       "clobTokenIds": "[\"111\", \"112\"]", "bestBid": 0.61, "bestAsk": 0.63, "lastTradePrice": 0.62,
+       "volumeNum": 2500000.0, "volume24hr": 81000.0, "liquidityNum": 150000.0, "active": true, "closed": false, "negRisk": true, "groupItemThreshold": "1"},
+      {"id": "71002", "question": "Will the Fed decrease interest rates by 50+ bps after the December 2026 meeting?",
+       "groupItemTitle": "50+ bps decrease", "description": "This market will resolve to \"Yes\" if the Fed lowers the upper bound of the target range by 50 bps or more at its December 2026 meeting.",
+       "endDate": "2026-12-09T00:00:00Z", "outcomes": "[\"Yes\", \"No\"]", "outcomePrices": "[\"0.03\", \"0.97\"]",
+       "clobTokenIds": "[\"121\", \"122\"]", "bestBid": 0.025, "bestAsk": 0.035, "lastTradePrice": 0.03,
+       "volumeNum": 900000.0, "volume24hr": 12000.0, "liquidityNum": 60000.0, "active": true, "closed": false, "negRisk": true, "groupItemThreshold": "2"},
+      {"id": "71003", "question": "Will there be no change in Fed interest rates after the December 2026 meeting?",
+       "groupItemTitle": "No change", "description": "This market will resolve to \"Yes\" if the Fed leaves the target range unchanged at its December 2026 meeting.",
+       "endDate": "2026-12-09T00:00:00Z", "outcomes": "[\"Yes\", \"No\"]", "outcomePrices": "[\"0.35\", \"0.65\"]",
+       "clobTokenIds": "[\"131\", \"132\"]", "bestBid": 0.34, "bestAsk": 0.36, "lastTradePrice": 0.35,
+       "volumeNum": 1800000.0, "volume24hr": 40000.0, "liquidityNum": 120000.0, "active": true, "closed": false, "negRisk": true, "groupItemThreshold": "0"}
+    ]
+  },
+  {
+    "id": "90002", "slug": "nba-sas-sac-2026-11-06", "title": "Spurs vs. Kings", "description": "NBA game.",
+    "endDate": "2026-11-07T03:00:00Z", "active": true, "closed": false,
+    "markets": [
+      {"id": "72001", "question": "Spurs vs. Kings", "outcomes": "[\"Spurs\", \"Kings\"]", "outcomePrices": "[\"0.5\", \"0.5\"]",
+       "sportsMarketType": "moneyline", "gameStartTime": "2026-11-07 03:00:00+00", "active": true, "closed": false}
+    ]
+  },
+  {
+    "id": "90003", "slug": "us-recession-by-end-of-2026", "title": "US recession by end of 2026?",
+    "endDate": "2026-12-31T00:00:00Z", "active": true, "closed": false,
+    "markets": [
+      {"id": "73001", "question": "US recession by end of 2026?", "groupItemTitle": "",
+       "description": "This market will resolve to \"Yes\" if either of the following conditions is met: two consecutive quarters of negative real GDP growth, or the NBER announces a recession, by December 31, 2026.",
+       "endDate": "2027-01-31T00:00:00Z", "outcomes": "[\"Yes\", \"No\"]", "outcomePrices": "[\"0.06\", \"0.94\"]",
+       "clobTokenIds": "[\"141\", \"142\"]", "bestBid": 0.05, "bestAsk": 0.07, "lastTradePrice": 0.06,
+       "volumeNum": 1700000.0, "volume24hr": 5000.0, "liquidityNum": 14000.0, "active": true, "closed": false, "groupItemThreshold": "0"}
+    ]
+  }
+]

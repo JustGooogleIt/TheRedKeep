@@ -1,0 +1,201 @@
+# The vertical slice's event library: ten macro and geopolitical events that
+# could move a typical US portfolio over the next six months (DESIGN.md 6.2).
+#
+# Each event states its exact terms, because matching checks the entity, the
+# threshold, the deadline and the resolution source (DESIGN.md 6.3). Nothing
+# here is a number the engine uses as-is:
+#   * odds come from matched markets, or the AI prior when nothing fits;
+#   * jumps come from jump windows, past events and the AI prior;
+#   * links are proposals; the engine keeps one only if the odds data agrees.
+#
+# Analogs are past days when a similar event happened. `surprise` is how much
+# of the event the market had not expected that day (1 = complete surprise);
+# the event study divides the day's factor moves by it.
+
+[[event]]
+id = "cpi-hot"
+title = "October core CPI runs hot"
+short = "Hot CPI"
+category = "Inflation"
+question = "Will US core CPI (seasonally adjusted, excluding food and energy) for October 2026 rise 0.4% or more from September, as first published by the BLS?"
+resolves = 2026-11-12
+deadline = 2026-11-12
+threshold = 0.4
+threshold_unit = "% month over month"
+direction = "above"
+source = "BLS CPI release"
+search = ["core CPI October", "CPI inflation month over month", "core inflation"]
+why = "A hot core print pushes yields and the dollar up and makes a December cut less likely."
+analogs = [
+  { date = 2022-09-13, days = 1, surprise = 0.8, note = "August 2022 core CPI came in at 0.6% against 0.3% expected" },
+  { date = 2024-04-10, days = 1, surprise = 0.7, note = "March 2024 core CPI beat expectations for a third month" },
+]
+
+[[event]]
+id = "fed-cut-dec"
+title = "Fed cuts rates in December"
+short = "Dec Fed cut"
+category = "Fed"
+question = "Will the FOMC lower the federal funds target range at its meeting ending December 9, 2026?"
+resolves = 2026-12-09
+deadline = 2026-12-09
+source = "FOMC statement"
+search = ["Fed decision December", "Fed rate cut December 2026", "FOMC December"]
+why = "A cut lowers yields and the dollar; a hold would surprise the other way."
+analogs = []
+
+[[event]]
+id = "boj-hike-dec"
+title = "Bank of Japan raises rates in December"
+short = "BoJ hike"
+category = "Global rates"
+question = "Will the Bank of Japan raise its short-term policy rate at its December 2026 monetary policy meeting?"
+resolves = 2026-12-18
+deadline = 2026-12-18
+source = "Bank of Japan statement"
+search = ["Bank of Japan December", "BoJ rate hike", "Japan interest rate decision"]
+why = "A hike strengthens the yen and can force carry trades to unwind, as in August 2024."
+# July 31, 2024 is the obvious analog, but the Fed met the same day and the US jobs
+# report followed two days later, so its moves can't be pinned on the BoJ.
+analogs = []
+
+[[event]]
+id = "ceasefire"
+title = "Russia and Ukraine agree a ceasefire"
+short = "Ukraine ceasefire"
+category = "Geopolitics"
+question = "Will Russia and Ukraine both publicly agree to a general ceasefire or armistice before April 1, 2027?"
+resolves = 2027-03-31
+deadline = 2027-03-31
+source = "Official statements by both governments"
+search = ["Russia Ukraine ceasefire", "Ukraine peace deal", "Russia Ukraine armistice"]
+why = "A ceasefire lowers oil and gold and lifts European stocks; defense stocks would fall."
+analogs = []
+
+[[event]]
+id = "tariffs-china"
+title = "US raises tariffs on Chinese goods"
+short = "China tariffs"
+category = "Trade"
+question = "Will the US announce an increase of 10 percentage points or more in tariffs on a broad set of Chinese imports before May 1, 2027?"
+resolves = 2027-04-30
+deadline = 2027-04-30
+threshold = 10
+threshold_unit = "percentage points"
+direction = "above"
+source = "White House or USTR announcement"
+search = ["tariffs China", "US China trade war tariff increase", "China tariff rate"]
+why = "New tariffs hit China-exposed and chip stocks first, lift inflation expectations and widen credit spreads."
+analogs = [
+  { date = 2018-03-22, days = 1, surprise = 0.7, note = "Tariffs on $60B of Chinese goods announced" },
+  { date = 2019-05-06, days = 1, surprise = 0.8, note = "Weekend announcement raising tariffs on $200B of goods from 10% to 25%" },
+  { date = 2019-08-01, days = 1, surprise = 0.8, note = "10% tariffs announced on the remaining $300B of imports" },
+]
+
+[[event]]
+id = "chip-curbs"
+title = "US blocks more AI chip sales to China"
+short = "Chip curbs"
+category = "Tech"
+question = "Will the US government newly prohibit or require licenses that effectively block sales of NVIDIA's H200 or comparable AI data-center chips to China before May 1, 2027?"
+resolves = 2027-04-30
+deadline = 2027-04-30
+source = "Commerce Department (BIS) rule or company disclosure"
+search = ["Nvidia China export", "AI chip export controls China", "H200 China"]
+why = "Curbs hit chipmakers directly and China-exposed stocks indirectly."
+analogs = [
+  { date = 2022-09-01, days = 1, surprise = 0.9, note = "NVIDIA disclosed a license requirement for A100 and H100 sales to China" },
+  { date = 2023-10-17, days = 1, surprise = 0.6, note = "Commerce widened export rules to cover the A800 and H800" },
+  { date = 2025-04-16, days = 1, surprise = 0.8, note = "NVIDIA disclosed that H20 sales to China now need a license" },
+]
+
+[[event]]
+id = "iran-strike"
+title = "US or Israel strikes Iran"
+short = "Iran strike"
+category = "Geopolitics"
+question = "Will the US or Israel carry out a military strike on Iranian territory before May 1, 2027?"
+resolves = 2027-04-30
+deadline = 2027-04-30
+source = "Confirmed by major news organizations"
+search = ["strike Iran", "Israel Iran military", "US Iran war"]
+why = "Strikes lift oil, gold and fear; markets also price a higher chance of disruption in the Gulf."
+analogs = [
+  { date = 2020-01-03, days = 1, surprise = 0.9, note = "US strike killed Qassem Soleimani" },
+  { date = 2025-06-13, days = 1, surprise = 0.7, note = "Israel struck Iran's nuclear and military sites" },
+]
+
+[[event]]
+id = "hormuz"
+title = "Shipping through Hormuz is disrupted"
+short = "Hormuz"
+category = "Energy"
+question = "Will Iranian action halt or seriously disrupt commercial shipping through the Strait of Hormuz before May 1, 2027?"
+resolves = 2027-04-30
+deadline = 2027-04-30
+source = "Confirmed by major news organizations or shipping authorities"
+search = ["Strait of Hormuz", "Iran close Hormuz", "Hormuz shipping"]
+why = "Unlikely, but the biggest oil shock in the library."
+analogs = [
+  { date = 2019-06-13, days = 1, surprise = 0.5, note = "Tanker attacks in the Gulf of Oman" },
+  { date = 2019-09-16, days = 1, surprise = 0.9, note = "Drone attack knocked out half of Saudi oil output" },
+]
+
+[[event]]
+id = "taiwan"
+title = "China blockades or invades Taiwan"
+short = "Taiwan"
+category = "Geopolitics"
+question = "Will China begin a military blockade or invasion of Taiwan before May 1, 2027?"
+resolves = 2027-04-30
+deadline = 2027-04-30
+source = "Confirmed by major news organizations"
+search = ["China Taiwan invasion", "China Taiwan blockade", "Taiwan military"]
+why = "Unlikely but severe for chip and China exposure."
+analogs = []
+
+[[event]]
+id = "recession"
+title = "US recession by spring 2027"
+short = "US recession"
+category = "Growth"
+question = "Will the US enter a recession by April 30, 2027, meaning two consecutive quarters of negative real GDP growth in BEA estimates or an NBER announcement of a peak?"
+resolves = 2027-04-30
+deadline = 2027-04-30
+source = "BEA GDP estimates or NBER"
+search = ["US recession", "recession 2027", "negative GDP growth"]
+why = "The biggest single risk for most portfolios: stocks and credit fall while long bonds rally."
+analogs = []
+
+# Proposed knock-on links. `w` is the AI's guess of P(child | parent) - P(child | not parent);
+# the engine uses a link only when the slope of the child's odds on the parent's agrees in sign
+# and is significant, and then uses that slope (DESIGN.md 4.4 and 6.6).
+[[link]]
+parent = "cpi-hot"
+child = "fed-cut-dec"
+w = -0.20
+reason = "A hot core print makes a December cut less likely."
+
+[[link]]
+parent = "tariffs-china"
+child = "recession"
+w = 0.08
+reason = "Higher tariffs slow trade and investment."
+
+[[link]]
+parent = "iran-strike"
+child = "hormuz"
+w = 0.15
+reason = "A strike raises the chance that Iran retaliates against shipping."
+
+[[link]]
+parent = "hormuz"
+child = "recession"
+w = 0.10
+reason = "An oil shock squeezes consumers and margins."
+
+[[link]]
+parent = "taiwan"
+child = "recession"
+w = 0.25
+reason = "A blockade would cut global chip supply."
