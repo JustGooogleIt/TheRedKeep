@@ -313,7 +313,7 @@ In Castle's terms, the gap between event and contract is **basis risk**: the cha
 - Fit the two-world mixture around the event date (Melick and Thomas 1997) to get the options market's own odds and jump. Options do price political events (Kelly, Pástor and Veronesi 2016).
 - When the options-implied odds differ from the prediction market's, that is a headline insight: "Polymarket says 45%, but your semis options are pricing about 20%."
 
-**Jump windows.** Detect windows where any monitored market moved sharply, then regress factor-proxy returns in each window on all the odds changes in it (4.5). Market-hours windows on ETFs and off-hours windows on Hyperliquid are estimated separately, so they count as separate market readings for the quorum.
+**Jump windows.** Detect windows where any monitored market moved sharply, then regress factor-proxy returns in each window on all the odds changes in it (4.5). Market-hours windows on ETFs and off-hours windows on Hyperliquid are estimated separately, so they count as separate market readings for the quorum. While the ETF windows are daily, Monday's window (Friday's close to Monday's) spans the weekend, so on the factors the perps measure that day is left to the perps and the two readings rest on separate data.
 
 **Hyperliquid's weekend markets.** We checked which non-crypto perps are usable ([research note with 18 sources](research/hyperliquid-noncrypto-perps.md)). In short:
 
@@ -619,7 +619,7 @@ Build a thin vertical slice first, then widen it.
 | M9 | Evals and write-up | E8 and E9; demo script |
 | M10 (optional) | Hedging extension | The budgeted optimizer and live tracking; single-event sizing is already in the prototype |
 
-**Where the build stands.** The M3 slice runs end to end in [`backend/`](../backend/README.md): ten events matched to Polymarket and Kalshi by Claude (including "nothing fits" with the rejected near-misses), odds with cross-checks, jumps from daily jump windows, past events and the AI prior, fusion and tiers, link checks against odds histories, exposures with look-through, and the impacts, priced-in moves and simulation. `redkeep app` feeds a snapshot into the prototype, and `check.js` confirms the prototype's model gives the backend's numbers. A snapshot can also go in without portfolio analyses: the prototype then pairs its events with the illustrative portfolios, rescaled to the snapshot's typical moves, and labels them illustrative. Two simplifications, both documented: jump windows are daily rather than 30-minute, and with only one market reading of each jump (ETF windows), no event can reach tier A until options (M6) and Hyperliquid's weekend windows add the second. The slice is tested offline on recorded response shapes and synthetic prices; its first run on live data comes next.
+**Where the build stands.** The M3 slice runs end to end in [`backend/`](../backend/README.md): ten events matched to Polymarket and Kalshi by Claude (including "nothing fits" with the rejected near-misses), odds with cross-checks, jumps from daily jump windows, past events and the AI prior, fusion and tiers, link checks against odds histories, exposures with look-through, and the impacts, priced-in moves and simulation. `redkeep app` feeds a snapshot into the prototype, and `check.js` confirms the prototype's model gives the backend's numbers. A snapshot can also go in without portfolio analyses: the prototype then pairs its events with the illustrative portfolios, rescaled to the snapshot's typical moves, and labels them illustrative. Hyperliquid's weekend windows add a second market reading on stocks, oil and gold (the S&P 500, WTI and gold perps, measured on trades and censored at the discovery bounds), so an event whose odds move on weekends can reach tier A; options (M6) will add one on every factor. One simplification remains, documented: jump windows are daily rather than 30-minute. The slice is tested offline on recorded response shapes and synthetic prices; its first run on live data comes next.
 
 ---
 
@@ -639,7 +639,7 @@ Build a thin vertical slice first, then widen it.
 **Still open**
 
 - Confirm the Massive key's coverage when it arrives: option chains and historical holdings.
-- Confirm Hyperliquid coin names and live depth with the `meta` endpoint, for example whether oil is `xyz:CL` or `xyz:WTIOIL`.
+- Confirm Hyperliquid coin names and live depth on a live run. The engine looks for both `xyz:CL` and `xyz:WTIOIL`, and `redkeep check` lists what the `meta` endpoint returns, with each perp's maximum leverage, which sets its discovery-bound step.
 - Does fine-tuned Laya match Jev on E0?
 - Can we get CME futures data for weeknight windows?
 

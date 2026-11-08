@@ -3,6 +3,7 @@
 import json
 import shutil
 import subprocess
+from dataclasses import replace
 from datetime import date, datetime, time, timedelta, timezone
 from pathlib import Path
 
@@ -12,6 +13,9 @@ import pytest
 from redkeep import factordata
 from redkeep.appdata import build, export
 from redkeep.config import Settings
+from redkeep.data.hyperliquid import Candle
+from redkeep.evidence import weekend
+from redkeep.factors import NF, index
 from redkeep.markets import from_kalshi_event, from_polymarket_event
 from redkeep.matching.judge import Verdict
 from redkeep.evidence import prior as prior_mod
@@ -36,6 +40,34 @@ class FakeVenue:
         key = args[0] if len(args) == 3 else args[1]  # (token, start, end) or (series, ticker, start, end)
         path = self.paths.get(key, {})
         return [(datetime.combine(d, time(19, 30), timezone.utc), q) for d, q in path.items()]  # before 4 pm New York, all year
+
+
+class WeekendVenue(FakeVenue):
+    """Odds that keep trading over the weekend: by Sunday evening they already show Monday's."""
+
+    def history(self, *args):
+        pts = super().history(*args)
+        return sorted(pts + [(t - timedelta(hours=22), q) for t, q in pts if t.weekday() == 0])  # Sunday 21:30 UTC
+
+
+class FakeHyperliquid:
+    """trade[XYZ]'s listings, and hourly perp candles that drift at random over each weekend. Synthetic, not prices."""
+    LISTED = {"xyz:SP500": {"maxLeverage": 50}, "xyz:CL": {"maxLeverage": 20}, "xyz:GOLD": {"maxLeverage": 25}}
+
+    def coins(self, dex="xyz"):
+        return dict(self.LISTED)
+
+    def candles(self, coin, start, end, interval="1h"):
+        rng = np.random.default_rng(sorted(self.LISTED).index(coin))
+        p, out = 100.0, []
+        for a, b in weekend.weekends(start, end + timedelta(days=3)):
+            p1 = p * (1 + rng.normal(0, 0.006))
+            path = [p] * 3 + list(np.linspace(p, p1, int((b - a).total_seconds() // 3600))) + [p1] * 3
+            t0 = a - timedelta(hours=3)
+            out += [Candle(t0 + timedelta(hours=i), t0 + timedelta(hours=i + 1, milliseconds=-1), x, x, x, x, 1.0, 5)
+                    for i, x in enumerate(path)]
+            p = p1
+        return [c for c in out if start <= c.start <= end]
 
 
 class FakeFred:
@@ -259,3 +291,45 @@ def test_the_app_takes_the_events_alone(keyless, tmp_path):
     assert out.stdout.count("keep their size per unit of each factor") == 6
     assert out.stdout.count("the April 2025 replay is unchanged") == 6
     assert out.stdout.count("snapshot · ") == 6 * 5 and "matches the engine" not in out.stdout
+
+
+
+@pytest.fixture(scope="module")
+def weekend_world(world):
+    """The same world, but odds trade over weekends, Hyperliquid lists its perps, and the Fed hike outcomes jump on
+    Mondays (so over the weekend) as well as midweek."""
+    pm, ks = world.polymarket, world.kalshi
+    paths = {**pm.paths}
+    hikes = [m for m in pm._m + ks._m if any(w in (m.outcome or "").lower() for w in ("increase", "hike"))]
+    for j, m in enumerate(hikes):  # index i of the last 170 business days is a Monday when i % 5 == 0
+        days = [50, 70, 90, 110, 130] if j % 2 == 0 else [62, 83, 104, 126, 147]
+        paths[m.token_yes or m.id] = odds_path(200 + j, m.mid, [d + 2 * (j // 2) * 5 for d in days])
+    return replace(world, polymarket=WeekendVenue(pm._m, paths), kalshi=WeekendVenue(ks._m, paths),
+                   hyperliquid=FakeHyperliquid())
+
+
+def test_weekend_windows_add_a_second_market_reading(weekend_world, tmp_path):
+    with_hl = refresh(Settings(cache_dir=tmp_path / "a"), weekend_world, today=TODAY, progress=lambda _: None)
+    without = refresh(Settings(cache_dir=tmp_path / "b"), replace(weekend_world, hyperliquid=None), today=TODAY,
+                      progress=lambda _: None)
+    json.dumps(with_hl, allow_nan=False)
+    assert without["windows"]["weekends"] is None and without["windows"]["left_out"] == 0
+    wk = with_hl["windows"]["weekends"]
+    assert wk["coins"] == {"eq": "xyz:SP500", "oil": "xyz:CL", "gold": "xyz:GOLD"} and wk["censored"] == []
+    assert set(wk["used"]) == {"eq", "oil", "gold"} and wk["readings"] == 1 and with_hl["windows"]["left_out"] >= 5
+    fed, fed0 = (next(e for e in snap["events"] if e["id"] == "fed-hike-dec") for snap in (with_hl, without))
+    rs, rs0 = ({r["kind"]: r for r in e["delta"]["readings"]} for e in (fed, fed0))
+    covered = [index("eq"), index("oil"), index("gold")]
+    others = [k for k in range(NF) if k not in covered]
+    assert [k for k, x in enumerate(rs["hl"]["sigma"]) if x is not None] == covered
+    assert rs["hl"]["detail"].startswith("S&P 500, WTI and gold perps: 5 weekends with odds moves of 5+ points")
+    # Monday's ETF window spans the weekend: on stocks, oil and gold it is left to the perps, elsewhere it stays.
+    assert rs["etf"]["detail"].endswith("that span a weekend are left to the S&P 500, WTI and gold perps")
+    assert [rs["etf"]["delta"][k] for k in others] == [rs0["etf"]["delta"][k] for k in others]
+    assert all(rs["etf"]["sigma"][k] > rs0["etf"]["sigma"][k] for k in covered)
+    # Two market readings that agree on the jump: the event reaches tier A.
+    assert fed0["delta"]["n_market"] == 1 and fed0["tier"]["tier"] == "C"
+    assert fed["delta"]["n_market"] == 2 and fed["delta"]["agree"] and fed["tier"]["tier"] == "A"
+    ev = {e["id"]: e for e in build(with_hl, [])["events"]}
+    assert [r[0] for r in ev["fed-hike-dec"]["src"]][:2] == ["etf", "hl"] and ev["fed-hike-dec"]["fusion"]["nMarket"] == 2
+

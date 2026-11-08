@@ -43,7 +43,8 @@ def test_exposure_regression_recovers_known_betas(fd):
     assert r2_oos > 0.9
 
 
-def test_jump_windows_recover_the_jump():
+def window_world():
+    """Two events whose odds jump on set days, and factor moves driven by those jumps plus noise."""
     rng = np.random.default_rng(5)
     dates = DAYS[-200:]
     T = len(dates)
@@ -55,13 +56,33 @@ def test_jump_windows_recover_the_jump():
     dq = {e: np.diff(np.concatenate([[q[e][0]], q[e]])) for e in q}
     X = rng.normal(0, 0.45, (T, NF)) * 0.3 + sum(np.outer(dq[e], true[e]) for e in q)
     fd = factordata.FactorData(levels={}, dates=dates, X=X, typical=np.ones(NF))
-    hist = {e: dict(zip(dates, q[e].tolist())) for e in q}
+    return {e: dict(zip(dates, q[e].tolist())) for e in q}, fd, true
+
+
+def test_jump_windows_recover_the_jump():
+    hist, fd, true = window_world()
     wf = windows.jump_windows(hist, fd, move=0.05)
-    assert set(wf.readings) == {"a", "b"}
-    for e in q:
+    assert set(wf.readings) == {"a", "b"} and wf.left_out == 0
+    for e in hist:
         r = wf.readings[e]
         assert r.kind == "etf" and r.market
         assert np.all(np.abs(r.delta - true[e]) < 4 * r.sigma + 0.1)
+
+
+def test_days_left_to_the_weekend_perps_drop_out_of_that_factor_only():
+    hist, fd, true = window_world()
+    base = windows.jump_windows(hist, fd, move=0.05)
+    left = {fd.dates[t] for t in (20, 60, 120, 30, 90, 100)}  # three of a's six sharp days, three of b's five
+    wf = windows.jump_windows(hist, fd, move=0.05, skip={index("eq"): left}, left_to="the S&P 500 perp")
+    assert wf.left_out == 6 and wf.windows == base.windows
+    for e in hist:
+        r, r0 = wf.readings[e], base.readings[e]
+        assert np.array_equal(r.delta[1:], r0.delta[1:]) and np.array_equal(r.sigma[1:], r0.sigma[1:])  # other factors
+        assert r.detail == r0.detail + "; 6 that span a weekend are left to the S&P 500 perp"
+    a, b = wf.readings["a"], wf.readings["b"]
+    assert base.readings["a"].sigma[0] < a.sigma[0] < np.inf  # three windows left: a wider error bar
+    assert abs(a.delta[0] - true["a"][0]) < 4 * a.sigma[0] + 0.1
+    assert np.isinf(b.sigma[0])  # two sharp moves left on this factor, below the three a reading needs
 
 
 def test_odds_read_at_the_new_york_close():

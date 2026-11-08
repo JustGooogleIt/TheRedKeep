@@ -23,6 +23,7 @@ from . import exposure as exposure_mod
 from . import factordata
 from .config import Settings
 from .data.fred import Fred
+from .data.hyperliquid import Hyperliquid
 from .data.kalshi import Kalshi
 from .data.massive import Massive
 from .data.polymarket import Polymarket
@@ -31,7 +32,7 @@ from .engine.fusion import (DeltaReading, FusedDelta, FusedOdds, OddsReading, Ti
 from .engine.impact import EngineEvent, Link, build_state
 from .engine.simulate import simulate
 from .events import EventSpec, Library, load_library
-from .evidence import analogs, odds as odds_mod, prior as prior_mod, windows
+from .evidence import analogs, odds as odds_mod, prior as prior_mod, weekend, windows
 from .factors import FACTORS, KEYS
 from .http import Http, HttpError
 from .markets import Market, dedupe
@@ -52,6 +53,7 @@ class Clients:
     judge: Judge | None
     prior: prior_mod.AIPrior | None
     model: str | None = None
+    hyperliquid: Hyperliquid | None = None  # weekend windows; none means ETF windows only
 
 
 def pick_model(client: Any, wanted: str | None) -> str:
@@ -79,7 +81,8 @@ def make_clients(s: Settings, *, claude: bool = True) -> Clients:
         model = pick_model(client, s.model)
         judge = Judge(client, model=model, effort=s.effort, log_dir=s.cache_dir / "ai")
         prior = prior_mod.AIPrior(client, model=model, effort=s.effort, log_dir=s.cache_dir / "ai")
-    return Clients(Polymarket(http), Kalshi(http), Fred(http), Massive(http, s.massive_api_key), judge, prior, model)
+    return Clients(Polymarket(http), Kalshi(http), Fred(http), Massive(http, s.massive_api_key), judge, prior, model,
+                   Hyperliquid(http))
 
 
 # -- JSON helpers -------------------------------------------------------------------
@@ -167,29 +170,33 @@ def history_from(d: Decision) -> str | None:
     return f"{venue}: {legs[0][0].market.title}"
 
 
-def fetch_history(c: Clients, cand: Candidate, start: datetime, end: datetime) -> dict[date, float]:
+def fetch_points(c: Clients, cand: Candidate, start: datetime, end: datetime) -> list[tuple[datetime, float]]:
+    """A market's hourly odds, on the event's side, oldest first."""
     m = cand.market
     if m.venue == "polymarket" and m.token_yes:
         pts = c.polymarket.history(m.token_yes, start, end)
     elif m.venue == "kalshi" and m.series:
         pts = c.kalshi.history(m.series, m.id, start, end)
     else:
-        return {}
-    daily = windows.at_close(pts)
-    return {d: (1 - q if cand.verdict.polarity == "no" else q) for d, q in daily.items()}
+        return []
+    return sorted((t, 1 - q if cand.verdict.polarity == "no" else q) for t, q in pts)
 
 
-def event_history(c: Clients, d: Decision, start: datetime, end: datetime) -> dict[date, float]:
-    legs = history_legs(d)
-    if not legs:
-        return {}
-    series = []
-    for cand, w in legs:
+def event_legs(c: Clients, d: Decision, start: datetime, end: datetime) -> weekend.Legs:
+    """The hourly odds of the markets that stand in for the event, with their weights."""
+    out = []
+    for cand, w in history_legs(d):
         try:
-            series.append((fetch_history(c, cand, start, end), w))
+            out.append((fetch_points(c, cand, start, end), w))
         except HttpError as e:
             log.warning("no history for %s: %s", cand.market.key, e)
-            return {}
+            return []
+    return out
+
+
+def daily_history(legs: weekend.Legs) -> dict[date, float]:
+    """The event's odds at each day's 4 p.m. New York close, on the days every leg has one."""
+    series = [(windows.at_close(pts), w) for pts, w in legs]
     common = set.intersection(*(set(s) for s, _ in series)) if series else set()
     return {day: min(1.0, sum(w * s[day] for s, w in series)) for day in sorted(common)}
 
@@ -244,15 +251,34 @@ def refresh(s: Settings, c: Clients, *, today: date | None = None, progress: Pro
 
     # Odds histories for the matched events, up to the end of ``today`` (a rerun for an earlier day stops there).
     end = min(now, datetime.combine(today + timedelta(days=1), time(0), timezone.utc))
-    hist = {spec.id: event_history(c, d, end - timedelta(days=s.history_days), end) for spec, _, d in matched}
-    wf = windows.jump_windows({k: v for k, v in hist.items() if v}, fd, move=s.window_move)
-    progress(f"Jump windows: {len(wf.windows)} days with sharp odds moves; readings for {len(wf.readings)} events")
+    start = end - timedelta(days=s.history_days)
+    legs = {spec.id: event_legs(c, d, start, end) for spec, _, d in matched}
+    hist = {k: daily_history(v) for k, v in legs.items()}
+
+    # Weekend windows on Hyperliquid's perps, a second market reading of the jump (DESIGN.md 6.4). They go first:
+    # Monday's daily ETF window spans the weekend, so on the perps' factors the ETF windows leave those days out.
+    wk, perps, skip = None, None, {}
+    if c.hyperliquid is not None:
+        perps = weekend.load(c.hyperliquid, start, end)
+        warnings += perps.warnings
+        typical = np.array([t if np.isfinite(t) else f.typical_default for t, f in zip(fd.typical, FACTORS)])
+        wk = weekend.weekend_windows({k: v for k, v in legs.items() if v}, perps, typical, start, end,
+                                     move=s.window_move, min_moves=s.weekend_min_moves)
+        skip = weekend.overlap(wk, fd.dates)
+        progress(f"Weekend windows: {len(wk.windows)} of {wk.weekends} weekends with sharp odds moves; "
+                 f"readings for {len(wk.readings)} events ({', '.join(perps.coins.values()) or 'no perps'})")
+    wf = windows.jump_windows({k: v for k, v in hist.items() if v}, fd, move=s.window_move, skip=skip,
+                              left_to=f"the {weekend.perp_names(wk.used)} perps" if wk else "")
+    progress(f"Jump windows: {len(wf.windows)} days with sharp odds moves; readings for {len(wf.readings)} events"
+             + (f"; {wf.left_out} that span a measured weekend left to the perps" if wf.left_out else ""))
 
     events = []
     for (spec, cands, d), pr in zip(matched, priors):
         readings: list[DeltaReading] = []
         if spec.id in wf.readings:
             readings.append(wf.readings[spec.id])
+        if wk and spec.id in wk.readings:
+            readings.append(wk.readings[spec.id])
         a = analogs.analog_reading(spec, fd_long)
         if a:
             readings.append(a)
@@ -306,7 +332,11 @@ def refresh(s: Settings, c: Clients, *, today: date | None = None, progress: Pro
                                         "kalshi": sum(m.venue == "kalshi" for m in markets)},
         "factors": [{"key": f.key, "name": f.name, "unit": f.unit, "typical": fd.typical[i], "source": fd.sources.get(f.key)}
                     for i, f in enumerate(FACTORS)],
-        "windows": {"count": len(wf.windows), "days": len(fd.dates), "move": s.window_move},
+        "windows": {"count": len(wf.windows), "days": len(fd.dates), "move": s.window_move, "left_out": wf.left_out,
+                    "weekends": None if wk is None else {
+                        "count": len(wk.windows), "weekends": wk.weekends, "readings": len(wk.readings),
+                        "coins": perps.coins, "used": {f: len(v) for f, v in wk.used.items()},
+                        "censored": [[d.isoformat(), f] for d, f in wk.censored]}},
         "events": events, "links": links, "warnings": warnings,
     }
     return finite(snap)

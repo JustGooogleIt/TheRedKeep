@@ -18,7 +18,9 @@ const DEMO = {
 };
 let DATASET = 'demo';    // where the events come from: 'demo' or 'live'
 let EXPOSURES = 'demo';  // where the portfolios, prices and exposures come from
-let UNMEASURED = [];     // factors the snapshot has no price data on: only the AI prior says how events move them
+let UNMEASURED = [];     // factors the snapshot has no price data on, so no typical move of their own
+let WEEKENDS = null;     // the snapshot's Hyperliquid weekend windows, when it ran them
+let PERP_FACTORS = [];   // keys of the factors those windows measured
 
 function refill(target, src) {
   if (Array.isArray(target)) { target.length = 0; src.forEach(x => target.push(x)); return; }
@@ -31,6 +33,8 @@ function applyDataset(id) {
   const LP = L && LIVE_PORTFOLIOS ? L : null;
   TODAY = L ? L.today : DEMO.today;
   UNMEASURED = [];
+  WEEKENDS = (L && L.windows && L.windows.weekends) || null;
+  PERP_FACTORS = WEEKENDS && WEEKENDS.readings > 0 ? Object.keys(WEEKENDS.used || {}) : [];
   FACTORS.forEach((f, i) => {
     const lf = L && L.factors.find(x => x.k === f.k);
     const measured = !!lf && lf.typical > 0;
