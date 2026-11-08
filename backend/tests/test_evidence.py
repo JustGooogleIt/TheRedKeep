@@ -126,7 +126,7 @@ def test_ai_prior_request_and_readings(tmp_path):
 
     client = SimpleNamespace(beta=SimpleNamespace(messages=SimpleNamespace(parse=parse)))
     ai = prior.AIPrior(client, model="test-model", log_dir=tmp_path)
-    spec = load_library().by_id()["hormuz"]
+    spec = load_library().by_id()["hormuz-reopens"]
     got = ai.estimate(spec, date(2026, 11, 8), np.full(NF, 2.0))
     ai.estimate(spec, date(2026, 11, 8), np.full(NF, 2.0))
     assert len(calls) == 1 and calls[0]["fallbacks"] == "default"

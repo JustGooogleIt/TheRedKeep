@@ -12,6 +12,7 @@ from datetime import date, datetime, timedelta, timezone
 
 from ..http import Http
 from ..markets import SKIP_KALSHI_CATEGORIES, Market, from_kalshi_event
+from . import chunks
 
 BASE = "https://api.elections.kalshi.com/trade-api/v2"
 
@@ -50,14 +51,13 @@ class Kalshi:
         return out
 
     def history(self, series: str, ticker: str, start: datetime, end: datetime, *, period_min: int = 60) -> list[tuple[datetime, float]]:
-        """Midpoint of the "Yes" bid and ask at the end of each period, in 60-day chunks."""
+        """Midpoint of the "Yes" bid and ask at the end of each period, in 60-day chunks on a fixed grid."""
         out: list[tuple[datetime, float]] = []
-        t = start
-        while t < end:
-            u = min(end, t + timedelta(days=60))
+        now = datetime.now(timezone.utc)
+        for t, u in chunks(start, end, timedelta(days=60)):
             res = self.http.get_json(f"{BASE}/series/{series}/markets/{ticker}/candlesticks", {
                 "start_ts": int(t.timestamp()), "end_ts": int(u.timestamp()), "period_interval": period_min,
-            }, ttl=None if u < datetime.now(timezone.utc) - timedelta(days=1) else self.ttl)
+            }, ttl=None if u < now - timedelta(days=1) else self.ttl)
             for c in res.get("candlesticks") or []:
                 bid, ask = _dollars(c.get("yes_bid")), _dollars(c.get("yes_ask"))
                 if bid is not None and ask is not None and 0 < ask and bid <= ask:
@@ -66,5 +66,4 @@ class Kalshi:
                     mid = _dollars(c.get("price")) or _dollars(c.get("price"), "previous")
                 if mid is not None:
                     out.append((datetime.fromtimestamp(c["end_period_ts"], timezone.utc), mid))
-            t = u
-        return sorted(set(out))
+        return sorted({(t, q) for t, q in out if start <= t <= end})

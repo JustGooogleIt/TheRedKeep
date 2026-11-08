@@ -128,11 +128,11 @@ def build(levels: dict[str, Series], *, typical_window: int = 520) -> FactorData
 
 def load(fred: Fred, massive: Massive | None, start: date, end: date) -> FactorData:
     levels: dict[str, Series] = {}
-    ids = [f.fred for f in FACTORS if f.fred]
-    try:
-        levels.update(fred.series(ids, start, end))
-    except HttpError as e:
-        log.warning("FRED unavailable: %s", e)
+    for i in (f.fred for f in FACTORS if f.fred):  # one at a time, so one bad series doesn't cost the rest
+        try:
+            levels.update(fred.series([i], start, end))
+        except (HttpError, ValueError) as e:
+            log.warning("FRED %s unavailable: %s", i, e)
     if massive is not None and massive.available:
         for t in sorted({t for f in FACTORS for t in f.massive}):
             try:

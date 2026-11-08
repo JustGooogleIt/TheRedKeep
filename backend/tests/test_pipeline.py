@@ -70,10 +70,10 @@ class FakeJudge:
             v = dict(id=m.key, relation="unrelated", polarity="yes", same_entity=False, threshold="not_applicable",
                      deadline="same", resolution_source="unclear", market_threshold=None, market_deadline=None,
                      score=0.1, quoted_rule="", reason="About something else.")
-            if spec.id == "fed-cut-dec" and m.exclusive:
-                cut = any(w in (m.outcome or "").lower() for w in ("decrease", "cut"))
-                v.update(relation="part_of" if cut else "overlaps", same_entity=True, score=0.92 if cut else 0.3,
-                         resolution_source="same", quoted_rule=m.rules[:60], reason="One of the cut outcomes." if cut else "A hold is not a cut.")
+            if spec.id == "fed-hike-dec" and m.exclusive:
+                hike = any(w in (m.outcome or "").lower() for w in ("increase", "hike"))
+                v.update(relation="part_of" if hike else "overlaps", same_entity=True, score=0.92 if hike else 0.3,
+                         resolution_source="same", quoted_rule=m.rules[:60], reason="One of the hike outcomes." if hike else "A hold is not a hike.")
             if spec.id == "recession" and "recession" in m.title.lower():
                 v.update(relation="implies", same_entity=True, deadline="earlier", score=0.7, market_deadline="2026-12-31",
                          reason="Closes Dec 31, 2026, four months before the event's deadline.")
@@ -135,7 +135,7 @@ def test_refresh_builds_a_complete_library(snap):
     json.dumps(snap, allow_nan=False)  # no NaN or infinity leaks into the snapshot
     assert len(snap["events"]) == 10
     ev = {e["id"]: e for e in snap["events"]}
-    fed = ev["fed-cut-dec"]
+    fed = ev["fed-hike-dec"]
     assert fed["match"]["kind"] == "match"
     assert {r["kind"] for r in fed["odds"]["readings"]} == {"sum"}
     assert {r["source"] for r in fed["odds"]["readings"]} == {"Kalshi (sum)", "Polymarket (sum)"}
@@ -154,7 +154,7 @@ def test_refresh_builds_a_complete_library(snap):
     assert taiwan["tier"]["tier"] == "D" and taiwan["odds"]["q"] == pytest.approx(0.08)
     assert [r["kind"] for r in ev["tariffs-china"]["delta"]["readings"]] == ["past", "ai"]
     st = {(l["parent"], l["child"]): l["status"] for l in snap["links"]}
-    assert st[("cpi-hot", "fed-cut-dec")] == "untestable"
+    assert st[("cpi-hot", "fed-hike-dec")] == "untestable"
 
 
 def test_analysis_ranks_events_for_a_portfolio(world, snap, tmp_path):
@@ -187,7 +187,7 @@ def test_app_export_reproduces_the_engine(world, snap, tmp_path):
             analyze(s, world, snap, holdings, name="QQQ and NVIDIA", today=TODAY, what_if={"taiwan": "no", "cpi-hot": "yes"})]
     data = build(snap, runs)
     ev = {e["id"]: e for e in data["events"]}
-    fed = ev["fed-cut-dec"]
+    fed = ev["fed-hike-dec"]
     assert fed["m"]["rel"] == "sum" and fed["m"]["score"] == pytest.approx(0.92)
     assert fed["seriesNote"].startswith("Sum of 2 outcomes") and len(fed["series"]) > 100 and fed["hist"]["y"] == fed["series"][-1]
     assert [r[0] for r in fed["src"]][0] == "etf" and fed["fusion"]["nMarket"] == 1

@@ -28,7 +28,7 @@ class Settings:
     match_min: float = 0.80  # a "same question" match this good sets the odds
     leg_min: float = 0.60  # ladder legs and bounds need at least this
     max_bound_width: float = 0.30  # wider implied ranges count as "nothing fits"
-    candidates_per_event: int = 16
+    candidates_per_event: int = 24
 
     # Liquidity floor for tier A (DESIGN.md 6.4).
     liquid_volume: float = 50_000.0
@@ -42,7 +42,7 @@ class Settings:
     request_spacing: dict[str, float] = field(default_factory=lambda: {
         "gamma-api.polymarket.com": 0.15,
         "clob.polymarket.com": 0.15,
-        "api.elections.kalshi.com": 0.1,
+        "api.elections.kalshi.com": 0.25,
         "fred.stlouisfed.org": 0.5,
         "api.massive.com": 0.05,
     })

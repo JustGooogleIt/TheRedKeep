@@ -42,7 +42,7 @@ def test_tokenize_keeps_numbers_and_drops_noise():
 
 def test_retrieval_finds_fed_markets_on_both_venues(gamma_events, kalshi_events):
     markets = [m for e in gamma_events for m in from_polymarket_event(e)] + [m for e in kalshi_events for m in from_kalshi_event(e)]
-    got = Retriever(markets).candidates(SPEC["fed-cut-dec"], k=8)
+    got = Retriever(markets).candidates(SPEC["fed-hike-dec"], k=8)
     venues = [m.venue for m, _ in got]
     assert {"polymarket", "kalshi"} <= set(venues)
     assert all("Fed" in m.title or "Fed" in m.event_title for m, _ in got)  # the recession market is cut off
@@ -78,17 +78,17 @@ def test_deadline_ladder_uses_constant_hazard():
 
 
 def test_same_question_on_both_venues_gives_two_readings():
-    a, b = mk("K1", "Fed cuts in Dec", 0.60), mk("P1", "Fed cuts in Dec", 0.64, venue="polymarket")
-    d = decide(SPEC["fed-cut-dec"], [v(a, "same_question", 0.95), v(b, "same_question", 0.92)], S)
+    a, b = mk("K1", "Fed hikes in Dec", 0.60), mk("P1", "Fed hikes in Dec", 0.64, venue="polymarket")
+    d = decide(SPEC["fed-hike-dec"], [v(a, "same_question", 0.95), v(b, "same_question", 0.92)], S)
     assert d.kind == "match" and d.good
     assert sorted(r.source for r in d.readings) == ["Kalshi", "Polymarket"]
 
 
 def test_mutually_exclusive_parts_are_summed():
-    c25 = mk("C25", "Cut 25bps", 0.61, exclusive=True, outcome="Cut 25bps")
-    c50 = mk("C26", "Cut >25bps", 0.015, exclusive=True, outcome="Cut >25bps", volume=100_000)
+    h25 = mk("H25", "Hike 25bps", 0.61, exclusive=True, outcome="Hike 25bps")
+    h50 = mk("H26", "Hike >25bps", 0.015, exclusive=True, outcome="Hike >25bps", volume=100_000)
     hold = mk("H0", "Hold", 0.37, exclusive=True, outcome="Hold")
-    d = decide(SPEC["fed-cut-dec"], [v(c25, "part_of", 0.9), v(c50, "part_of", 0.9), v(hold, "overlaps", 0.3)], S)
+    d = decide(SPEC["fed-hike-dec"], [v(h25, "part_of", 0.9), v(h50, "part_of", 0.9), v(hold, "overlaps", 0.3)], S)
     assert d.kind == "match" and d.readings[0].kind == "sum"
     assert d.readings[0].q == pytest.approx(0.625)
     assert d.near_misses == []  # "Hold" belongs to the group that was used, so it isn't a near miss
@@ -96,7 +96,7 @@ def test_mutually_exclusive_parts_are_summed():
 
 def test_polarity_no_flips_the_odds():
     hold = mk("H", "Will the Fed hold?", 0.37)
-    d = decide(SPEC["fed-cut-dec"], [v(hold, "same_question", 0.85, polarity="no")], S)
+    d = decide(SPEC["fed-hike-dec"], [v(hold, "same_question", 0.85, polarity="no")], S)
     assert d.readings[0].q == pytest.approx(0.63)
 
 
@@ -151,11 +151,11 @@ class FakeClient:
 
 
 def test_judge_sends_rubric_schema_fallback_and_caches(tmp_path):
-    a = mk("K1", "Fed cuts in Dec", 0.6)
+    a = mk("K1", "Fed hikes in Dec", 0.6)
     b = mk("K2", "Something else", 0.1)
     client = FakeClient([v(a, "same_question", 1.4).verdict])  # out-of-range score, and K2 left out
     j = Judge(client, model="test-model", log_dir=tmp_path)
-    out = j.judge(SPEC["fed-cut-dec"], [a, b], date(2026, 11, 8))
+    out = j.judge(SPEC["fed-hike-dec"], [a, b], date(2026, 11, 8))
     kw = client.calls[0]
     assert kw["fallbacks"] == "default" and kw["betas"] == ["server-side-fallback-2026-07-01"]
     assert kw["output_format"] is Judgement and kw["thinking"] == {"type": "adaptive"}
@@ -164,11 +164,28 @@ def test_judge_sends_rubric_schema_fallback_and_caches(tmp_path):
     assert out[0].score == 1.0  # clipped to [0, 1]
     assert out[1].relation == "unrelated" and "did not return" in out[1].reason
     # Same request again: served from the log, no new call.
-    j.judge(SPEC["fed-cut-dec"], [a, b], date(2026, 11, 8))
+    j.judge(SPEC["fed-hike-dec"], [a, b], date(2026, 11, 8))
     assert len(client.calls) == 1
 
 
 def test_judge_refusal_raises(tmp_path):
-    a = mk("K1", "Fed cuts in Dec", 0.6)
+    a = mk("K1", "Fed hikes in Dec", 0.6)
     with pytest.raises(JudgeRefused):
-        Judge(FakeClient(stop_reason="refusal"), model="m", log_dir=tmp_path).judge(SPEC["fed-cut-dec"], [a], date(2026, 11, 8))
+        Judge(FakeClient(stop_reason="refusal"), model="m", log_dir=tmp_path).judge(SPEC["fed-hike-dec"], [a], date(2026, 11, 8))
+
+
+def test_retrieval_favours_contracts_closing_at_the_deadline():
+    spec = SPEC["fed-hike-dec"]
+
+    def at(id, close):
+        m = mk(id, "Will the Fed raise rates at an emergency FOMC meeting in 2026?", 0.5, event=id)
+        m.close_time = datetime.combine(close, datetime.min.time(), tzinfo=timezone.utc)
+        return m
+
+    later, exact, near = at("L", date(2027, 1, 1)), at("X", spec.deadline), at("N", date(2026, 12, 3))
+    r = Retriever([later, exact, near])
+    raw = r.index.scores(tokenize(" ".join([spec.title, spec.question, *spec.search])))
+    s = r.scores(spec)
+    assert raw[0] == pytest.approx(raw[1]) == pytest.approx(raw[2])  # same words, so keywords can't tell them apart
+    assert s[1] == pytest.approx(s[2]) and s[1] > s[0]  # closing within a week of the deadline tips it
+    assert [m.id for m, _ in r.candidates(spec, k=1)] in (["X"], ["N"])
