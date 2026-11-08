@@ -11,6 +11,7 @@ from __future__ import annotations
 import json
 import logging
 import math
+from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta, timezone
@@ -26,6 +27,7 @@ from .data.fred import Fred
 from .data.kalshi import Kalshi
 from .data.massive import Massive
 from .data.polymarket import Polymarket
+from .engine import coherence
 from .engine.fusion import (DeltaReading, FusedDelta, FusedOdds, OddsReading, Tier, assign_tier, fuse_delta,
                             fuse_odds)
 from .engine.impact import EngineEvent, Link, build_state
@@ -35,7 +37,7 @@ from .evidence import analogs, odds as odds_mod, prior as prior_mod, windows
 from .factors import FACTORS, KEYS
 from .http import Http, HttpError
 from .markets import Market, dedupe
-from .matching.decide import Candidate, Decision, decide
+from .matching.decide import Candidate, Decision, decide, price, related
 from .matching.judge import Judge
 from .matching.retrieve import Retriever
 
@@ -210,6 +212,71 @@ def check_link(parent: dict[date, float], child: dict[date, float], *, min_days:
     return {"w_data": slope, "se": se, "t": slope / se if se > 0 else 0.0, "n": len(dp)}
 
 
+def quote_halfwidth(d: Decision) -> float:
+    """How far the event's own odds may sit from the truth because of the quotes that set them: the half-spreads of
+    the tighter venue's markets, added up when its reading sums several outcomes."""
+    by_venue: dict[str, float] = defaultdict(float)
+    for c in d.used:
+        by_venue[c.market.venue] += coherence.half_spread(c.market.bid, c.market.ask)
+    return min(by_venue.values(), default=coherence.NO_QUOTE)
+
+
+def market_coherence(d: Decision, cands: list[Candidate], q: float, groups: dict[tuple[str, str], list[Market]],
+                     s: Settings) -> tuple[list[coherence.Finding], int]:
+    """The decision's own coherence checks (ladders, crossed bounds), plus those that need the fused odds (related
+    markets against the event) or the whole catalogue (exclusive outcomes adding up past one). DESIGN.md 6.6."""
+    found, checks = list(d.coherence), d.checks
+    if d.kind == "match":
+        used = {c.market.key for c in d.used}
+        ok = [c for c in cands if c.verdict.same_entity and c.verdict.relation != "unrelated" and c.q is not None
+              and c.market.key not in used]
+        below, above = related(ok, s)
+        found += coherence.bounds(q, quote_halfwidth(d), below=[price(c) for c in below], above=[price(c) for c in above])
+        checks += len(below) + len(above)
+    for key in sorted({(c.market.venue, c.market.event_id) for c in d.used if c.verdict.relation == "part_of"}):
+        outcomes = [m for m in groups.get(key, []) if m.mid is not None]
+        if len(outcomes) >= 2:
+            f = coherence.exclusive_sum([coherence.Price(m.key, m.outcome or m.title, m.mid, coherence.half_spread(m.bid, m.ask))
+                                         for m in outcomes], group=outcomes[0].event_title or outcomes[0].title)
+            found += [f] if f else []
+            checks += 1
+    return sorted(found, key=lambda f: f.excess, reverse=True), checks
+
+
+CONTESTED = "Related prediction markets contradict each other on these odds by more than their spreads allow."
+
+
+def contest(tier: Tier, d: Decision, found: list[coherence.Finding]) -> tuple[Tier, bool]:
+    """Whether the coherence findings involve the event's own odds (a bound or a sum, or a market the odds rest on),
+    and the tier that follows: contested odds are tier B, as when two venues disagree. A finding elsewhere on a
+    ladder is only a possible mispricing."""
+    used = {c.market.key for c in d.used}
+    mine = any(f.kind in ("bound", "sum") or used & set(f.keys) for f in found)
+    return (Tier("B", CONTESTED, tier.badges) if mine and tier.tier in ("A", "C") else tier), mine
+
+
+def link_record(ln, chk: dict | None, odds_now: dict[str, tuple[float, str]]) -> dict:
+    """A proposed link (the library's ``LinkSpec``), checked against the odds data: left out when the data can't test
+    it or doesn't support it, and otherwise used with the measured slope, capped where today's odds can't take it
+    (DESIGN.md 6.6)."""
+    rec = {"parent": ln.parent, "child": ln.child, "w_proposed": ln.w, "reason": ln.reason}
+    if chk is None:
+        return {**rec, "status": "untestable", "used": False,
+                "note": "One of the two events has no market history to test the link."}
+    if chk["t"] * math.copysign(1, ln.w) < 2:
+        return {**rec, **chk, "status": "unconfirmed", "used": False,
+                "note": "The odds data doesn't support the link, so the engine leaves it out."}
+    rec.update(chk, status="confirmed", used=True, w=max(-1.0, min(1.0, chk["w_data"])),
+               note="The odds data agrees with the proposed direction; the engine uses the measured slope.")
+    if ln.parent in odds_now and ln.child in odds_now:
+        (qp, parent), (qc, child) = odds_now[ln.parent], odds_now[ln.child]
+        w, f = coherence.link(qp, qc, rec["w"], parent=parent, child=child)
+        if f:
+            rec.update(w=w, capped=f.note, note="The odds data agrees with the proposed direction; the engine uses the "
+                                                "measured slope, capped at what today's odds allow.")
+    return rec
+
+
 def refresh(s: Settings, c: Clients, *, today: date | None = None, progress: Progress = print) -> dict:
     if c.judge is None:
         raise RuntimeError("ANTHROPIC_API_KEY is not set: the matcher needs Claude to judge candidates")
@@ -220,6 +287,10 @@ def refresh(s: Settings, c: Clients, *, today: date | None = None, progress: Pro
 
     markets = catalogue(lib, c, today, progress)
     retriever = Retriever(markets)
+    groups: dict[tuple[str, str], list[Market]] = defaultdict(list)  # mutually exclusive outcomes, for the sum check
+    for m in markets:
+        if m.exclusive:
+            groups[(m.venue, m.event_id)].append(m)
 
     # Factor data: recent history for typical moves and jump windows; long history for analogs.
     fd = factordata.load(c.fred, c.massive, today - timedelta(days=int(365 * 3)), today)
@@ -266,6 +337,8 @@ def refresh(s: Settings, c: Clients, *, today: date | None = None, progress: Pro
         fo = fuse_odds(odds_readings)
         liquid = odds_mod.liquid([c.market for c in d.used], volume=s.liquid_volume, spread=s.liquid_spread)
         tier = assign_tier(odds=fo, delta=fused, match_good=d.good, liquid=liquid)
+        found, checks = market_coherence(d, cands, fo.q, groups, s) if fo.from_market else ([], 0)
+        tier, contested = contest(tier, d, found)
         events.append({
             "id": spec.id, "title": spec.title, "short": spec.short, "category": spec.category,
             "question": spec.question, "resolves": spec.resolves.isoformat(), "why": spec.why, "order": spec.order,
@@ -282,23 +355,14 @@ def refresh(s: Settings, c: Clients, *, today: date | None = None, progress: Pro
                       "weights": {k: v for k, v in fused.weights.items()},
                       "readings": [_reading_json(r) for r in readings]},
             "tier": {"tier": tier.tier, "reason": tier.reason, "badges": tier.badges},
+            "coherence": {"checks": checks, "contested": contested, "findings": [f.json() for f in found]},
             "history": [[k.isoformat(), v] for k, v in sorted(hist[spec.id].items())],
             "history_from": history_from(d) if hist[spec.id] else None,
             "prior": pr.model_dump() if pr else None,
         })
 
-    links = []
-    for ln in lib.links:
-        rec = {"parent": ln.parent, "child": ln.child, "w_proposed": ln.w, "reason": ln.reason}
-        chk = check_link(hist.get(ln.parent, {}), hist.get(ln.child, {}))
-        if chk is None:
-            rec.update(status="untestable", used=False, note="One of the two events has no market history to test the link.")
-        elif chk["t"] * math.copysign(1, ln.w) >= 2:
-            rec.update(chk, status="confirmed", used=True, w=max(-1.0, min(1.0, chk["w_data"])),
-                       note="The odds data agrees with the proposed direction; the engine uses the measured slope.")
-        else:
-            rec.update(chk, status="unconfirmed", used=False, note="The odds data doesn't support the link, so the engine leaves it out.")
-        links.append(rec)
+    odds_now = {e["id"]: (e["odds"]["q"], e["short"]) for e in events}
+    links = [link_record(ln, check_link(hist.get(ln.parent, {}), hist.get(ln.child, {})), odds_now) for ln in lib.links]
 
     snap = {
         "kind": "redkeep.library", "version": 1, "as_of": now.isoformat(timespec="seconds"), "today": today.isoformat(),

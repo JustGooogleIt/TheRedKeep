@@ -64,6 +64,7 @@ The API serves the latest snapshot (`GET /events`, `GET /events/{id}`, either wi
 | Jump | Daily jump windows (odds read at the 4 p.m. New York close; factor moves regressed on all odds changes on days with a 5-point move), past similar events (an event study around analog dates) and the AI prior, fused by precision with a χ² check across market readings | 4.5, 4.6, 6.4 |
 | Tiers | A: a well-matched liquid market and two market readings of the jump that agree. B: readings disagree. C: priced, but one market reading or a weak match. D: no market fits | 6.5 |
 | Links | Proposed knock-on links are used only when the two events' odds histories agree in direction (t ≥ 2), with the measured slope | 4.4, 6.6 |
+| Coherence | `engine/coherence.py`: each event's related prices are checked against the rules of probability. Ladders must rise or fall in order, markets that imply the event (or that it implies) bound its odds, and mutually exclusive outcomes add up to at most 100%, each within the quotes' half-spreads plus a point. A contradiction the event's odds rest on makes it tier B. A confirmed link's slope is capped where it would push either conditional probability below 0 or above 1 | 6.6 |
 | Exposures | Weighted ridge regression of each holding's daily returns on the ten factors over two years (recent days count more), fit tested out of sample on the last six months; look-through via ETF Global holdings | 6.1 |
 | Impact | `Δ = b · δ`, knock-ons through the graph, priced-in moves `(1 − q)Δ` and `−qΔ`, swing `|Δ|√(q(1 − q))`, and a seeded 20,000-run simulation over the event graph | 4.1 to 4.4, 4.7 |
 
@@ -75,6 +76,7 @@ The API serves the latest snapshot (`GET /events`, `GET /events/{id}`, either wi
 - **No calibration yet.** Calibrated odds equal market odds until the long-shot study (E2) fits the correction.
 - **Fund-level exposures.** A fund's arrow comes from its own returns; per-holding regressions come next and give the same arrow for an unchanged fund.
 - **Point-in-time storage.** Responses are cached, not yet stored as a queryable history (DuckDB, M1).
+- **Coherence within each event's markets.** The checks compare the markets matched to one event. Checking across events, such as a market on two events happening together against the bounds its parts allow, needs joint markets in the catalogue.
 
 ## Layout
 

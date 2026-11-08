@@ -360,7 +360,13 @@ Implemented as in 4.6. Backtests produce per-category error tables for each sour
 3. **Two-source rule for links.** The AI proposes which links make sense and in which direction. A link is kept only when the data and the AI both support it.
 4. **Edge weights.** The slope of changes in the child's odds on changes in the parent's odds in jump windows (4.4).
 5. **No cycles.** Events are ordered by resolution date and links only run from earlier to later. Loops like recession and Fed cuts are broken that way, and the break is noted.
-6. **Coherence checks.** Ladders must be monotonic; joint events must satisfy `max(0, q_A + q_B − 1) ≤ P(A and B) ≤ min(q_A, q_B)`; a child's odds must lie between its two conditional values. Violations larger than the spreads are flagged as possible mispricings.
+6. **Coherence checks.** Related prices must obey the rules of probability:
+   - Ladders are monotonic: a stricter threshold or an earlier deadline can't be likelier.
+   - A market that implies the event can't be likelier than the event, and one the event implies can't be less likely, so a lower bound can't sit above an upper bound.
+   - Mutually exclusive outcomes can't add up to more than one.
+   - A link must leave both conditional odds, `P(B|A) = q_B + (1 − q_A) · w_AB` and `P(B|¬A) = q_B − q_A · w_AB`, between 0 and 1. That is the same as asking that the child's odds lie between its two conditional values, and that the joint odds `P(A and B) = q_A · P(B|A)` satisfy `max(0, q_A + q_B − 1) ≤ P(A and B) ≤ min(q_A, q_B)`.
+
+   A quote is uncertain by half its bid-ask spread, so a gap counts only when it is larger than the half-spreads of the prices involved plus a point for ticks and rounding (five points either way for a price with no two-sided quote). Past that, buying one side and selling the other pays whatever happens. For exclusive outcomes the test is exactly that: selling every outcome at its bid would collect more than the one dollar it can cost. Violations among markets are flagged as possible mispricings, and when the event's own odds rest on the prices involved, the event is tier B, as when two venues disagree. A measured link weight outside the range today's odds allow is capped at the edge of that range. Otherwise a what-if would push the child's odds past 0 or 1, which the engine clips, while the knock-on jump kept the full weight.
 
 **Why.** It catches second-order risk and stops double counting events that move together. Bayesian networks have been proposed for exactly this kind of coherent stress testing (Rebonato and Denev 2014).
 
@@ -621,6 +627,8 @@ Build a thin vertical slice first, then widen it.
 
 **Where the build stands.** The M3 slice runs end to end in [`backend/`](../backend/README.md): ten events matched to Polymarket and Kalshi by Claude (including "nothing fits" with the rejected near-misses), odds with cross-checks, jumps from daily jump windows, past events and the AI prior, fusion and tiers, link checks against odds histories, exposures with look-through, and the impacts, priced-in moves and simulation. `redkeep app` feeds a snapshot into the prototype, and `check.js` confirms the prototype's model gives the backend's numbers. A snapshot can also go in without portfolio analyses: the prototype then pairs its events with the illustrative portfolios, rescaled to the snapshot's typical moves, and labels them illustrative. Two simplifications, both documented: jump windows are daily rather than 30-minute, and with only one market reading of each jump (ETF windows), no event can reach tier A until options (M6) and Hyperliquid's weekend windows add the second. The slice is tested offline on recorded response shapes and synthetic prices; its first run on live data comes next.
 
+**Coherence checks (M7)** are built: every refresh checks each event's related prices against the rules in [6.6](#66-event-graph) and records the checks and any violations in the snapshot. Odds that related markets contradict make the event tier B, and a link's measured weight is capped where today's odds can't take it. The app's event drawer shows the verdict under the matched market, and a capped link's note under its knock-on effect.
+
 ---
 
 ## 16. Decisions and open questions
@@ -630,6 +638,7 @@ Build a thin vertical slice first, then widen it.
 | Question | Decision |
 |---|---|
 | Which model screens the funnel? | Laya, fine-tuned on Claude's labels, with Jev as the baseline and fallback ([section 8](#8-where-the-ai-is-used-and-where-it-isnt)) |
+| When are related prices incoherent? | When they break a rule of probability by more than their quotes allow: the half-spreads of the prices involved, plus a point. Contradicted odds make the event tier B, and a link's weight is capped at what today's odds allow ([6.6](#66-event-graph)) |
 | What does the Massive key cover? | It is expected to include option chains and historical ETF holdings |
 | Which Hyperliquid perps are usable? | Stocks, oil, chips (NVIDIA) and, weakly, gold, on weekends and holidays only ([6.4](#64-evidence)) |
 | Which sample portfolios? | Famous published allocations: All Weather, Buffett's 90/10, the Permanent Portfolio and a Yale-style mix ([9.2](#92-screens)) |
