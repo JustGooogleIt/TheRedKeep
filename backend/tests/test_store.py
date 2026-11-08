@@ -194,9 +194,13 @@ def test_hyperliquid_returns_candles_the_api_has_dropped(store):
         return [raw(now - timedelta(hours=k), 6000, 6001, 5999, 6000) for k in range(1, 25)
                 if a <= int((now - timedelta(hours=k)).timestamp() * 1000) <= b]
 
-    got = Hyperliquid(FakeHttp(answer), store=store).candles("xyz:SP500", now - timedelta(days=301), now)
+    hl = Hyperliquid(FakeHttp(answer), store=store)
+    got = hl.candles("xyz:SP500", now - timedelta(days=301), now)
     assert len(got) == 3 + 24 and got[0].start == old[-1].start and isinstance(got[0], Candle)
+    assert hl.candles("xyz:SP500", now - timedelta(days=301), now) == got  # the same, with the queue read twice
+    assert store.segments("candles") == []  # reading back wrote nothing yet
     assert store.sql("SELECT count(*) FROM candles")[0][0] == 27  # the API's candles are recorded too
+    assert len(store.segments("candles")) == 1
 
 
 def test_the_venue_and_fred_clients_record_what_they_read(store, gamma_events, kalshi_events):

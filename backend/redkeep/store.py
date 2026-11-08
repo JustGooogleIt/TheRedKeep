@@ -251,14 +251,26 @@ class Store:
 
     # -- reading ----------------------------------------------------------------------------------
 
-    def sql(self, query: str, params: Sequence[Any] = (), *, tables: Sequence[str] = tuple(TABLES)) -> list[tuple]:
-        """Run ``query`` with each of ``tables`` available under its own name, after flushing them."""
+    def sql(self, query: str, params: Sequence[Any] = (), *, tables: Sequence[str] = tuple(TABLES),
+            flush: bool = True) -> list[tuple]:
+        """Run ``query`` with each of ``tables`` available under its own name, after flushing them. With
+        ``flush=False`` the queued rows are read beside the stored ones instead, so the read writes no segment; a
+        version queued and stored both appears twice, which reads of the latest version don't mind."""
         with self._lock:
-            for name in tables:
-                self._flush(name)
-            with duckdb.connect() as con:
+            if flush:
                 for name in tables:
-                    self._view(con, _q(name), TABLES[name])
+                    self._flush(name)
+            with duckdb.connect() as con:
+                for i, name in enumerate(tables):
+                    t, queued = TABLES[name], [] if flush else self._buf.get(name, [])
+                    if not queued:
+                        self._view(con, _q(name), t)
+                        continue
+                    self._view(con, f"stored{i}", t)
+                    self._load(con, f"queued{i}", t, queued)
+                    cols = ", ".join(_q(n) for n in (*t.names, "seen_at"))
+                    con.execute(f"CREATE TEMP VIEW {_q(name)} AS SELECT {cols} FROM stored{i} "
+                                f"UNION ALL SELECT {cols} FROM queued{i}")
                 return con.execute(query, list(params)).fetchall()
 
     @staticmethod
@@ -277,16 +289,16 @@ class Store:
         return [(aware(t), q) for t, q in rows]
 
     def candles(self, coin: str, interval: str, start: datetime, end: datetime, *, as_of: datetime | None = None,
-                known: bool = False) -> list[tuple]:
+                known: bool = False, flush: bool = True) -> list[tuple]:
         """Candles that open from ``start`` to ``end``, oldest first, as (start, end, open, high, low, close, volume,
         trades). With ``as_of``, only candles finished by then; with ``known`` too, the version seen by then, which
-        for the hour that was still open is the candle so far."""
+        for the hour that was still open is the candle so far. ``flush=False`` reads the queue without writing it."""
         cut, seen = self._cuts(as_of, known)
         done = "t <= $6" if known else "t_end <= $6"
         vals = ", ".join(_q(n) for n in ("t", "t_end", "open", "high", "low", "close", "volume", "trades"))
         where = f'coin = $1 AND "interval" = $2 AND t BETWEEN $3 AND $4 AND {done} AND seen_at <= $5'
         rows = self.sql(f"SELECT {vals} FROM ({_latest('candles', ('t',), where)}) ORDER BY t",
-                        [coin, interval, naive(start), naive(end), seen, cut], tables=["candles"])
+                        [coin, interval, naive(start), naive(end), seen, cut], tables=["candles"], flush=flush)
         return [(aware(r[0]), aware(r[1]), *r[2:]) for r in rows]
 
     def closes(self, source: str, series: str, start: date, end: date, *, as_of: datetime | None = None,

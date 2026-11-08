@@ -83,4 +83,5 @@ class Hyperliquid:
         if self.store is None:
             return [got[k] for k in sorted(got) if start <= k <= end]
         self.store.add_candles(coin, interval, got.values())
-        return [Candle(*r) for r in self.store.candles(coin, interval, start, end)]
+        # Read back without flushing, so recording 80 perps writes one segment rather than 80.
+        return [Candle(*r) for r in self.store.candles(coin, interval, start, end, flush=False)]
