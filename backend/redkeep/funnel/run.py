@@ -76,9 +76,10 @@ def screen(s: Settings, c, *, claude_max: int = 400, path: Path = LABELS, progre
                   key=lambda i: -p[i])
     sent = [markets[i] for i in band[:claude_max]]
     new: list[Row] = []
+    unlabeled = 0
     if sent:
         progress(f"Claude reads {len(sent):,} of the {len(band):,} markets the screen is unsure about")
-        new, _, _ = _labeler(s, c).label(sent, source="band", progress=progress)
+        new, _, unlabeled = _labeler(s, c).label(sent, source="band", progress=progress)
         append_rows(path, new)
         labeled.update({r.key: r for r in new})
 
@@ -123,7 +124,7 @@ def screen(s: Settings, c, *, claude_max: int = 400, path: Path = LABELS, progre
         "catalogue": counts, "labels": len(rows), "thresholds": {"drop": drop, "keep": keep if np.isfinite(keep) else None},
         "screen": {"dropped": how.count("dropped"), "kept": how.count("screen"), "claude": how.count("claude"),
                    "unsure_unchecked": how.count("unsure"), "band": len(band), "sent_to_claude": len(sent),
-                   "new_labels": len(new)},
+                   "new_labels": len(new), "not_labeled": unlabeled},
         "material_markets": sum(1 for v in verdicts if v[1]),
         "groups": ranked,
     }
