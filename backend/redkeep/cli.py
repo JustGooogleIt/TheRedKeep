@@ -377,7 +377,9 @@ def print_funnel(rep: dict) -> None:
     print(f"\nFunnel: {cat['listed']:,} markets listed, {cat['after_filters']:,} after the cheap filters. The screen "
           f"(taught by {rep['labels']:,} of Claude's labels) dropped {sc['dropped']:,} and kept {sc['kept']:,}; "
           f"Claude's label decided {sc['claude']:,}; {sc['unsure_unchecked']:,} unsure markets weren't checked "
-          f"(Claude read {sc['sent_to_claude']:,} of the {sc['band']:,} in the band).")
+          f"(Claude read {sc['sent_to_claude']:,} of the {sc['band']:,} in the band"
+          + (f"; {sc['not_labeled']:,} of those came back unlabeled, even when asked again" if sc.get("not_labeled") else "")
+          + ").")
     mat = [g for g in rep["groups"] if g["material"]]
     print(f"Material: {rep['material_markets']:,} markets in {len(mat):,} groups. The biggest movers:")
     for g in mat[:25]:

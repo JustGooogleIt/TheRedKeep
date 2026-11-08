@@ -246,13 +246,29 @@ class Labeler:
         now = datetime.now(timezone.utc).isoformat(timespec="seconds")
 
         def one(b: list[Market]):
-            try:
-                return b, *self._call(b)
-            except LabelRefused:
-                return b, {}, Usage(refused=1), {}
+            """A batch's labels, what they cost, and which model answered for each. A reply that leaves markets out
+            (or labels ids that weren't asked) gets one retry with just the missing markets, a new request."""
+            got: dict[str, MarketLabel] = {}
+            served: dict[str, str] = {}
+            u, todo = Usage(), b
+            for _ in range(2):
+                try:
+                    labels, cost, rec = self._call(todo)
+                except LabelRefused:
+                    u.add(Usage(refused=1))
+                    break
+                u.add(cost)
+                model = str(rec.get("served_by") or rec.get("model") or self.model)
+                for m in todo:
+                    if m.key in labels:
+                        got[m.key], served[m.key] = labels[m.key], model
+                todo = [m for m in todo if m.key not in got]
+                if not todo:
+                    break
+            return b, got, u, served
 
         with ThreadPoolExecutor(self.workers) as ex:
-            for n, (b, got, u, rec) in enumerate(ex.map(one, batches), 1):
+            for n, (b, got, u, served) in enumerate(ex.map(one, batches), 1):
                 total.add(u)
                 done = [m for m in b if m.key in got]
                 missing += len(b) - len(done)
@@ -263,7 +279,7 @@ class Labeler:
                         key=m.key, venue=m.venue, group=group_of(m), title=m.title, text=m.text(),
                         closes=m.close_time.date().isoformat() if m.close_time else None, macro=lb.macro,
                         moves=[int(getattr(lb.moves, k)) for k in KEYS], reason=lb.reason,
-                        model=str(rec.get("served_by") or rec.get("model") or self.model), rubric=LABEL_VERSION,
+                        model=served[m.key], rubric=LABEL_VERSION,
                         labeled_at=now, source=source, tokens_in=u.tokens_in * share, tokens_out=u.tokens_out * share,
                         seconds=u.seconds * share))
                 if n % 10 == 0 or n == len(batches):
