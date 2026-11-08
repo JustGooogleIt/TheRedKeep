@@ -68,9 +68,10 @@ def half_spread(bid: float | None, ask: float | None) -> float:
     return NO_QUOTE
 
 
-def pct(q: float) -> str:
+def pct(q: float, digits: int = 0) -> str:
+    """A probability as a percentage: whole points (one decimal under 1%), or ``digits`` decimals."""
     v = q * 100
-    s = f"{abs(v):.0f}%" if abs(v) >= 1 or v == 0 else f"{abs(v):.1f}%"
+    s = f"{abs(v):.{digits}f}%" if digits or abs(v) >= 1 or v == 0 else f"{abs(v):.1f}%"
     return ("−" if v < 0 else "") + s
 
 
@@ -78,17 +79,26 @@ def slope(w: float) -> str:
     return f"{w:+.2f}".replace("-", "−")
 
 
-def pts(x: float) -> str:
-    return _points(round(x * 100))
+def _gap(a: float, b: float, allowed: float) -> tuple[str, str, str, str]:
+    """``a`` and ``b`` as percentages, how far ``a`` sits above ``b`` and what the quotes allow, all at one precision.
+
+    The gap is taken from the percentages as shown, so a note's numbers add up. Whole points are used when that gap
+    still exceeds the allowance once both are rounded; otherwise one decimal, or two, so a note never reads as if the
+    gap were within what the quotes allow (not "3 points out of line where the quotes allow 3 points")."""
+    for digits in (0, 1, 2):
+        if digits == 0 and min(a, b) < 0.01:  # below 1% the percentages show a decimal anyway
+            continue
+        shown = round(round(a * 100, digits) - round(b * 100, digits), digits)
+        if shown > round(allowed * 100, digits) or digits == 2:
+            return pct(a, digits), pct(b, digits), _points(shown, digits), _points(allowed * 100, digits)
+    raise AssertionError("unreachable")
 
 
-def apart(a: float, b: float) -> str:
-    """How far ``a`` sits above ``b``, in points rounded the way their percentages show, so a note's numbers add up."""
-    return _points(round(a * 100) - round(b * 100)) if min(a, b) >= 0.01 else pts(a - b)
-
-
-def _points(p: int) -> str:
-    return f"{p} point" + ("" if p == 1 else "s")
+def _points(p: float, digits: int = 0) -> str:
+    if digits == 0:
+        p = round(p)
+        return f"{p} point" + ("" if p == 1 else "s")
+    return f"{p:.{digits}f} points"
 
 
 def worst(found: Sequence[Finding], one: str, many: str) -> list[Finding]:
@@ -113,11 +123,12 @@ def ladder(rungs: Sequence[tuple[float, Price]], *, increasing: bool) -> list[Fi
     for i, (_, a) in enumerate(pts_):
         for _, b in pts_[i + 1:]:
             hi, lo = (a, b) if increasing else (b, a)  # hi can't be likelier than lo
-            gap, allowed = hi.q - lo.q, hi.half_spread + lo.half_spread + SLACK
-            if gap > allowed:
-                found.append(Finding("ladder", gap, allowed, (hi.key, lo.key),
-                                     f"“{hi.label}” is priced at {pct(hi.q)}, above “{lo.label}” at {pct(lo.q)}, though it "
-                                     f"can't be likelier: {apart(hi.q, lo.q)} out of line where the quotes allow {pts(allowed)}."))
+            diff, allowed = hi.q - lo.q, hi.half_spread + lo.half_spread + SLACK
+            if diff > allowed:
+                qh, ql, off, ok = _gap(hi.q, lo.q, allowed)
+                found.append(Finding("ladder", diff, allowed, (hi.key, lo.key),
+                                     f"“{hi.label}” is priced at {qh}, above “{lo.label}” at {ql}, though it can't be "
+                                     f"likelier: {off} out of line where the quotes allow {ok}."))
     return worst(found, "pair of rungs", "pairs of rungs")
 
 
@@ -127,29 +138,31 @@ def bounds(q: float, q_allowed: float, *, below: Sequence[Price], above: Sequenc
     likely). Reports the worst market out of line by more than the quotes allow."""
     found = []
     for m in below:
-        gap, allowed = m.q - q, m.half_spread + q_allowed + SLACK
-        if gap > allowed:
-            found.append(Finding("bound", gap, allowed, (m.key,),
-                                 f"“{m.label}” is priced at {pct(m.q)}, above the event's {pct(q)}, though it can only "
-                                 f"happen if the event does: {apart(m.q, q)} out of line where the quotes allow {pts(allowed)}."))
+        diff, allowed = m.q - q, m.half_spread + q_allowed + SLACK
+        if diff > allowed:
+            qm, qe, off, ok = _gap(m.q, q, allowed)
+            found.append(Finding("bound", diff, allowed, (m.key,),
+                                 f"“{m.label}” is priced at {qm}, above the event's {qe}, though it can only happen if "
+                                 f"the event does: {off} out of line where the quotes allow {ok}."))
     for m in above:
-        gap, allowed = q - m.q, m.half_spread + q_allowed + SLACK
-        if gap > allowed:
-            found.append(Finding("bound", gap, allowed, (m.key,),
-                                 f"The event's {pct(q)} is above “{m.label}” at {pct(m.q)}, though the event can only "
-                                 f"happen if that does: {apart(q, m.q)} out of line where the quotes allow {pts(allowed)}."))
+        diff, allowed = q - m.q, m.half_spread + q_allowed + SLACK
+        if diff > allowed:
+            qe, qm, off, ok = _gap(q, m.q, allowed)
+            found.append(Finding("bound", diff, allowed, (m.key,),
+                                 f"The event's {qe} is above “{m.label}” at {qm}, though the event can only happen if "
+                                 f"that does: {off} out of line where the quotes allow {ok}."))
     return worst(found, "related market", "related markets")
 
 
 def crossed(lo: Price, hi: Price) -> Finding | None:
     """A lower bound from one related market above the upper bound from another."""
-    gap, allowed = lo.q - hi.q, lo.half_spread + hi.half_spread + SLACK
-    if gap <= allowed:
+    diff, allowed = lo.q - hi.q, lo.half_spread + hi.half_spread + SLACK
+    if diff <= allowed:
         return None
-    return Finding("bound", gap, allowed, (lo.key, hi.key),
-                   f"“{lo.label}” at {pct(lo.q)} implies the event, and the event implies “{hi.label}” at {pct(hi.q)}, so "
-                   f"the first can't be likelier than the second: {apart(lo.q, hi.q)} out of line where the quotes allow "
-                   f"{pts(allowed)}.")
+    ql, qh, off, ok = _gap(lo.q, hi.q, allowed)
+    return Finding("bound", diff, allowed, (lo.key, hi.key),
+                   f"“{lo.label}” at {ql} implies the event, and the event implies “{hi.label}” at {qh}, so the first "
+                   f"can't be likelier than the second: {off} out of line where the quotes allow {ok}.")
 
 
 def exclusive_sum(prices: Sequence[Price], *, group: str) -> Finding | None:
@@ -159,9 +172,10 @@ def exclusive_sum(prices: Sequence[Price], *, group: str) -> Finding | None:
     allowed = sum(p.half_spread for p in prices) + SLACK
     if len(prices) < 2 or total - 1 <= allowed:
         return None
+    qt, _, off, ok = _gap(total, 1.0, allowed)
     return Finding("sum", total - 1, allowed, tuple(p.key for p in prices),
-                   f"The {len(prices)} outcomes of “{group}” add up to {pct(total)}, though only one can happen: "
-                   f"{apart(total, 1.0)} over 100% where the quotes allow {pts(allowed)}.")
+                   f"The {len(prices)} outcomes of “{group}” add up to {qt}, though only one can happen: {off} over 100% "
+                   f"where the quotes allow {ok}.")
 
 
 def link_range(q_parent: float, q_child: float) -> tuple[float, float]:

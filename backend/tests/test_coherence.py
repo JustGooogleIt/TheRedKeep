@@ -66,6 +66,22 @@ def test_related_markets_bound_the_event():
     assert coherence.bounds(0.30, 0.01, below=[px("a", 0.32)], above=[px("b", 0.28)]) == []
 
 
+
+def test_a_note_never_rounds_a_violation_into_the_allowance():
+    # A real case (Bank of Japan, 2026-11-08): 3.44 points out of line where 3.30 are allowed. In whole points both
+    # are 3, which reads as within the quotes, so the note switches to one decimal, prices included.
+    [f] = coherence.bounds(0.749, 0.013, below=[], above=[px("hold-no", 0.715)])
+    assert f.note == ("The event's 74.9% is above “hold-no” at 71.5%, though the event can only happen if that does: "
+                      "3.4 points out of line where the quotes allow 3.3 points.")
+    # Two decimals when one isn't enough.
+    [f] = coherence.bounds(0.7484, 0.013, below=[], above=[px("hold-no", 0.715)])
+    assert f.note == ("The event's 74.84% is above “hold-no” at 71.50%, though the event can only happen if that does: "
+                      "3.34 points out of line where the quotes allow 3.30 points.")
+    # Whole points whenever they show the excess, as before.
+    f = coherence.exclusive_sum([px("a", 0.6), px("b", 0.5)], group="g")
+    assert f.note.endswith("add up to 110%, though only one can happen: 10 points over 100% where the quotes allow "
+                           "3 points.")
+
 def test_a_lower_bound_cant_sit_above_an_upper_one():
     f = coherence.crossed(px("lo", 0.30), px("hi", 0.20))
     assert f.kind == "bound" and f.keys == ("lo", "hi") and f.gap == pytest.approx(0.10)
