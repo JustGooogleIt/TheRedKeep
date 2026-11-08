@@ -175,7 +175,8 @@ def observations(r: Resolved, prices: Sequence[tuple[datetime, float]], horizons
         t = r.deadline - timedelta(days=h)
         i = bisect_right(times, t + SLACK) - 1
         if i >= 0 and t - times[i] <= MAX_AGE:
-            out.append(Obs(r.venue, r.key, r.event, r.category, r.closed.date(), h, float(prices[i][1]), r.y))
+            out.append(Obs(r.venue, r.key, r.event, r.category, r.closed.date(), h, float(prices[i][1]), r.y,
+                           r.title, r.deadline.date()))
     return out
 
 

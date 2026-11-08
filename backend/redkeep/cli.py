@@ -1,4 +1,5 @@
-"""Command line: ``redkeep check | refresh | analyze | funnel | calibrate | jumps | replay | record | store | app | serve``."""
+"""Command line: ``redkeep check | refresh | analyze | funnel | calibrate | jumps | baseline | replay | record | store | app
+| serve``."""
 
 from __future__ import annotations
 
@@ -231,6 +232,100 @@ def cmd_jumps(s: Settings, args) -> int:
     path = save(finite(rep), s.out_dir, "jumps")
     print(f"\nSaved {path}")
     return 0
+
+
+def cmd_baseline(s: Settings, args) -> int:
+    """Claude with no tools against the engine, on markets that resolved after its training data (eval E9)."""
+    from . import baseline, jumps
+    from .evidence import calibration
+    from .pipeline import finite, make_clients, save
+
+    if args.from_file:
+        old = json.loads(Path(args.from_file).read_text())
+        if old.get("kind") != "redkeep.baseline":
+            print(f"{args.from_file} is not a saved baseline run", file=sys.stderr)
+            return 1
+        rep = baseline.rescore(old)
+    else:
+        if not (args.jumps or args.odds):
+            print("Give --jumps (a saved jump study), --odds (saved calibration prices) or both", file=sys.stderr)
+            return 1
+        cases, typical, material = [], None, None
+        if args.jumps:
+            j = json.loads(Path(args.jumps).read_text())
+            if j.get("kind") != "redkeep.jumps":
+                print(f"{args.jumps} is not a saved jumps study", file=sys.stderr)
+                return 1
+            cases, typical, material = jumps.cases_from(j), j.get("typical"), j.get("material")
+        obs = calibration.read_obs(Path(args.odds)) if args.odds else []
+        if obs and not any(o.title for o in obs):
+            print(f"{args.odds} has no market titles: it predates them, so rerun `redkeep calibrate`", file=sys.stderr)
+            return 1
+        c = make_clients(s, record=False)
+        if c.prior is None:
+            print("The baseline is Claude: set ANTHROPIC_API_KEY", file=sys.stderr)
+            return 1
+        print(f"Model: {c.model}. Markets that resolved from {args.after} on are scored; set --after to a margin after "
+              f"its training data.")
+        rep = baseline.study(c.prior, cases=cases, typical=typical, material=material, obs=obs,
+                             after=date.fromisoformat(args.after), horizon=args.horizon, most=args.most, leak=args.leak,
+                             sources={"jumps": args.jumps, "odds": args.odds})
+    print_baseline(rep)
+    path = save(finite(rep), s.out_dir, "baseline")
+    print(f"\nSaved {path}")
+    return 0
+
+
+def print_baseline(rep: dict) -> None:
+    m = rep["method"]
+    print(f'\nE9, "just ask an AI": Claude with no tools against the engine, on markets that resolved from {m["after"]} on')
+    j = rep["jumps"]
+    if j.get("markets"):
+        print(f"\n  Jumps (E3's metrics): {j['markets']} markets, {j['days']} resolution days, {j['pairs']} market-factors")
+        print(f"  {'':22} {'explained':>9} {'resolved only':>14} {'clear signs':>12} {'rank':>6} {'80% cover':>10}")
+        for k, name in (("market", "the market alone"), ("ai", "Claude alone"), ("engine", "the engine (both)")):
+            x = j[k]
+            signs = f"{x['clear_signs_right']} of {x['clear_moves']}"
+            rank = "  n/a" if x["rank_corr"] is None else f"{x['rank_corr']:+.2f}"
+            cover = "n/a" if x["coverage_80"] is None else f"{100 * x['coverage_80']:.0f}%"
+            print(f"  {name:22} {_share(x['explained_share']):>9} {_share(x['explained_share_resolved']):>14} "
+                  f"{signs:>12} {rank:>6} {cover:>10}")
+        g = j["gaps"]
+        for k, name in (("engine_minus_ai", "the engine minus Claude"), ("engine_minus_market", "the engine minus the market"),
+                        ("ai_minus_market", "Claude minus the market")):
+            d = g[k]
+            if d["share"] is not None:
+                r = d["range"]
+                print(f"  {name}: {100 * d['share']:+.0f} points"
+                      + (f" (95% range {100 * r[0]:+.0f} to {100 * r[1]:+.0f})" if r else ""))
+        if j.get("ai_weight") is not None:
+            print(f"  The engine gives Claude's estimate {100 * j['ai_weight']:.0f}% of the weight, on average.")
+        if j.get("ai_error_scale"):
+            print(f"  Claude's error bars would cover 80% of the realized jumps at {j['ai_error_scale']:.2f} times their width.")
+        bm = j.get("by_material")
+        if bm:
+            print(f"  On the {bm['material_markets']} markets Claude's funnel label calls material: "
+                  + ", ".join(f"{name} {_share(bm['material'][k]['explained_share']).strip()}"
+                              for k, name in (("market", "the market"), ("ai", "Claude"), ("engine", "the engine"))))
+    for part, name in (("after", f"resolved from {m['after']} on"), ("before", f"closed before {m['leak_before']}, a check")):
+        o = rep["odds"][part]
+        if not o.get("markets"):
+            continue
+        if part == "after":
+            print(f"\n  Odds (E2's metrics), {m['horizon']} days before the deadline:")
+            print(f"  {'':40} {'markets':>7} {'Brier: market':>14} {'Claude':>7} {'log loss: market':>17} {'Claude':>7}")
+        print(f"  {name:40} {o['markets']:>7} {o['market']['brier']:>14.3f} {o['ai']['brier']:>7.3f} "
+              f"{o['market']['log_loss']:>17.3f} {o['ai']['log_loss']:>7.3f}")
+        b, ll = o["brier_gap"], o["log_loss_gap"]
+        print(f"    Claude minus the market: Brier {b['mean']:+.3f} (95% range {b['range'][0]:+.3f} to "
+              f"{b['range'][1]:+.3f}), log loss {ll['mean']:+.3f} ({ll['range'][0]:+.3f} to {ll['range'][1]:+.3f})")
+    print(f"\n  E8's metric: {rep['portfolios']}")
+    u = rep.get("usage") or {}
+    if u:
+        print(f"  Claude: {u.get('calls', 0)} calls ({u.get('cached', 0)} more from the cache), "
+              f"{u.get('tokens_in', 0):,} tokens in and {u.get('tokens_out', 0):,} out")
+    if rep.get("not_answered"):
+        print(f"  Not answered: {rep['not_answered']}")
 
 
 def _share(x) -> str:
@@ -541,6 +636,20 @@ def main(argv: list[str] | None = None) -> int:
                    help="rerun the study on the markets an earlier run saved (out/jumps-*.json), without fetching")
     j.add_argument("--label", action="store_true",
                    help="have Claude label each market with the funnel's rubric, and score material markets apart")
+    bl = sub.add_parser("baseline", help="Claude with no tools against the engine, on markets that resolved after its "
+                                         "training data (eval E9)")
+    bl.add_argument("--jumps", metavar="FILE", help="a saved jump study (out/jumps-<time>.json): Claude estimates its jumps")
+    bl.add_argument("--odds", metavar="FILE",
+                    help="saved calibration prices (out/calibration-obs-<time>.jsonl.gz): Claude gives its odds")
+    bl.add_argument("--after", default="2026-08-01",
+                    help="score markets that resolved from this day on (default 2026-08-01): a margin after the "
+                         "training data of the model the engine uses")
+    bl.add_argument("--horizon", type=int, default=30, help="odds: days before the deadline (default 30)")
+    bl.add_argument("--most", type=int, default=250, help="odds: markets asked about after the cutoff (default 250)")
+    bl.add_argument("--leak", type=int, default=100,
+                    help="odds: markets from well before the cutoff asked as a check that it knows them (default 100)")
+    bl.add_argument("--from", dest="from_file", metavar="FILE",
+                    help="score a saved run again (out/baseline-<time>.json) without asking")
     rp = sub.add_parser("replay", help="replay a past episode on archived prices (eval E8)")
     rp.add_argument("--episode", default="tariffs-2025", help="an episode in data/episodes, or a .toml file")
     rp.add_argument("--write", action="store_true", help="save it to data/replays for the app")
@@ -570,7 +679,8 @@ def main(argv: list[str] | None = None) -> int:
     logging.basicConfig(level=logging.INFO if args.verbose else logging.WARNING, format="%(levelname)s %(name)s: %(message)s")
     s = Settings.from_env()
     return {"check": cmd_check, "refresh": cmd_refresh, "analyze": cmd_analyze, "funnel": cmd_funnel, "calibrate": cmd_calibrate,
-            "jumps": cmd_jumps, "replay": cmd_replay, "record": cmd_record, "store": cmd_store, "app": cmd_app, "serve": cmd_serve}[args.cmd](s, args)
+            "jumps": cmd_jumps, "baseline": cmd_baseline, "replay": cmd_replay, "record": cmd_record, "store": cmd_store,
+            "app": cmd_app, "serve": cmd_serve}[args.cmd](s, args)
 
 
 if __name__ == "__main__":
