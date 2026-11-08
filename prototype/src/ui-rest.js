@@ -218,6 +218,7 @@ function Drawer({ e, S, P, tw, sampleId, whatIf, setWhatIf, onOpen, onClose, aiO
 
 /* ---------- historical replay ---------- */
 function verdictOf(pred, real) {
+  if (pred == null) return ['mid', '–', 'No call'];
   if (Math.abs(real) < 0.3 && Math.abs(pred) < 0.3) return ['ok', '✓', 'Both small'];
   if (Math.sign(pred) !== Math.sign(real)) return ['bad', '✕', 'Wrong direction'];
   const r = Math.abs(pred) / Math.abs(real);
@@ -228,23 +229,70 @@ function verdictOf(pred, real) {
 function ReplayChart({ RC, day, setDay }) {
   const ref = useRef(null);
   const R = REPLAY, D = R.days.length, W = Math.max(300, useWidth(ref, 640)), H = 250, m = { l: 40, r: 12, t: 14, b: 30 };
-  const vals = RC.real.concat(RC.cum, RC.calls.map(c => c.pred));
+  const called = RC.calls.filter(c => c.pred != null);
+  const vals = RC.real.concat(RC.cum, RC.expl.filter(v => v != null), called.map(c => c.pred));
   const ym = Math.max(2, ...vals.map(Math.abs)) * 1.12;
   const cw = (W - m.l - m.r) / D; const every = cw < 46 ? 2 : 1; const X = i => m.l + (i + 0.5) * cw; const Y = v => m.t + (ym - v) / (2 * ym) * (H - m.t - m.b);
   const ticks = niceTicks(-ym, ym, 6);
   const cumPath = RC.cum.slice(0, day + 1).map((v, i) => (i ? 'L' : 'M') + X(i).toFixed(1) + ',' + Y(v).toFixed(1)).join('');
-  return html`<div className="rp-chart" ref=${ref}><svg viewBox=${'0 0 ' + W + ' ' + H} role="img" aria-label="Daily moves of your portfolio, with the engine’s calls on the days events resolved">
+  return html`<div className="rp-chart" ref=${ref}><svg viewBox=${'0 0 ' + W + ' ' + H} role="img" aria-label="Daily moves of your portfolio, what the engine’s events explained each day, and its calls on the days events resolved">
     ${ticks.map(v => html`<g key=${'y' + v}><line x1=${m.l} x2=${W - m.r} y1=${Y(v)} y2=${Y(v)} style=${{ stroke: Math.abs(v) < 1e-9 ? 'var(--line-2)' : 'var(--line)' }} /><text x=${m.l - 6} y=${Y(v) + 3} textAnchor="end" className="ax">${fmtPct(v, 0)}</text></g>`)}
     ${RC.real.map((v, i) => html`<rect key=${'b' + i} x=${X(i) - cw * 0.28} y=${Math.min(Y(v), Y(0))} width=${cw * 0.56} height=${Math.max(1, Math.abs(Y(v) - Y(0)))} rx="1.5" style=${{ fill: v < 0 ? 'var(--loss)' : 'var(--gain)', opacity: i <= day ? (i === day ? 1 : 0.7) : 0.14, cursor: 'pointer' }} onClick=${() => setDay(i)} />`)}
-    ${RC.calls.map(c => html`<rect key=${'p' + c.id} x=${X(c.day) - cw * 0.42} y=${Math.min(Y(c.pred), Y(0))} width=${cw * 0.84} height=${Math.max(1, Math.abs(Y(c.pred) - Y(0)))} rx="2" style=${{ fill: 'none', stroke: 'var(--ink)', strokeWidth: 1.4, strokeDasharray: '4 3', opacity: c.day <= day ? 1 : 0.25 }} />`)}
+    ${called.map(c => html`<rect key=${'p' + c.id} x=${X(c.day) - cw * 0.42} y=${Math.min(Y(c.pred), Y(0))} width=${cw * 0.84} height=${Math.max(1, Math.abs(Y(c.pred) - Y(0)))} rx="2" style=${{ fill: 'none', stroke: 'var(--ink)', strokeWidth: 1.4, strokeDasharray: '4 3', opacity: c.day <= day ? 1 : 0.25 }} />`)}
+    ${RC.expl.map((v, i) => (v == null ? null : html`<line key=${'x' + i} x1=${X(i) - cw * 0.36} x2=${X(i) + cw * 0.36} y1=${Y(v)} y2=${Y(v)} style=${{ stroke: 'var(--ink)', strokeWidth: 2.5, strokeLinecap: 'round', opacity: i <= day ? 1 : 0.25, pointerEvents: 'none' }} />`))}
     <path d=${cumPath} style=${{ fill: 'none', stroke: 'var(--accent)', strokeWidth: 2, strokeLinejoin: 'round' }} />
     ${RC.cum.slice(0, day + 1).map((v, i) => html`<circle key=${'c' + i} cx=${X(i)} cy=${Y(v)} r=${i === day ? 4 : 2.5} style=${{ fill: 'var(--accent)' }} />`)}
-    ${R.days.map((d, i) => (i % every === 0 || i === day ? html`<text key=${'d' + i} x=${X(i)} y=${H - 10} textAnchor="middle" className="ax" style=${{ fontWeight: i === day ? 700 : 500 }}>${fmtDate(d.d, false)}</text>` : null))}
+    ${R.days.map((d, i) => (i === day || (i % every === 0 && Math.abs(i - day) >= every) ? html`<text key=${'d' + i} x=${X(i)} y=${H - 10} textAnchor="middle" className="ax" style=${{ fontWeight: i === day ? 700 : 500 }}>${fmtDate(d.d, false)}</text>` : null))}
   </svg></div>`;
 }
 
+// What the replay screen says about an event the engine couldn't price or measure on a given day.
+function replayGap(s, ev, d) {
+  if (s.status === 'open') return 'No reading of its jump yet';
+  if (!ev.listed) return REPLAY_SOURCE === 'engine' ? 'No market matched it' : 'No market yet';
+  return ev.listed > d ? 'No market until ' + fmtDate(ev.listed, false) : 'No price at that close';
+}
+
+const fmtCorr = v => (v == null ? '–' : (v < 0 ? MINUS : '') + Math.abs(v).toFixed(2));
+const fmtShare = v => (v == null ? '–' : (v < -0.005 ? MINUS : '') + Math.abs(Math.round(v * 100)) + '%');
+
+// "FRED (SP500, DGS10) and Massive (FXI)" from each factor's source, such as "Massive SMH vs Massive SPY".
+function replaySources(sources) {
+  const by = {};
+  Object.values(sources || {}).forEach(v => v.split(' vs ').forEach(x => { const [p, ...k] = x.split(' '); (by[p] = by[p] || []).includes(k.join(' ')) || by[p].push(k.join(' ')); }));
+  return Object.entries(by).map(([p, ks]) => p + ' (' + ks.join(', ') + ')').join(' and ') || 'FRED';
+}
+
+// The engine's own metrics on every factor, fixed before the first run (DESIGN.md section 10).
+function ReplayScore() {
+  const R = REPLAY, m = R.metrics;
+  if (!m) return null;
+  const ca = m.calls, ex = m.explained, byId = Object.fromEntries(R.events.map(e => [e.id, e]));
+  const fname = k => (FACTORS.find(f => f.k === k) || { name: k }).name;
+  const ratio = (ca.stocks || []).filter(x => x.ratio != null);
+  const per = Object.entries(ex.by_factor || {});
+  const share = fmtShare;
+  const tm = v => (v > 0 ? '+' : v < 0 ? MINUS : '') + Math.abs(v).toFixed(1);
+  const neg = per.some(([, v]) => v.explained_share != null && v.explained_share < 0);
+  return html`<section className="card"><div className="card-head"><div><span className="kicker">Every factor, not just this portfolio</span><h3 className="h3" style=${{ marginTop: 6 }}>The engine’s scorecard</h3>
+      <p className="sub">These measures were fixed before the first run. They count each factor’s moves in typical moves, so they don’t depend on the portfolio on the left.</p></div></div>
+    <div className="tiles">
+      <div className="tile"><span className="label">Calls, factor by factor</span><div className="tile-v">${ca.factor_signs_right} of ${ca.factor_signs}</div><div className="tile-s">factor moves on the days events resolved went the way the engine called the evening before</div></div>
+      <div className="tile"><span className="label">Daily moves explained</span><div className="tile-v">${share(ex.explained_share)}</div><div className="tile-s">of the squared daily moves over ${ex.cells} factor-days came from each event’s jump times that day’s odds change${ex.corr == null ? '' : ' · correlation ' + fmtCorr(ex.corr)}${ex.explained_share != null && ex.explained_share < 0 ? ' · below zero is worse than calling no move' : ''}</div></div>
+      <div className="tile"><span className="label">Big days</span><div className="tile-v">${ex.big_days_right} of ${ex.big_days}</div><div className="tile-s">factor-days that moved a typical move or more, where the explained move had the right sign</div></div>
+      <div className="tile"><span className="label">Stocks vs the call</span><div className="tile-v small">${ratio.length ? ratio.map(x => x.ratio.toFixed(1) + '×').join(' · ') : '–'}</div><div className="tile-s">${ratio.length ? 'how far stocks moved on each call day, as a multiple of the call (1× is exact): ' + ratio.map(x => (byId[x.event] || { s: x.event }).s).join(', ') : 'No call had a reading on stocks'}</div></div>
+    </div>
+    ${per.length > 0 && html`<div className="scroll-x" style=${{ marginTop: 16 }}><table className="calls"><thead><tr><th>Factor</th><th>Days</th><th>Explained</th><th>Correlation</th></tr></thead><tbody>
+      ${per.map(([k, v]) => html`<tr key=${k}><td>${fname(k)}</td><td className="n">${v.days}</td><td className="n">${share(v.explained_share)}</td><td className="n">${fmtCorr(v.corr)}</td></tr>`)}
+    </tbody></table></div>`}
+    ${neg && html`<p className="sub" style=${{ margin: '8px 0 0' }}>Explained below zero means the events’ moves fit that factor worse than calling no move at all.</p>`}
+    ${(m.ranking || []).length > 0 && html`<${Frag}><span className="label" style=${{ display: 'block', marginTop: 18 }}>The first evening’s ranking, by swing on stocks</span>
+      <ol className="rp-rank">${m.ranking.map(x => html`<li key=${x.event}><b>${(byId[x.event] || { s: x.event }).s}</b> at ${fmtOdds(x.q)}, ±${x.swing.toFixed(2)} typical moves. ${x.resolved_on ? 'Happened ' + fmtDate(x.resolved_on, false) + (x.stock_move_that_day == null ? '.' : ', and stocks moved ' + tm(x.stock_move_that_day) + ' typical moves that day.') : 'Didn’t happen during the episode.'}</li>`)}</ol><//>`}
+  </section>`;
+}
+
 function ReplayView({ P, tw }) {
-  const R = REPLAY, D = R.days.length, V = P.V;
+  const R = REPLAY, D = R.days.length, V = P.V, engine = REPLAY_SOURCE === 'engine';
   const RC = useMemo(() => replayCompute(P, tw.knock), [P, tw.knock]);
   const [day, setDay] = useState(0); const [play, setPlay] = useState(false);
   useEffect(() => {
@@ -253,48 +301,60 @@ function ReplayView({ P, tw }) {
     return () => clearInterval(id);
   }, [play]);
   const pick = i => { setPlay(false); setDay(i); };
+  const byId = Object.fromEntries(R.events.map(e => [e.id, e]));
   const resDays = new Set(RC.calls.map(c => c.day));
   const order = { open: 0, happened: 1, unlisted: 2 };
   const rows = RC.states[day].slice().sort((a, b) => order[a.status] - order[b.status] || (b.swing || 0) - (a.swing || 0));
-  const real = RC.real[day], cum = RC.cum[day];
-  const right = RC.calls.filter(c => verdictOf(c.pred, c.real)[0] !== 'bad').length;
-  const worst = RC.calls.slice().sort((a, b) => Math.abs(b.real - b.pred) - Math.abs(a.real - a.pred))[0];
+  const real = RC.real[day], cum = RC.cum[day], expl = RC.expl[day];
+  const called = RC.calls.filter(c => c.pred != null);
+  const right = called.filter(c => verdictOf(c.pred, c.real)[0] !== 'bad').length;
+  const worst = called.slice().sort((a, b) => Math.abs(b.real - b.pred) - Math.abs(a.real - a.pred))[0];
   const togglePlay = () => { if (!play && day >= D - 1) setDay(0); setPlay(!play); };
   let summary = '';
   if (worst) {
-    summary = 'For this portfolio the engine got the direction right ' + right + ' of ' + RC.calls.length + ' times. Its biggest miss was “' + worst.s + '”: it expected ' + fmtPct(worst.pred) + ' and the day brought ' + fmtPct(worst.real) + '. ';
+    summary = 'For this portfolio the engine got the direction right ' + right + ' of ' + called.length + ' times. Its biggest miss was “' + worst.s + '”: it expected ' + fmtPct(worst.pred) + ' and the day brought ' + fmtPct(worst.real) + '. ';
     summary += Math.abs(worst.real) > Math.abs(worst.pred)
       ? 'On stress days everything moves together more than usual, so exposures measured on normal days understate the hit. The design’s fix is a second set of exposures fitted on stress periods.'
       : 'Part of that move had already happened in the days before, as the odds rose.';
   }
+  const fit = RC.fit.share == null ? '' : 'Over the ' + D + ' days, the events’ jumps times their odds changes account for ' + fmtShare(RC.fit.share) + ' of this portfolio’s daily moves' + (RC.fit.corr == null ? '.' : ' (correlation ' + fmtCorr(RC.fit.corr) + ').') + (RC.fit.share < 0 ? ' Below zero means worse than calling no move at all.' : '');
   return html`<${Frag}>
     <section className="card" aria-labelledby="rp-h">
       <div className="card-head">
-        <div><span className="kicker">Historical replay · a resolved episode</span><h2 className="h2" id="rp-h" style=${{ marginTop: 6 }}>${R.title}</h2><p className="sub">${R.sub} Each day, the engine only sees the odds as of the previous close. Change the portfolio on the left and the replay updates.</p></div>
+        <div><span className="kicker">Historical replay · ${engine ? 'the engine on archived prices' : 'a resolved episode'}</span><h2 className="h2" id="rp-h" style=${{ marginTop: 6 }}>${R.title}</h2><p className="sub">${R.sub} Each day, the engine only sees the odds as of the previous close${engine ? ', and jumps measured on data up to that close' : ''}. Change the portfolio on the left and the replay updates.</p></div>
         <div className="rp-ctl"><button className="btn" onClick=${togglePlay}>${play ? 'Pause' : day >= D - 1 ? 'Replay' : 'Play'}</button></div>
       </div>
       <div className="rp-time"><div className="rp-days" role="group" aria-label="Trading days">${R.days.map((d, i) => html`<button key=${d.d} className=${cls('rp-day', i < day && 'past', i === day && 'on', resDays.has(i) && 'res')} aria-pressed=${i === day} onClick=${() => pick(i)}>${fmtDate(d.d, false)}</button>`)}</div></div>
-      <p className="rp-note"><span className="label">${fmtDate(R.days[day].d)}</span><b className=${tone(real)}>${fmtUsd(real * V / 100, true)} (${fmtPct(real)})</b><span>${R.days[day].note}</span><span className="sub" style=${{ margin: 0 }}>Running total ${fmtPct(cum)}</span></p>
+      <p className="rp-note"><span className="label">${fmtDate(R.days[day].d)}</span><b className=${tone(real)}>${fmtUsd(real * V / 100, true)} (${fmtPct(real)})</b>${R.days[day].note && html`<span>${R.days[day].note}</span>`}<span className="sub" style=${{ margin: 0 }}>${expl == null ? 'No event priced on both closes' : 'The events explain ' + fmtPct(expl)} · running total ${fmtPct(cum)}</span></p>
     </section>
     <div className="duo">
       <section className="card"><div className="card-head"><div><span className="kicker">Your portfolio, day by day</span><h3 className="h3" style=${{ marginTop: 6 }}>Moves against the engine’s calls</h3></div></div>
         <${ReplayChart} RC=${RC} day=${day} setDay=${pick} />
-        <div className="legend"><span><i className="sw" style=${{ background: 'var(--loss)', borderRadius: 2 }}></i>Your portfolio that day</span><span><i className="sw" style=${{ background: 'none', border: '1.5px dashed var(--ink)', borderRadius: 2 }}></i>The engine’s call the evening before</span><span><i className="ln"></i>Running total</span></div>
+        <div className="legend"><span><i className="sw" style=${{ background: 'var(--loss)', borderRadius: 2 }}></i>Your portfolio that day</span><span><i className="tick"></i>What the events explain: each jump times that day’s odds change</span><span><i className="sw" style=${{ background: 'none', border: '1.5px dashed var(--ink)', borderRadius: 2 }}></i>The engine’s call the evening before</span><span><i className="ln"></i>Running total</span></div>
+        ${fit && html`<p className="sub" style=${{ margin: '10px 0 0' }}>${fit}</p>`}
       </section>
       <section className="card"><div className="card-head"><div><span className="kicker">At the close of ${fmtDate(R.days[day].d, false)}</span><h3 className="h3" style=${{ marginTop: 6 }}>What the engine saw</h3></div></div>
-        <ul className="rp-list">${rows.map(s => html`<li key=${s.id} className=${s.status !== 'open' ? 'done' : ''}>
-          <span>${s.t}<small>${s.status === 'open' ? 'If it happens ' + fmtPct(s.ifYes) + ' · if not ' + fmtPct(s.ifNo) : s.status === 'happened' ? 'Happened ' + fmtDate(s.on, false) : 'No market yet'}</small></span>
+        <ul className="rp-list">${rows.map(s => { const live = s.status === 'open' && s.dT != null; return html`<li key=${s.id} className=${live ? '' : 'done'}>
+          <span>${s.t}<small>${live ? 'If it happens ' + fmtPct(s.ifYes) + ' · if not ' + fmtPct(s.ifNo) : s.status === 'happened' ? 'Happened ' + fmtDate(s.on, false) : replayGap(s, byId[s.id], R.days[day].d)}</small></span>
           <span className="mono" style=${{ textAlign: 'right' }}>${s.status === 'open' ? fmtOdds(s.q) : ''}</span>
-          <span className="cell">${s.status === 'open' ? swingUsd(s.swing * V / 100) : ''}${s.status === 'open' && html`<small>${swingPct(s.swing)}</small>`}</span></li>`)}</ul>
+          <span className="cell">${live ? swingUsd(s.swing * V / 100) : ''}${live && html`<small>${swingPct(s.swing)}</small>`}</span></li>`; })}</ul>
       </section>
     </div>
     <section className="card"><div className="card-head"><div><span className="kicker">Calls against outcomes</span><h3 className="h3" style=${{ marginTop: 6 }}>Did the engine get it right?</h3></div></div>
       <div className="scroll-x"><table className="calls"><thead><tr><th>Event</th><th>Resolved</th><th>Odds before</th><th>Engine said</th><th>The day</th><th>Verdict</th></tr></thead><tbody>
-        ${RC.calls.map(c => { const [k, mk, txt] = verdictOf(c.pred, c.real); return html`<tr key=${c.id}><td>${c.t}</td><td className="n">${fmtDate(c.date, false)}</td><td className="n">${fmtOdds(c.q)}</td><td className=${cls('n', tone(c.pred))}>${fmtPct(c.pred)}<br /><small>${fmtUsd(c.pred * V / 100, true)}</small></td><td className=${cls('n', tone(c.real))}>${fmtPct(c.real)}<br /><small>${fmtUsd(c.real * V / 100, true)}</small></td><td><span className=${'mk ' + k}>${mk}</span> ${txt}</td></tr>`; })}
+        ${RC.calls.map(c => { const [k, mk, txt] = verdictOf(c.pred, c.real), ev = byId[c.id]; return html`<tr key=${c.id}><td>${c.t}${engine && ev.from && html`<br /><small>${ev.url ? html`<a href=${ev.url} target="_blank" rel="noopener noreferrer">${ev.from}</a>` : ev.from}${ev.gran && ev.gran.length ? ' · ' + ev.gran.join(' and ') + ' prices' : ''}</small>`}</td><td className="n">${fmtDate(c.date, false)}</td><td className="n">${c.q == null ? '–' : fmtOdds(c.q)}</td>
+          ${c.pred == null ? html`<td><small>${c.why}</small></td>` : html`<td className=${cls('n', tone(c.pred))}>${fmtPct(c.pred)}<br /><small>${fmtUsd(c.pred * V / 100, true)}</small></td>`}
+          <td className=${cls('n', tone(c.real))}>${fmtPct(c.real)}<br /><small>${fmtUsd(c.real * V / 100, true)}</small></td><td style=${{ whiteSpace: 'nowrap' }}><span className=${'mk ' + k}>${mk}</span> ${txt}</td></tr>`; })}
       </tbody></table></div>
       ${summary && html`<p className="note">${summary}</p>`}
     </section>
-    <p className="sub" style=${{ maxWidth: '90ch' }}>Factor moves are approximate daily closes from April 2025. The odds paths are illustrative reconstructions, not archived prices. In the real system this test runs on every resolved event, and its results set how much each evidence source is trusted.</p>
+    ${engine && html`<${ReplayScore} />`}
+    ${engine ? html`<div className="sub" style=${{ maxWidth: '90ch' }}>
+        <p>How this replay was made: factor moves are daily closes from ${replaySources(R.sources)}. The odds are archived Polymarket and Kalshi prices at each 4 p.m. New York close, from markets the same judge as a refresh matched to each event, as of the evening before the first day. Each evening’s jumps come only from data up to that close: market windows over the previous ${R.lookback || 180} days, fused with each event’s historical analogs. This portfolio’s exposures are today’s, not April 2025’s. Run ${fmtStamp(R.asOf)}.</p>
+        <p>Left out: ${(R.leftOut || []).join(' ')}</p>
+        ${(R.warnings || []).length > 0 && html`<ul style=${{ margin: '6px 0 0', paddingLeft: 18 }}>${R.warnings.map(w => html`<li key=${w}>${w}</li>`)}</ul>`}
+      </div>`
+      : html`<p className="sub" style=${{ maxWidth: '90ch' }}>Factor moves are approximate daily closes from April 2025. The odds paths are illustrative reconstructions, not archived prices. In the real system this test runs on every resolved event, and its results set how much each evidence source is trusted.</p>`}
   <//>`;
 }
 
@@ -373,8 +433,8 @@ function Footer({ ds }) {
       ${ds !== 'live'
         ? html`<p>Everything here is illustrative: prices, odds, exposures, market matches and evidence readings are made up for the prototype, shaped like the real system’s inputs. Nothing here is investment advice.</p>`
         : EXPOSURES === 'live'
-          ? html`<p>Backend snapshot of ${fmtStamp(RK_LIVE.asOf)}: odds from Polymarket and Kalshi, prices and factor data from Massive and FRED${WEEKENDS ? ', weekend perp prices from Hyperliquid' : ''}, market matches judged by Claude, and jumps and exposures estimated by the engine. The April 2025 replay stays illustrative. Nothing here is investment advice.</p>`
-          : html`<p>Backend snapshot of ${fmtStamp(RK_LIVE.asOf)}: odds from Polymarket and Kalshi, factor data from ${UNMEASURED.length ? 'FRED' : 'Massive and FRED'}${WEEKENDS ? ', weekend perp prices from Hyperliquid' : ''}, market matches judged by Claude, and jumps estimated by the engine. The portfolios’ prices, holdings and exposures are illustrative, rescaled to the snapshot’s typical moves, and so is the April 2025 replay. Nothing here is investment advice.</p>`}
+          ? html`<p>Backend snapshot of ${fmtStamp(RK_LIVE.asOf)}: odds from Polymarket and Kalshi, prices and factor data from Massive and FRED${WEEKENDS ? ', weekend perp prices from Hyperliquid' : ''}, market matches judged by Claude, and jumps and exposures estimated by the engine. ${REPLAY_SOURCE === 'engine' ? 'The historical replay is the engine’s own run on archived market prices.' : 'The April 2025 replay stays illustrative.'} Nothing here is investment advice.</p>`
+          : html`<p>Backend snapshot of ${fmtStamp(RK_LIVE.asOf)}: odds from Polymarket and Kalshi, factor data from ${UNMEASURED.length ? 'FRED' : 'Massive and FRED'}${WEEKENDS ? ', weekend perp prices from Hyperliquid' : ''}, market matches judged by Claude, and jumps estimated by the engine. The portfolios’ prices, holdings and exposures are illustrative, rescaled to the snapshot’s typical moves${REPLAY_SOURCE === 'engine' ? '; the historical replay is the engine’s own run on archived market prices' : ', and so is the April 2025 replay'}. Nothing here is investment advice.</p>`}
     </div>
   </div></footer>`;
 }

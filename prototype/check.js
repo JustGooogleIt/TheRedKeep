@@ -1,7 +1,8 @@
 // Checks the prototype's math against the design doc. Run: node prototype/check.js [live.js]
 // With a live.js from `redkeep app`, it also runs the checks on the snapshot's events, and checks that the app reproduces
 // the backend engine's numbers for every portfolio the snapshot analyzed. A snapshot of events only keeps the
-// illustrative portfolios: their exposures per unit of each factor, and the April 2025 replay, must not change.
+// illustrative portfolios: their exposures per unit of each factor, and the April 2025 replay, must not change. A
+// snapshot that carries the engine's replay (`redkeep replay --write`) must show it, with the engine's numbers.
 'use strict';
 const fs = require('fs'), path = require('path'), vm = require('vm');
 
@@ -10,7 +11,7 @@ const livePath = process.argv[2];
 const M = vm.runInNewContext(
   (livePath ? fs.readFileSync(livePath, 'utf8') : '') + '\n' + src('data.js') + '\n' + src('model.js') + '\n' + src('dataset.js') +
   '\n;({ SAMPLES, FACTORS, analyzePortfolio, buildState, simulate, replayCompute, applyDataset, HAS_LIVE, LIVE_PORTFOLIOS,' +
-  ' LIVE: typeof RK_LIVE === "undefined" ? null : RK_LIVE })',
+  ' REPLAY, replaySource: () => REPLAY_SOURCE, LIVE: typeof RK_LIVE === "undefined" ? null : RK_LIVE })',
   { console },
 );
 
@@ -66,6 +67,7 @@ const perUnit = P => P.b.map((v, k) => v / M.FACTORS[k].typical);  // exposure p
 
 if (livePath) {
   check('live.js holds a backend snapshot', M.HAS_LIVE);
+  const engineReplay = !!(M.LIVE.replay && Array.isArray(M.LIVE.replay.days) && M.LIVE.replay.days.length);
   const before = Object.fromEntries(M.SAMPLES.map(s => { const P = analyze(s.id); return [s.id, { unit: perUnit(P), replay: M.replayCompute(P, true) }]; }));
   M.applyDataset('live');
   identities('snapshot · ');
@@ -75,9 +77,33 @@ if (livePath) {
     const P = analyze(s.id), was = before[s.id];
     const gap = Math.max(...perUnit(P).map((v, k) => Math.abs(v - was.unit[k])));
     check(s.id + ': illustrative exposures keep their size per unit of each factor', gap < 1e-12, gap.toExponential(1) + ' largest gap');
+    if (engineReplay) continue;
     const R = M.replayCompute(P, true);
     const rGap = Math.max(...R.real.map((v, i) => Math.abs(v - was.replay.real[i])), ...R.calls.map((c, i) => Math.abs(c.pred - was.replay.calls[i].pred)));
     check(s.id + ': the April 2025 replay is unchanged', rGap < 1e-9, rGap.toExponential(1) + ' largest gap, in % points');
+  }
+
+  // The engine's replay: on an arrow of one typical move of stocks, the app's explained moves and calls are the
+  // engine's on the stock factor (DESIGN.md section 10).
+  if (engineReplay) {
+    const R = M.REPLAY, EQ = M.FACTORS.findIndex(f => f.k === 'eq');
+    check('replay: the replay screen shows the engine\'s replay', M.replaySource() === 'engine' && R.days.length === M.LIVE.replay.days.length);
+    if (R.typical[EQ] == null) check('replay: the engine measured stocks', false, 'no typical move for stocks');
+    else {
+      const RC = M.replayCompute({ b: M.FACTORS.map((f, k) => (k === EQ ? f.typical / R.typical[EQ] : 0)) }, true);
+      let eGap = 0, n = 0, cGap = 0, m = 0;
+      R.check.explained.forEach((row, i) => { if (row[EQ] == null) return; eGap = Math.max(eGap, Math.abs((RC.expl[i] || 0) - row[EQ])); n++; });
+      R.check.calls.forEach(c => {
+        if (c.pred[EQ] == null) return;
+        const x = RC.calls.find(z => z.id === c.id);
+        cGap = Math.max(cGap, x && x.pred != null ? Math.abs(x.pred - c.pred[EQ]) : Infinity); m++;
+      });
+      check('replay: the explained stock moves match the engine', n > 0 && eGap < 1e-9, n + ' days, ' + eGap.toExponential(1) + ' largest gap, in typical moves');
+      check('replay: the calls on stocks match the engine', cGap < 1e-9, m + ' calls, ' + cGap.toExponential(1) + ' largest gap, in typical moves');
+      const real = RC.real.map((v, i) => (R.days[i].f[EQ] == null ? null : v));
+      const zGap = Math.max(0, ...real.map((v, i) => (v == null ? 0 : Math.abs(v - R.days[i].f[EQ] / R.typical[EQ]))));
+      check('replay: the days\' stock moves are the engine\'s, in its typical moves', zGap < 1e-9, zGap.toExponential(1) + ' largest gap');
+    }
   }
 
   // The engine's own portfolios: the app's model must reproduce the engine's numbers for each.

@@ -1,4 +1,4 @@
-"""Command line: ``redkeep check | refresh | analyze | calibrate | record | store | app | serve``."""
+"""Command line: ``redkeep check | refresh | analyze | calibrate | replay | record | store | app | serve``."""
 
 from __future__ import annotations
 
@@ -202,6 +202,61 @@ def cmd_calibrate(s: Settings, args) -> int:
     return 0
 
 
+def cmd_replay(s: Settings, args) -> int:
+    """Replay a past episode day by day on the markets' archived prices (DESIGN.md section 10, eval E8)."""
+    from .pipeline import make_clients, save
+    from .replay import load_episode, run, save as save_replay
+
+    ep = load_episode(args.episode)
+    rep = run(s, make_clients(s), ep)
+    print_replay(rep)
+    path = save(rep, s.out_dir, f"replay-{ep.name}")
+    print(f"\nSaved {path}")
+    if args.write:
+        print(f"Wrote {save_replay(rep)}: `redkeep app` puts this replay in the app")
+    return 0
+
+
+def print_replay(rep: dict) -> None:
+    eq = next(f for f in rep["factors"] if f["key"] == "eq")
+    typ = eq["typical"] or float("nan")
+    days = rep["days"]
+    print(f"\n{rep['title']}: {len(days)} trading days from {days[0]['d']} to {days[-1]['d']}, first evening {rep['base']}")
+    for w in rep["warnings"]:
+        print(f"  warning: {w}")
+    print("\nThe events and their markets:")
+    for e in rep["events"]:
+        src = e["odds"]["from"] or "no market"
+        gran = "/".join(e["odds"]["granularity"]) if e["odds"]["granularity"] else ""
+        print(f"  {e['s']:<20} {e['match']['kind']:<6} listed {e['listed'] or 'never':<10}  {src}" + (f" ({gran})" if gran else ""))
+
+    def pct(z):
+        return "    n/a" if z is None else f"{z * typ:+6.2f}%"
+
+    print("\nStocks (S&P 500) day by day: the day's move, and the engine's events times their odds changes")
+    for d in days:
+        print(f"  {d['d']}  {pct(d['z'][eq_i(rep)])} {pct(d['explained'][eq_i(rep)])}   {d['note'][:70]}")
+    print("\nCalls, from the evening before each event resolved (stocks):")
+    names = {e["id"]: e["s"] for e in rep["events"]}
+    for c in rep["calls"]:
+        if c["why"]:
+            print(f"  {names[c['event']]:<20} {c['date']}  {c['why']}")
+            continue
+        print(f"  {names[c['event']]:<20} {c['date']}  odds {c['q'] * 100:4.0f}%  expected {pct(c['pred'][eq_i(rep)])}  "
+              f"the day {pct(c['real'][eq_i(rep)])}")
+    m = rep["metrics"]
+    cl, ex = m["calls"], m["explained"]
+    share = "n/a" if ex["explained_share"] is None else f"{ex['explained_share'] * 100:.0f}%"
+    corr = "n/a" if ex["corr"] is None else f"{ex['corr']:.2f}"
+    print(f"\nE8: calls had the right sign on {cl['factor_signs_right']} of {cl['factor_signs']} factor moves. "
+          f"Explained moves account for {share} of the moves' sum of squares over {ex['cells']} day-factors "
+          f"(correlation {corr}), with the right sign on {ex['big_days_right']} of {ex['big_days']} big moves.")
+
+
+def eq_i(rep: dict) -> int:
+    return [f["key"] for f in rep["factors"]].index("eq")
+
+
 def cmd_record(s: Settings, args) -> int:
     """Bring the point-in-time store up to date (DESIGN.md milestone M1)."""
     from .pipeline import make_clients
@@ -245,14 +300,18 @@ def cmd_store(s: Settings, args) -> int:
 
 def cmd_app(s: Settings, args) -> int:
     from .appdata import export
+    from .replay import REPLAYS
 
     snap = json.loads(Path(args.snapshot or s.out_dir / "library-latest.json").read_text())
     analyses = [json.loads(Path(p).read_text()) for p in args.analysis]
+    rpath = Path(args.replay) if args.replay else REPLAYS / "tariffs-2025.json"
+    rep = None if args.no_replay or not rpath.exists() else json.loads(rpath.read_text())
     out = Path(args.out)
-    out.write_text(export(snap, analyses))
+    out.write_text(export(snap, analyses, rep))
     with_what = (f"{len(analyses)} portfolio analys{'is' if len(analyses) == 1 else 'es'}" if analyses else
                  "no portfolio analyses (the app keeps its illustrative portfolios and labels their exposures as such)")
-    print(f"Wrote {out}: {len(snap['events'])} events from the snapshot of {snap['as_of']}, {with_what}")
+    replay = f"the replay of {rep['title']} from {rpath}" if rep else "the illustrative replay"
+    print(f"Wrote {out}: {len(snap['events'])} events from the snapshot of {snap['as_of']}, {with_what}, and {replay}")
     return 0
 
 
@@ -283,6 +342,9 @@ def main(argv: list[str] | None = None) -> int:
     k.add_argument("--from", dest="from_file", metavar="FILE",
                    help="rerun on the prices an earlier run saved (out/calibration-obs-*.jsonl.gz), without fetching")
     k.add_argument("--write", action="store_true", help="save the slopes to data/calibration.json for the engine to use")
+    rp = sub.add_parser("replay", help="replay a past episode on archived prices (eval E8)")
+    rp.add_argument("--episode", default="tariffs-2025", help="an episode in data/episodes, or a .toml file")
+    rp.add_argument("--write", action="store_true", help="save it to data/replays for the app")
     from .data.hyperliquid import INTERVALS
 
     rc = sub.add_parser("record", help="add what's new to the point-in-time store: candles, quotes, odds, factor series")
@@ -300,6 +362,8 @@ def main(argv: list[str] | None = None) -> int:
     x.add_argument("--analysis", nargs="*", default=[], metavar="FILE",
                    help="analyses from `redkeep analyze`; without any, the app keeps its illustrative portfolios")
     x.add_argument("--out", required=True, help="where to write live.js")
+    x.add_argument("--replay", metavar="FILE", help="a replay from `redkeep replay` (default: data/replays/tariffs-2025.json)")
+    x.add_argument("--no-replay", action="store_true", help="leave the replay out; the app keeps its illustrative one")
     v = sub.add_parser("serve", help="run the API")
     v.add_argument("--host", default="127.0.0.1")
     v.add_argument("--port", type=int, default=8000)
@@ -307,7 +371,7 @@ def main(argv: list[str] | None = None) -> int:
     logging.basicConfig(level=logging.INFO if args.verbose else logging.WARNING, format="%(levelname)s %(name)s: %(message)s")
     s = Settings.from_env()
     return {"check": cmd_check, "refresh": cmd_refresh, "analyze": cmd_analyze, "calibrate": cmd_calibrate,
-            "record": cmd_record, "store": cmd_store, "app": cmd_app, "serve": cmd_serve}[args.cmd](s, args)
+            "replay": cmd_replay, "record": cmd_record, "store": cmd_store, "app": cmd_app, "serve": cmd_serve}[args.cmd](s, args)
 
 
 if __name__ == "__main__":

@@ -348,6 +348,39 @@ def test_the_app_takes_the_events_alone(keyless, tmp_path):
     assert out.stdout.count("snapshot · ") == 6 * 5 and "matches the engine" not in out.stdout
 
 
+def test_the_app_shows_the_engines_replay(keyless, tmp_path):
+    """A replay from ``redkeep replay`` takes the place of the illustrative one, and the app's own math, run in Node,
+    gives the engine's explained moves and calls on stocks, knock-ons included (DESIGN.md section 10)."""
+    from redkeep import replay
+
+    from . import test_replay as tr
+
+    _, snap = keyless
+    ep = replay.load_episode(tr.episode_path(tmp_path))
+    rep = replay.run(Settings(cache_dir=tmp_path / "c"), tr.clients(*tr.build_world(linked=True)), ep,
+                     progress=lambda _: None)
+    call = next(c for c in rep["calls"] if c["event"] == "universal")
+    (ln,) = rep["links"]
+    assert ln["status"][call["day"]] == "confirmed"  # so the call carries a knock-on through the recession
+    data = build(snap, [], rep)
+    R = data["replay"]
+    assert R["title"] == "A synthetic episode" and len(R["days"]) == 10 and R["lookback"] == 180
+    assert [e["id"] for e in R["events"]] == ["universal", "china", "recession", "pause"]
+    assert R["missing"] == ["china", "chips", "gold"] and R["sources"]["eq"] == "FRED SP500"
+    assert len(R["events"][0]["dd"]) == 11 and R["links"][0]["w"][call["day"]] is not None
+    assert build(snap, [])["replay"] is None
+
+    node = shutil.which("node")
+    if not node:
+        pytest.skip("Node isn't installed")
+    live = tmp_path / "live.js"
+    live.write_text(export(snap, [], rep))
+    out = subprocess.run([node, str(CHECK_JS), str(live)], capture_output=True, text=True, timeout=120)
+    assert out.returncode == 0, out.stdout + out.stderr
+    assert "the April 2025 replay is unchanged" not in out.stdout
+    assert out.stdout.count("ok    replay: ") == 4
+
+
 
 # The Fed hike's planted jump, in typical moves, and the series that carry it. SMH moves with SPY, so chips don't.
 HIKE = {"eq": -3.0, "rates": 3.0, "usd": 2.0, "oil": -1.5, "gold": -2.5}

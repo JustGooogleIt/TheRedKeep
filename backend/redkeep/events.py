@@ -65,24 +65,31 @@ class Library:
         return {e.id: e for e in self.events}
 
 
-def load_library(path: Path | None = None) -> Library:
-    raw = tomllib.loads((path or DATA_DIR / "events.toml").read_text())
-    events = []
-    for i, e in enumerate(raw.get("event", [])):
-        analogs = tuple(Analog(a["date"], int(a.get("days", 1)), float(a.get("surprise", 1.0)), a.get("note", ""))
-                        for a in e.get("analogs", []))
-        events.append(EventSpec(
-            id=e["id"], title=e["title"], short=e.get("short", e["title"]), category=e.get("category", ""),
-            question=e["question"], resolves=e["resolves"], deadline=e.get("deadline", e["resolves"]),
-            source=e.get("source", ""), search=tuple(e.get("search", [])), why=e.get("why", ""),
-            threshold=e.get("threshold"), threshold_unit=e.get("threshold_unit"), direction=e.get("direction"),
-            analogs=analogs, order=i,
-        ))
-    ids = {e.id for e in events}
-    if len(ids) != len(events):
-        raise ValueError("duplicate event ids in the library")
-    links = [LinkSpec(l["parent"], l["child"], float(l["w"]), l.get("reason", "")) for l in raw.get("link", [])]
+def parse_event(e: dict, order: int = 0) -> EventSpec:
+    """One ``[[event]]`` table of a library or an episode file."""
+    analogs = tuple(Analog(a["date"], int(a.get("days", 1)), float(a.get("surprise", 1.0)), a.get("note", ""))
+                    for a in e.get("analogs", []))
+    return EventSpec(
+        id=e["id"], title=e["title"], short=e.get("short", e["title"]), category=e.get("category", ""),
+        question=e["question"], resolves=e["resolves"], deadline=e.get("deadline", e["resolves"]),
+        source=e.get("source", ""), search=tuple(e.get("search", [])), why=e.get("why", ""),
+        threshold=e.get("threshold"), threshold_unit=e.get("threshold_unit"), direction=e.get("direction"),
+        analogs=analogs, order=order,
+    )
+
+
+def parse_links(raw: list[dict], ids: set[str]) -> list[LinkSpec]:
+    links = [LinkSpec(l["parent"], l["child"], float(l["w"]), l.get("reason", "")) for l in raw]
     for ln in links:
         if ln.parent not in ids or ln.child not in ids:
             raise ValueError(f"link {ln.parent} -> {ln.child} names an unknown event")
-    return Library(events, links)
+    return links
+
+
+def load_library(path: Path | None = None) -> Library:
+    raw = tomllib.loads((path or DATA_DIR / "events.toml").read_text())
+    events = [parse_event(e, i) for i, e in enumerate(raw.get("event", []))]
+    ids = {e.id for e in events}
+    if len(ids) != len(events):
+        raise ValueError("duplicate event ids in the library")
+    return Library(events, parse_links(raw.get("link", []), ids))

@@ -275,33 +275,73 @@ function oddsHistory(e, n = 120) {
   return out;
 }
 
-/* ---------- Historical replay (E8): engine's calls vs what happened ---------- */
+/* ---------- Historical replay (E8): engine's calls vs what happened ----------
+   REPLAY comes in two shapes. The illustrative one has one jump per event (d) and fixed links. The engine's
+   (`redkeep replay`) re-estimates each jump every evening (dd: index 0 is the evening before the first day, index
+   i + 1 the close of day i), adds the odds at the close before the first day (q0), gives each link the weight the
+   data set that evening (w per evening, null when the data didn't confirm it), and has no moves (null) on factors it
+   had no prices for. An event's odds q[i] are at the close of day i, null before a market listed it. */
 function replayCompute(P, knock) {
   const R = REPLAY; const D = R.days.length;
-  const real = R.days.map(day => day.f.reduce((s, f, k) => s + P.b[k] * f / FACTORS[k].typical, 0));
-  const links = knock ? R.links : [];
-  const qAt = (e, i) => (e.res != null && i >= e.res) ? null : (e.q[i] == null ? null : e.q[i]);
+  const real = R.days.map(day => day.f.reduce((s, f, k) => s + (f == null ? 0 : P.b[k] * f / FACTORS[k].typical), 0));
   // The replay's jumps are in its own typical moves, and a backend snapshot brings others: put the arrow in the replay's.
-  const bR = P.b.map((v, k) => v * R.typical[k] / FACTORS[k].typical);
-  const direct = Object.fromEntries(R.events.map(e => [e.id, dot(bR, e.d)]));
-  const dTotalAt = (id, i, seen = new Set()) => {
-    if (seen.has(id)) return 0; seen.add(id);
-    let s = direct[id];
-    links.forEach(([p, c, w]) => { if (p !== id) return; const ce = R.events.find(z => z.id === c); if (qAt(ce, i) == null) return; s += w * dTotalAt(c, i, seen); });
-    return s;
+  const bR = P.b.map((v, k) => (R.typical[k] == null ? 0 : v * R.typical[k] / FACTORS[k].typical));
+  const done = (e, i) => e.res != null && i >= e.res;  // resolved by the close of day i
+  const qEve = (e, k) => (k === 0 ? (e.q0 == null ? null : e.q0) : done(e, k - 1) || e.q[k - 1] == null ? null : e.q[k - 1]);
+  const qAfter = (e, i) => (done(e, i) ? e.out : e.q[i] == null ? null : e.q[i]);  // the close of day i, resolutions included
+  const jumpAt = (e, k) => { const d = e.dd ? e.dd[k] : e.d; return d ? dot(bR, d.map(x => (x == null ? 0 : x))) : null; };
+  const linksAt = k => (knock ? (R.links || []).map(l => (Array.isArray(l) ? l : [l.p, l.c, l.w[k]])).filter(l => l[2] != null) : []);
+  // At evening k: each event's jump on this portfolio, plus the knock-ons through its links to events still open (4.4),
+  // along every path that doesn't revisit an event (the backend's total_jump does the same).
+  const totals = k => {
+    const L = linksAt(k);
+    const tot = (id, path) => {
+      const e = R.events.find(z => z.id === id); let s = jumpAt(e, k);
+      if (s == null) return null;
+      const on = new Set(path).add(id);
+      L.forEach(([p, c, w]) => {
+        if (p !== id || on.has(c)) return;
+        const ce = R.events.find(z => z.id === c), qc = ce ? qEve(ce, k) : null;
+        if (qc == null || qc >= 1) return;
+        const t = tot(c, on); if (t != null) s += w * t;
+      });
+      return s;
+    };
+    return id => tot(id, []);
   };
-  const states = R.days.map((day, i) => R.events.map(e => {
-    const resolved = e.res != null && i >= e.res; const q = qAt(e, i);
-    if (resolved) return { id: e.id, t: e.t, s: e.s, status: 'happened', on: R.days[e.res].d };
+  const states = R.days.map((day, i) => { const tot = totals(i + 1); return R.events.map(e => {
+    if (done(e, i)) return { id: e.id, t: e.t, s: e.s, status: 'happened', on: R.days[e.res].d };
+    const q = qEve(e, i + 1);
     if (q == null) return { id: e.id, t: e.t, s: e.s, status: 'unlisted' };
-    const dT = dTotalAt(e.id, i);
+    const dT = tot(e.id);
+    if (dT == null) return { id: e.id, t: e.t, s: e.s, status: 'open', q, dT: null };
     return { id: e.id, t: e.t, s: e.s, status: 'open', q, dT, ifYes: (1 - q) * dT, ifNo: -q * dT, swing: Math.abs(dT) * Math.sqrt(q * (1 - q)) };
-  }));
+  }); });
   const calls = R.events.filter(e => e.res != null).map(e => {
-    const i = e.res - 1; const q = qAt(e, i); const dT = dTotalAt(e.id, i);
-    const pred = e.out ? (1 - q) * dT : -q * dT;
-    return { id: e.id, t: e.t, s: e.s, day: e.res, date: R.days[e.res].d, q, dT, pred, real: real[e.res] };
+    const q = qEve(e, e.res), dT = totals(e.res)(e.id);
+    const pred = q == null || dT == null ? null : e.out ? (1 - q) * dT : -q * dT;
+    const why = q == null ? 'No market priced it the evening before' : dT == null ? 'No reading of its jump yet' : '';
+    return { id: e.id, t: e.t, s: e.s, day: e.res, date: R.days[e.res].d, q, dT, pred, real: real[e.res], why };
   });
+  // Every day: each event's own jump that evening times its odds change to the next close (Σ δ · Δq, section 10 of the
+  // design). Knock-ons stay out, since the odds of the events they move are in the sum themselves. Null on a day when
+  // no event had a jump and odds at both closes.
+  const expl = R.days.map((day, i) => R.events.reduce((s, e) => {
+    const a = qEve(e, i), b = qAfter(e, i), d = jumpAt(e, i);
+    return a == null || b == null || d == null ? s : (s || 0) + d * (b - a);
+  }, null));
+  // How much of this portfolio's daily moves the events explain: 1 − Σ(real − explained)² / Σ real², where a day with
+  // nothing to explain it counts as explaining nothing.
+  const x = expl.map(v => v || 0), ss = real.reduce((s, r) => s + r * r, 0);
+  const fit = { share: ss > 0 ? 1 - real.reduce((s, r, i) => s + (r - x[i]) ** 2, 0) / ss : null, corr: pearson(x, real) };
   const cum = []; let c = 1; real.forEach(r => { c *= 1 + r / 100; cum.push((c - 1) * 100); });
-  return { real, cum, states, calls };
+  return { real, cum, states, calls, expl, fit };
+}
+
+function pearson(x, y) {
+  const n = x.length; if (n < 3) return null;
+  const mx = x.reduce((s, v) => s + v, 0) / n, my = y.reduce((s, v) => s + v, 0) / n;
+  let sxy = 0, sxx = 0, syy = 0;
+  x.forEach((v, i) => { sxy += (v - mx) * (y[i] - my); sxx += (v - mx) ** 2; syy += (y[i] - my) ** 2; });
+  return sxx > 0 && syy > 0 ? sxy / Math.sqrt(sxx * syy) : null;
 }

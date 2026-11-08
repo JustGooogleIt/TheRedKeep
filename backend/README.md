@@ -47,18 +47,22 @@ uv run redkeep analyze --holdings "VTI:300000, TLT:400000, NVDA:120sh"
 uv run redkeep analyze --sample qqq --what-if tariffs-china=yes --horizon 12
 uv run redkeep calibrate --write                       # the long-shot study on resolved markets (E2); --write saves data/calibration.json
 uv run redkeep calibrate --from out/calibration-obs-<time>.jsonl.gz   # rerun the study on saved prices, without fetching
+uv run redkeep replay --write                          # the April 2025 replay on archived prices (E8); --write saves data/replays/tariffs-2025.json
 uv run redkeep record                                  # add what's new to the point-in-time store; run it hourly
 uv run redkeep record --interval 1h --interval 15m     # finer candles too (the API keeps 5,000 of each: 52 days at 15m)
 uv run redkeep store                                   # what the store holds; --compact merges its segments
 uv run redkeep app --analysis out/analysis-allweather-latest.json out/analysis-qqq-latest.json \
                    --out ../prototype/src/live.js      # then: python3 ../prototype/build.py
 uv run redkeep app --out ../prototype/src/live.js      # events only: the prototype keeps its illustrative portfolios
+                                                       # app adds data/replays/tariffs-2025.json when it exists (--replay FILE, --no-replay)
 uv run redkeep serve                                   # the API on http://127.0.0.1:8000 (docs at /docs)
 ```
 
 The API serves the latest snapshot (`GET /events`, `GET /events/{id}`, either with `?as_of=` for an older one) and analyzes portfolios against it (`POST /portfolio/analyze` with holdings, an optional horizon and what-ifs).
 
 `calibrate` saves the full report (`out/calibration-<time>.json`: slopes, scores, and reliability tables overall, by venue and by category) and the prices behind it (`out/calibration-obs-<time>.jsonl.gz`). Resolved markets and their price histories don't change, so they stay cached and a rerun is quick.
+
+`replay` reruns the engine on a past episode as it stood each evening (`data/episodes/tariffs-2025.toml`: the days, the events with the time each happened, their analogs and proposed links). It finds the markets listed then (closed and still-open Polymarket events under the episode's tags, settled Kalshi markets from the archive), has the judge match them as of the evening before the first day, reads their archived prices at each 4 p.m. New York close, and re-estimates every jump each evening from data up to that close. It prints each day's stock move against what the events explain, each call against its day, and the metrics fixed before the first run (section 10 of the design), and saves the whole run to `out/replay-<episode>-<time>.json`. With `--write` it also saves `data/replays/<episode>.json`, which `app` passes to the prototype's replay screen in place of the illustrative one; `check.js` then confirms that the app's own math gives the engine's numbers.
 
 `refresh` takes a few minutes the first time and caches every HTTP response and every Claude call under `.cache/`, so a rerun is quick and returns the same matches. Each Claude call is saved with its request and response under `.cache/ai/`, so any match or prior can be traced to the call that produced it.
 
@@ -98,6 +102,7 @@ Run `record` from cron on a machine that stays up, hourly, with a daily `redkeep
 | Coherence | `engine/coherence.py`: each event's related prices are checked against the rules of probability. Ladders must rise or fall in order, markets that imply the event (or that it implies) bound its odds, and mutually exclusive outcomes add up to at most 100%, each within the quotes' half-spreads plus a point. A contradiction the event's odds rest on makes it tier B. A confirmed link's slope is capped where it would push either conditional probability below 0 or above 1 | 6.6 |
 | Exposures | Weighted ridge regression of each holding's daily returns on the ten factors over two years (recent days count more), fit tested out of sample on the last six months; look-through via ETF Global holdings | 6.1 |
 | Impact | `Δ = b · δ`, knock-ons through the graph, priced-in moves `(1 − q)Δ` and `−qΔ`, swing `|Δ|√(q(1 − q))`, and a seeded 20,000-run simulation over the event graph | 4.1 to 4.4, 4.7 |
+| Historical replay | `redkeep replay`: one episode, evening by evening, on archived prices. An event counts only once a market priced it; jumps come from jump windows on the 180 days before each close and the episode's analogs; links need the data's agreement on those days. Calls are `(1 − q)·δ_total` from the evening before; each day's explained move is `Σ δ·Δq`. Left out: the AI prior (it knows how April 2025 ended), Hyperliquid (its perps didn't trade yet) and options (M6). Metrics: the call's sign on every factor with a reading, stocks' move as a multiple of the call, the share of daily factor moves explained (`1 − Σ(real − explained)² / Σ real²`) with the correlation and the big days' signs, and the first evening's ranking by swing | 10, E8 |
 | Calibration | `redkeep calibrate`: resolved yes/no markets since January 2025 from both venues (the busiest closed Polymarket events each month under five tags; settled Kalshi markets of series in the matching categories; no sports, crypto, daily series or thin markets), sampled evenly by a hash of their ids and priced 1, 7, 30, 90 and 180 days before their deadlines while still trading. One slope in log-odds per horizon, fitted on the earliest 70% by close date and kept only if it lowers the log loss on the rest across the whole 95% range of the gain; calibrated odds `p̂` sit beside market odds in every snapshot | 6.4, E2 |
 
 ## Not yet, and why it matters
@@ -105,6 +110,7 @@ Run `record` from cron on a machine that stays up, hourly, with a daily `redkeep
 - **A second market reading on three factors only.** Hyperliquid's weekend windows give a second reading on stocks, oil and gold, so an event can reach tier A once its odds have moved sharply on at least two weekends in the last 180 days and the two readings agree. Options (event-day volatility and the two-world fit, milestone M6) add a reading on every factor. The NVIDIA perp (chips), the dollar and rates perps, and holidays are left out for now.
 - **Hourly candles go back about 208 days.** Hyperliquid keeps only the latest 5,000 candles of each interval. `redkeep record` keeps them for good, but only from the day it is first scheduled.
 - **Daily windows, not 30-minute ones.** A day holds other news, so the error bars are wider than the design's intraday windows would give. They carry through fusion honestly.
+- **One replayed episode, and part of it without Massive.** Without the Massive key the replay leaves out China, chips and gold and says so. FRED's S&P 500 covers ten years and its high-yield spread three, so the factor data reaches the 2018 and 2019 analogs only partly. Polymarket's daily prices are stamped at midnight UTC, after the close, so an event with daily prices only reads its odds most of a day late; the replay warns where that happens and prefers hourly prices.
 - **Ten hand-picked events.** The funnel that screens every market (Laya taught by Claude, M4) replaces the hand-written library.
 - **No reliable long-shot bias yet.** The first study (November 8, 2026, on 2,907 resolved markets) fitted slopes from 1.01 to 1.33, but none beat raw prices reliably on later markets, so `data/calibration.json` keeps every horizon at market odds. Rerunning `redkeep calibrate --write` as markets resolve will pick up a bias once the data supports it. The study scores each venue and category separately as a check, but one slope per horizon serves them all for now.
 - **Fund-level exposures.** A fund's arrow comes from its own returns; per-holding regressions come next and give the same arrow for an unchanged fund.
@@ -115,7 +121,7 @@ Run `record` from cron on a machine that stays up, hourly, with a daily `redkeep
 
 ```
 backend/
-├── data/              events.toml (the event library), portfolios.toml (sample portfolios)
+├── data/              events.toml (the event library), portfolios.toml (sample portfolios), episodes/ and replays/ (E8)
 ├── redkeep/
 │   ├── data/          polymarket.py, kalshi.py, fred.py, massive.py, hyperliquid.py
 │   ├── matching/      retrieve.py, judge.py, ladders.py, decide.py
@@ -124,6 +130,7 @@ backend/
 │   ├── store.py       the point-in-time store; record.py keeps it current
 │   ├── factors.py, factordata.py, exposure.py
 │   ├── pipeline.py    refresh and analyze
+│   ├── replay.py      the historical replay (E8)
 │   ├── appdata.py     the export for the prototype
 │   └── api.py, cli.py
 └── tests/             fixtures copied from live responses, synthetic prices, and the offline end-to-end run

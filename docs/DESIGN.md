@@ -521,6 +521,15 @@ Ground rules: time-based splits only (fit on the past, test on the future), poin
 
 **What the first run found.** On November 8, 2026 the study read 1,423 Kalshi and 1,484 Polymarket markets that closed between January 2025 and November 2026 (1,543 events, 6,631 prices). The fitted slopes ran from 1.01 at one day out to 1.33 at 180 days, so long shots did look overpriced, most of all far from the deadline. But no horizon's correction beat raw prices reliably on the later markets: every gain's 95% range includes zero, and at 7 and 30 days the correction did slightly worse. The engine therefore keeps market odds (`p̂ = q`) for now. This supports the assumption that liquid markets are reasonably calibrated ([section 13](#13-assumptions-and-limitations)). Reruns as more markets resolve will show whether the bias firms up.
 
+**How E8 runs.** `redkeep replay` reruns the engine on a past episode as it stood each evening. An episode file (`backend/data/episodes/tariffs-2025.toml`) lists the trading days, the events with the time each happened, their analogs and the proposed links. The catalogue is the markets listed during the episode: closed and still-open Polymarket events under the episode's tags, and settled Kalshi markets from the venue's archive, each kept only if it was listed by the last day and still trading on the first evening. The judge matches each event as of that first evening, seeing each candidate's price at its first close. The odds are the matched markets' archived prices at each 4 p.m. New York close (hourly where the venue serves them; a price more than four days old doesn't count), and an event counts only from the first close a market priced it. Each evening the engine re-estimates every jump from the jump windows of the 180 days up to that close and the event's analogs, fused as in [6.4](#64-evidence), and uses a proposed link only if those days' odds agree (t ≥ 2). Typical moves are fixed as of the first evening. The calls are `(1 − q)·δ_total` from the evening before each event happened, with knock-ons through confirmed links to events still open. Each day's explained move is `Σ δ·Δq`: each event's own jump times its odds change to the next close. Three sources are left out: the AI prior, because the model knows how the episode ended; Hyperliquid's weekend windows, because the perps didn't trade yet; and options, until M6. The AI-only baseline therefore runs forward in time, as E9. The metrics, fixed before the first run:
+
+- the sign of each call on every factor with a reading;
+- stocks' move on each call day as a multiple of the call;
+- the share of the daily factor moves (in typical moves) that the events explain, `1 − Σ(real − explained)² / Σ real²`, with the correlation, and the sign on days that moved a typical move or more;
+- the first evening's ranking of the open events by swing on stocks, beside the moves that followed.
+
+The app's replay screen shows the saved run for whatever portfolio is open, and `check.js` confirms that its numbers are the engine's on stocks. A test reruns a synthetic episode with every price after one day reshuffled and checks that no evening up to that day changes.
+
 **Ground truth for jumps.** When a market resolves, its odds jump to 0 or 1, so the realized jump is the factor move in the resolution window divided by the odds change (`1 − q` or `−q`). The same data sets each source's weight (6.5): weights are fitted on an earlier period and evaluated on a later one, so the evals stay honest.
 
 ---
@@ -605,7 +614,8 @@ TheRedKeep/
 │   ├── build.py               # writes index.html
 │   └── check.js               # checks the prototype's math against the doc, and against the backend's numbers
 ├── backend/                   # built so far: the M3 slice (see its README)
-│   ├── data/                  # events.toml (the event library), portfolios.toml (samples), calibration.json (E2's slopes)
+│   ├── data/                  # events.toml (the event library), portfolios.toml (samples), calibration.json (E2's slopes),
+│   │                          # episodes/ and replays/ (E8's episodes and saved runs)
 │   ├── redkeep/
 │   │   ├── data/              # polymarket.py, kalshi.py, fred.py, massive.py, hyperliquid.py; next: options
 │   │   ├── matching/          # retrieve.py, judge.py, ladders.py, decide.py
@@ -614,6 +624,7 @@ TheRedKeep/
 │   │   ├── store.py           # the point-in-time store (DuckDB over Parquet); record.py keeps it current
 │   │   ├── exposure.py        # look-through, regressions and fit
 │   │   ├── pipeline.py        # refresh (the shared library) and analyze (per portfolio)
+│   │   ├── replay.py          # the historical replay (E8)
 │   │   └── api.py, cli.py     # FastAPI routes and the `redkeep` command
 │   └── tests/
 │   # planned: events/ (the funnel and Laya), graph/ (learned links), hedging/, jobs/ (backtests, scheduled reruns of E2)
@@ -646,6 +657,8 @@ Build a thin vertical slice first, then widen it.
 **Coherence checks (M7)** are built: every refresh checks each event's related prices against the rules in [6.6](#66-event-graph) and records the checks and any violations in the snapshot. Odds that related markets contradict make the event tier B, and a link's measured weight is capped where today's odds can't take it. The app's event drawer shows the verdict under the matched market, and a capped link's note under its knock-on effect.
 
 **Calibration (E2)** is built and has run: `redkeep calibrate` collects resolved markets from both venues, runs the study and, with `--write`, saves the result to `backend/data/calibration.json`. The first run, on 2,907 markets, found no correction that reliably beats market odds, so calibrated odds equal market odds for now ([section 10](#10-how-we-prove-it-works)). Every snapshot carries the study's size and date, and the prototype says what it found.
+
+**The historical replay (E8)** is built ([section 10](#10-how-we-prove-it-works)): `redkeep replay --write` reruns the engine on April 2025 evening by evening, on archived prices, and saves the run. `redkeep app` passes it to the prototype, whose replay screen then shows the engine's calls, what the events explain each day for the open portfolio, and the scorecard; without a saved run the screen keeps its illustrative episode and says so. It is tested offline on a synthetic episode with planted jumps.
 
 **Point-in-time storage (M1)** is built ([section 11](#11-data-sources)): the data clients record every market list, odds history, candle, close and holdings file they read, so each run adds to the store. `redkeep record` keeps it current between runs, for example hourly. It adds Hyperliquid candles for every trade[XYZ] perp from the last one stored, both venues' catalogues with their quotes, the matched markets' odds and the factor series. Older candles than the API keeps, and past quotes, exist only in the store. The store runs wherever the backend runs, so it records from the day it is first scheduled on a machine that stays up.
 

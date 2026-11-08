@@ -15,7 +15,12 @@ const LIVE_PORTFOLIOS = HAS_LIVE && RK_LIVE.exposures !== 'illustrative' && Arra
 const DEMO = {
   today: TODAY, factors: FACTORS.map(f => ({ typical: f.typical, proxy: f.proxy })),
   tickers: { ...TICKERS }, names: { ...NAMES }, samples: SAMPLES.slice(), events: EVENTS.slice(), links: LINKS.slice(),
+  replay: { ...REPLAY },
 };
+// The engine's replay of a past episode (`redkeep replay --write`, then `redkeep app`), when the snapshot carries one.
+const LIVE_REPLAY = HAS_LIVE && RK_LIVE.replay && Array.isArray(RK_LIVE.replay.days) && RK_LIVE.replay.days.length > 0
+  ? RK_LIVE.replay : null;
+let REPLAY_SOURCE = 'demo'; // 'engine' when the replay screen shows the engine's replay on archived prices
 let DATASET = 'demo';    // where the events come from: 'demo' or 'live'
 let EXPOSURES = 'demo';  // where the portfolios, prices and exposures come from
 let UNMEASURED = [];     // factors the snapshot has no price data on, so no typical move of their own
@@ -47,6 +52,8 @@ function applyDataset(id) {
   refill(SAMPLES, LP ? LP.samples : DEMO.samples);
   refill(EVENTS, L ? L.events : DEMO.events);
   refill(LINKS, L ? L.links : DEMO.links);
+  refill(REPLAY, L && LIVE_REPLAY ? LIVE_REPLAY : DEMO.replay);
+  REPLAY_SOURCE = L && LIVE_REPLAY ? 'engine' : 'demo';
   DATASET = L ? 'live' : 'demo';
   EXPOSURES = LP ? 'live' : 'demo';
   CALIBRATION = L && L.calibration && L.calibration.markets > 0 ? L.calibration : null;
