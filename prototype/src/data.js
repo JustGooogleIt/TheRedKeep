@@ -4,7 +4,7 @@
    Event vectors are in "typical moves" of each factor if the event happens.
    Factor order: eq, rates, infl, usd, oil, credit, vix, china, chips, gold
    ========================================================================== */
-const TODAY = '2026-11-08';
+let TODAY = '2026-11-08'; // a backend snapshot replaces this and the data below (dataset.js)
 
 const FACTORS = [
   { k: 'eq',     name: 'US stocks',              short: 'Stocks',    proxy: 'SPY',          unit: '%',   typical: 2.2, up: 'stocks up' },
@@ -404,3 +404,5 @@ const REPLAY = {
   links: [['r_recip', 'r_retal', 0.45], ['r_recip', 'r_recess', 0.25], ['r_retal', 'r_recess', 0.10],
           ['r_recip', 'r_pause', 0.10], ['r_pause', 'r_recess', -0.15], ['r_recip', 'r_fed', 0.10]],
 };
+// The replay's jumps (d) are in these typical moves, kept here before a backend snapshot brings its own.
+REPLAY.typical = FACTORS.map(f => f.typical);

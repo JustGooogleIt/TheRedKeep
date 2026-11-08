@@ -1,7 +1,7 @@
 /* ==========================================================================
    UI · Part 3: the event card, historical replay, tweaks, and the app shell.
    ========================================================================== */
-const REL = { same: 'Same event', implies: 'Stricter market · lower bound', ladder: 'Ladder of deadlines' };
+const REL = { same: 'Same event', sum: 'Sum of outcomes', implies: 'Stricter market · lower bound', ladder: 'Ladder', bound: 'Bounded by related markets' };
 
 function SplitBar({ dT, q }) {
   const ref = useRef(null);
@@ -16,16 +16,16 @@ function SplitBar({ dT, q }) {
   </svg></div>`;
 }
 
-function Spark({ h, now }) {
+function Spark({ h, now, from }) {
   const ref = useRef(null);
   const W = Math.max(280, useWidth(ref, 520)), H = 72, n = h.length; const lo = Math.min(...h, now), hi = Math.max(...h, now); const pad = Math.max(0.01, (hi - lo) * 0.15);
   const X = i => 6 + i / (n - 1) * (W - 12); const Y = v => 6 + (1 - (v - lo + pad) / (hi - lo + 2 * pad)) * (H - 28);
   const d = h.map((v, i) => (i ? 'L' : 'M') + X(i).toFixed(1) + ',' + Y(i === n - 1 ? now : v).toFixed(1)).join('');
-  return html`<div className="spark" ref=${ref}><svg viewBox=${'0 0 ' + W + ' ' + H} role="img" aria-label=${'Odds over the last 120 days, from ' + fmtOdds(h[0]) + ' to ' + fmtOdds(now)}>
+  return html`<div className="spark" ref=${ref}><svg viewBox=${'0 0 ' + W + ' ' + H} role="img" aria-label=${'Odds from ' + (from || '120 days ago') + ', ' + fmtOdds(h[0]) + ', to today, ' + fmtOdds(now)}>
     <path d=${d} style=${{ fill: 'none', stroke: 'var(--ink-2)', strokeWidth: 1.5, strokeLinejoin: 'round' }} />
     <circle cx=${X(n - 2)} cy=${Y(h[n - 2])} r="2.5" style=${{ fill: 'var(--ink-3)' }} />
     <circle cx=${X(n - 1)} cy=${Y(now)} r="3.5" style=${{ fill: 'var(--accent)' }} />
-    <text x="6" y=${H - 4} className="ax">120 days ago · ${fmtOdds(h[0])}</text>
+    <text x="6" y=${H - 4} className="ax">${from || '120 days ago'} · ${fmtOdds(h[0])}</text>
     <text x=${W - 6} y=${H - 4} textAnchor="end" className="ax">Today · ${fmtOdds(now)}</text>
   </svg></div>`;
 }
@@ -101,7 +101,8 @@ function Drawer({ e, S, P, tw, sampleId, whatIf, setWhatIf, onOpen, onClose, aiO
   useEffect(() => { const k = ev => { if (ev.key === 'Escape') onClose(); }; window.addEventListener('keydown', k); return () => window.removeEventListener('keydown', k); }, [onClose]);
   const q = e.resolved ? e.q0 : e.qEff;
   const ifYes = (1 - q) * e.dT, ifNo = -q * e.dT, sw = Math.abs(e.dT) * Math.sqrt(q * (1 - q));
-  const fused = useMemo(() => fuseReadings(e.src), [e.id]);
+  // A backend snapshot carries its own verdict, a χ² over the full jump vectors.
+  const fused = useMemo(() => { const f = fuseReadings(e.src); return e.fusion ? { ...f, ...e.fusion } : f; }, [e.id]);
   const hist = useMemo(() => oddsHistory(e), [e.id]);
   const dis = e.odds.length >= 2 && !/[()]/.test(e.odds[0][0] + e.odds[1][0]) ? oddsDisagree(e.odds) : null;
   const wi = whatIf[e.id];
@@ -147,7 +148,8 @@ function Drawer({ e, S, P, tw, sampleId, whatIf, setWhatIf, onOpen, onClose, aiO
           ${!e.resolved && Math.abs(e.shift) >= 0.005 && html`<p className="note">Your what-if moves these odds from ${fmtOdds(e.q0)} to ${fmtOdds(e.qEff)} through the event graph.</p>`}
           <ul className="venues">${e.odds.map(([n, v, se]) => html`<li key=${n}><span>${n}</span><span>${fmtOdds(v)} ± ${(se * 100).toFixed(se * 100 < 2 ? 1 : 0)}</span></li>`)}</ul>
           ${dis && dis.z > 2 && html`<p className="note">${e.odds[0][0]} and ${e.odds[1][0]} disagree by ${Math.round(dis.gap * 100)} points, ${dis.z.toFixed(1)} times their combined error. One of them is probably mispriced.</p>`}
-          ${hist && html`<${Spark} h=${hist} now=${e.q0} />`}
+          ${hist && html`<${Spark} h=${hist} now=${e.q0} from=${e.seriesFrom ? fmtDate(e.seriesFrom) : null} />`}
+          ${e.seriesNote && html`<p className="sub">${e.seriesNote}, read at each day’s 4 p.m. New York close.</p>`}
         </section>
 
         <section className="dr-sec"><span className="label">Matched market</span>
@@ -346,12 +348,16 @@ function TweaksSheet({ tw, setTw, onClose }) {
 }
 
 /* ---------- shell ---------- */
-function Footer() {
+function Footer({ ds }) {
   return html`<footer className="foot"><div className="foot-in">
     <div className="foot-brand"><${KeepMark} size=${18} /><span className="brand-name">The Red Keep</span><span className="foot-tag">Scenario Analysis Engine</span></div>
     <div className="foot-txt">
       <p>An independent take-home by Ashwin, built for Castle. Not affiliated with or endorsed by Castle.</p>
-      <p>Everything here is illustrative: prices, odds, exposures, market matches and evidence readings are made up for the prototype, shaped like the real system’s inputs. Nothing here is investment advice.</p>
+      ${ds !== 'live'
+        ? html`<p>Everything here is illustrative: prices, odds, exposures, market matches and evidence readings are made up for the prototype, shaped like the real system’s inputs. Nothing here is investment advice.</p>`
+        : EXPOSURES === 'live'
+          ? html`<p>Backend snapshot of ${fmtStamp(RK_LIVE.asOf)}: odds from Polymarket and Kalshi, prices and factor data from Massive and FRED, market matches judged by Claude, and jumps and exposures estimated by the engine. The April 2025 replay stays illustrative. Nothing here is investment advice.</p>`
+          : html`<p>Backend snapshot of ${fmtStamp(RK_LIVE.asOf)}: odds from Polymarket and Kalshi, factor data from ${UNMEASURED.length ? 'FRED' : 'Massive and FRED'}, market matches judged by Claude, and jumps estimated by the engine. The portfolios’ prices, holdings and exposures are illustrative, rescaled to the snapshot’s typical moves, and so is the April 2025 replay. Nothing here is investment advice.</p>`}
     </div>
   </div></footer>`;
 }
@@ -381,10 +387,12 @@ function validHoldings(h) {
   return out;
 }
 
-function App() {
-  const saved = useMemo(loadSaved, []);
-  const [holdings, setHoldings] = useState(() => (saved && validHoldings(saved.holdings)) || sampleToHoldings(SAMPLES[0]));
-  const [sampleId, setSampleId] = useState(() => (saved && 'sampleId' in saved ? saved.sampleId : 'tech'));
+function App({ ds, setDs }) {
+  // Holdings saved under other portfolios may name tickers these lack: keep only the settings then. An events-only
+  // snapshot keeps the illustrative portfolios, so holdings carry over between it and the illustrative data.
+  const saved = useMemo(() => { const s = loadSaved(); return s && (s.universe || s.dataset || 'demo') !== EXPOSURES ? { tweaks: s.tweaks, tab: s.tab } : s; }, []);
+  const [holdings, setHoldings] = useState(() => { const h = saved && validHoldings(saved.holdings); return h && h.length ? h : sampleToHoldings(SAMPLES[0]); });
+  const [sampleId, setSampleId] = useState(() => (saved && 'sampleId' in saved ? saved.sampleId : SAMPLES[0].id));
   const [tw, setTw] = useState(() => ({ ...DEFAULT_TWEAKS, ...cleanTweaks(saved && saved.tweaks) }));
   const [tab, setTab] = useState(() => (saved && saved.tab === 'replay' ? 'replay' : 'analysis'));
   const [sel, setSel] = useState(null);
@@ -404,7 +412,7 @@ function App() {
   const dragonRef = useRef(null);
   const overDragon = useUnderNav(dragonRef, 40, tw.dragon);
 
-  useEffect(() => { saveState({ holdings, sampleId, tweaks: tw, tab }); }, [holdings, sampleId, tw, tab]);
+  useEffect(() => { saveState({ dataset: ds, universe: EXPOSURES, holdings, sampleId, tweaks: tw, tab }); }, [ds, holdings, sampleId, tw, tab]);
   useEffect(() => { let on = true; getSample().then(s => { if (on) setAiOK(!!s); }); return () => { on = false; }; }, []);
   useEffect(() => {
     const r = document.documentElement;
@@ -459,7 +467,7 @@ function App() {
   const hasLive = Object.keys(liveOdds).length > 0;
 
   return html`<div className=${cls('app', bare && 'no-hero')} data-accent=${tw.accent} data-heading=${tw.heading} data-density=${tw.density}>
-    <${Banner} />
+    <${Banner} ds=${ds} setDs=${setDs} />
     <${Nav} tab=${tab} goTab=${goTab} live=${live} setLive=${setLive} openTweaks=${() => setTweaksOpen(true)} solid=${(!tw.hero || pastHero) && !overDragon} />
     ${tw.hero && html`<${Hero} tw=${tw} goTab=${goTab} heroRef=${heroRef} />`}
     ${tw.dragon && html`<${DragonScene} tw=${tw} rootRef=${dragonRef} />`}
@@ -478,14 +486,22 @@ function App() {
         </main>
       </div>
     </div>
-    <${Footer} />
+    <${Footer} ds=${ds} />
     ${selEv && html`<${Drawer} e=${selEv} S=${S} P=${P} tw=${tw} sampleId=${sampleId} whatIf=${whatIf} setWhatIf=${setWhatIf} onOpen=${openEv} onClose=${closeEv} aiOK=${aiOK} />`}
     ${tweaksOpen && html`<${TweaksSheet} tw=${tw} setTw=${setTw} onClose=${closeTweaks} />`}
   </div>`;
 }
 
+// Picks the data (a backend snapshot when the build included one, unless the visitor chose the illustrative data)
+// and remounts the app when it changes.
+function Root() {
+  const [ds, setDsState] = useState(() => { const s = loadSaved(); return applyDataset(HAS_LIVE && !(s && s.dataset === 'demo') ? 'live' : 'demo'); });
+  const setDs = useCallback(id => { setDsState(applyDataset(id)); }, []);
+  return html`<${App} key=${ds} ds=${ds} setDs=${setDs} />`;
+}
+
 (function boot() {
   const el = document.getElementById('root');
   if (!html || !window.ReactDOM) { el.innerHTML = '<p class="boot">The app’s libraries did not load. Check the connection and reload.</p>'; return; }
-  ReactDOM.createRoot(el).render(html`<${Boundary}><${App} /><//>`);
+  ReactDOM.createRoot(el).render(html`<${Boundary}><${Root} /><//>`);
 })();

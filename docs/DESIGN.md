@@ -4,7 +4,9 @@
 
 *What could move your portfolio, net of what's already priced in.*
 
-Design draft v0.2 · November 2026 · Castle take-home, Option 1 (scenario analysis)
+Design draft v0.3 · November 2026 · Castle take-home, Option 1 (scenario analysis)
+
+v0.3: the vertical slice (M3) is built in [`backend/`](../backend/README.md). [Section 15](#15-build-plan) says what runs today and what doesn't yet.
 
 > Independent take-home project built for Castle Technologies. Not affiliated with or endorsed by Castle.
 
@@ -283,7 +285,7 @@ The three 3D display axes are published blends of these: **growth** (stocks, cre
 **How.**
 
 1. **Retrieve** candidates with hybrid search, keywords plus embeddings, over market titles and resolution rules.
-2. **Judge** each candidate with a stronger AI model, a fixed rubric and structured output. Same entity? Same threshold (equal, stricter, looser)? Same deadline (earlier, later)? Same resolution source? The model labels the relationship (same question, implies, implied by, overlaps, unrelated), gives a match score from 0 to 1, and quotes the rule text it relied on.
+2. **Judge** each candidate with a stronger AI model, a fixed rubric and structured output. Same entity? Same threshold (equal, stricter, looser)? Same deadline (earlier, later)? Same resolution source? The model labels the relationship (same question, implies, implied by, part of, overlaps, unrelated), gives a match score from 0 to 1, and quotes the rule text it relied on. "Part of" covers mutually exclusive outcomes whose union is the event, such as "cut 25 bps" and "cut 50 bps or more" for "the Fed cuts": their odds are summed.
 3. **Ladders.** Markets that differ only by threshold or deadline are fitted together under monotonic constraints: a higher threshold can never be more likely, and a later deadline can never be less likely. We interpolate to the event's exact terms and never extrapolate past the ladder; outside it we report a bound.
 4. **Bounds.** When only "implies" relationships exist, the probability is a range, for example `P(≥25%) ≤ P(≥20%) ≤ P(≥10%)`.
 5. **"Nothing fits."** If the best match score is below a threshold, or the implied range is wider than a maximum, the event has no market and becomes tier D. We still show the closest near-miss and why it was rejected ("deadline differs by nine months"). Both thresholds are tuned on the labeled matching set (E1 in section 10).
@@ -415,7 +417,7 @@ A live view of the portfolio and its hedges as markets move, with alerts when an
 | Priors | Stronger | Rough `q` and `δ` | Weight earned in backtests |
 | Explanations | Stronger | Plain-language "why" on cards and disagreements | Grounded in the computed numbers |
 
-Rules: the AI never produces a final number when market evidence exists. Calls use structured outputs against a schema, temperature 0 and prompt caching. Every call is logged with its inputs and outputs, so any number can be audited. Prompts and rubrics are versioned and evaluated like code.
+Rules: the AI never produces a final number when market evidence exists. Calls use structured outputs against a schema and prompt caching, and opt into server-side fallback: if the model declines a request for policy reasons, the API retries it on the recommended fallback model and the response records which model answered. Every call is logged with its inputs and outputs, so any number can be audited, and cached, so a rerun returns the same answer. Prompts and rubrics are versioned and evaluated like code.
 
 **Claude teaches, Laya scales.** Screening thousands of markets on every refresh is a narrow, repetitive job, which suits a *decision model*: a small model that returns a typed answer (a choice, a score or a yes/no) with a probability in a single pass, instead of writing text.
 
@@ -577,22 +579,22 @@ TheRedKeep/
 │   ├── assets/                # hero image
 │   ├── diagrams/              # Mermaid sources, rendered SVG/PNG, concept figure
 │   └── research/              # research notes, such as Hyperliquid's non-crypto perps
-├── prototype/                 # playable single-page prototype on illustrative data
-│   ├── src/                   # data.js, model.js, ui-*.js, styles.css
+├── prototype/                 # playable single-page prototype: illustrative data, or a backend snapshot
+│   ├── src/                   # data.js, model.js, dataset.js, ui-*.js, styles.css (and live.js from the backend)
 │   ├── build.py               # writes index.html
-│   └── check.js               # checks the prototype's math against the doc
-├── backend/
-│   ├── app/                   # FastAPI routes
-│   ├── data/                  # massive.py, polymarket.py, kalshi.py, hyperliquid.py, fred.py, holdings.py
-│   ├── exposure/              # lookthrough.py, factors.py, fit.py
-│   ├── events/                # funnel.py, screen.py (Laya), portfolio_first.py
-│   ├── matching/              # retrieve.py, judge.py, ladders.py
-│   ├── evidence/              # odds.py, options.py, windows.py, analogs.py, prior.py
-│   ├── fusion/                # combine.py, tiers.py
-│   ├── graph/                 # learn.py, propagate.py, coherence.py
-│   ├── scenarios/             # impact.py, simulate.py
-│   ├── hedging/               # size.py, optimize.py (optional)
-│   └── jobs/                  # refresh_library.py, backtest_sources.py, calibrate.py, train_screen.py
+│   └── check.js               # checks the prototype's math against the doc, and against the backend's numbers
+├── backend/                   # built so far: the M3 slice (see its README)
+│   ├── data/                  # events.toml (the event library), portfolios.toml (samples)
+│   ├── redkeep/
+│   │   ├── data/              # polymarket.py, kalshi.py, fred.py, massive.py; next: hyperliquid.py, options
+│   │   ├── matching/          # retrieve.py, judge.py, ladders.py, decide.py
+│   │   ├── evidence/          # odds.py, windows.py, analogs.py, prior.py; next: options.py
+│   │   ├── engine/            # fusion.py, impact.py, simulate.py
+│   │   ├── exposure.py        # look-through, regressions and fit
+│   │   ├── pipeline.py        # refresh (the shared library) and analyze (per portfolio)
+│   │   └── api.py, cli.py     # FastAPI routes and the `redkeep` command
+│   └── tests/
+│   # planned: events/ (the funnel and Laya), graph/ (learned links), hedging/, jobs/ (backtests, calibration)
 ├── evals/                     # e0_screening ... e9_baseline, reports/
 └── frontend/                  # Next.js app
 ```
@@ -616,6 +618,8 @@ Build a thin vertical slice first, then widen it.
 | M8 | App | Builder, dashboard, event cards, 3D map, replay; the prototype is the spec |
 | M9 | Evals and write-up | E8 and E9; demo script |
 | M10 (optional) | Hedging extension | The budgeted optimizer and live tracking; single-event sizing is already in the prototype |
+
+**Where the build stands.** The M3 slice runs end to end in [`backend/`](../backend/README.md): ten events matched to Polymarket and Kalshi by Claude (including "nothing fits" with the rejected near-misses), odds with cross-checks, jumps from daily jump windows, past events and the AI prior, fusion and tiers, link checks against odds histories, exposures with look-through, and the impacts, priced-in moves and simulation. `redkeep app` feeds a snapshot into the prototype, and `check.js` confirms the prototype's model gives the backend's numbers. A snapshot can also go in without portfolio analyses: the prototype then pairs its events with the illustrative portfolios, rescaled to the snapshot's typical moves, and labels them illustrative. Two simplifications, both documented: jump windows are daily rather than 30-minute, and with only one market reading of each jump (ETF windows), no event can reach tier A until options (M6) and Hyperliquid's weekend windows add the second. The slice is tested offline on recorded response shapes and synthetic prices; its first run on live data comes next.
 
 ---
 

@@ -49,14 +49,28 @@ A playable prototype on illustrative data. Under the hero image, a short story a
 - **Change it.** Edit the sources in [`prototype/src/`](prototype/src/), then rebuild with `python3 prototype/build.py`.
 - **Check it.** `node prototype/check.js` confirms the prototype reproduces the worked example above and the identities in the design doc.
 
-Every number in the prototype is illustrative. The real system computes them from markets, as the design doc describes.
+The prototype's own numbers are illustrative. A build that includes a backend snapshot shows the engine's numbers instead, with a switch back, and the banner always says which you're looking at.
+
+## Run the engine
+
+[`backend/`](backend/README.md) is a working vertical slice of the design: ten events matched to Polymarket and Kalshi markets by Claude (or marked "nothing fits", with the near-misses and why they were rejected), odds with cross-checks, jumps and tiers, exposures with ETF look-through, and the impacts and simulation.
+
+```bash
+cd backend
+uv sync && uv run pytest                  # offline tests: no keys, no network
+uv run redkeep refresh                    # builds the event library from live markets (needs ANTHROPIC_API_KEY)
+uv run redkeep analyze --sample allweather  # needs MASSIVE_API_KEY for prices and holdings
+```
+
+`redkeep app` turns a snapshot, and any analyses, into data for the prototype, and `node prototype/check.js` then confirms the prototype's model gives the engine's numbers. Without analyses (so without the Massive key), the prototype shows the snapshot's events against its own illustrative portfolios, and says so.
 
 ## Docs
 
 - [System design](docs/DESIGN.md): the math, every stage with its rejected alternatives, evals, edge cases, decisions and checked references.
+- [Backend](backend/README.md): setup, keys, commands, and what the slice does and doesn't do yet.
 - [Research: Hyperliquid's non-crypto perps](docs/research/hyperliquid-noncrypto-perps.md): which markets are usable for weekend jump windows, and how to measure them.
 - [Diagrams](docs/diagrams/): Mermaid sources and rendered figures.
 
 ## Status
 
-Design doc v0.2 and a playable prototype on illustrative data. Next: the data layer (M1 in the [build plan](docs/DESIGN.md#15-build-plan)).
+Design doc v0.3, the playable prototype, and the engine's vertical slice (M3 in the [build plan](docs/DESIGN.md#15-build-plan)), tested offline. Next: its first run on live data, then options data (M6) for a second market reading of each jump.
