@@ -249,6 +249,7 @@ function ReplayChart({ RC, day, setDay }) {
 // What the replay screen says about an event the engine couldn't price or measure on a given day.
 function replayGap(s, ev, d) {
   if (s.status === 'open') return 'No reading of its jump yet';
+  if (ev.match === 'bound') return 'Only bounded by related markets, so no odds';
   if (!ev.listed) return REPLAY_SOURCE === 'engine' ? 'No market matched it' : 'No market yet';
   return ev.listed > d ? 'No market until ' + fmtDate(ev.listed, false) : 'No price at that close';
 }

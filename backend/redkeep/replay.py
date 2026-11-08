@@ -440,7 +440,10 @@ def run(s: Settings, c: Clients, ep: Episode, *, progress: Progress = print) -> 
                                     for cand, w, p in legs]}
         if legs and all(p.granularity == "daily" for _, _, p in legs):
             warnings.append(f"{eid}: only daily prices, stamped after the close, so its odds lag the closes by most of a day")
-        if mt.decision.kind != "none" and not odds[eid]:
+        if mt.decision.kind == "bound":
+            warnings.append(f"{eid}: only bounded by related markets ({mt.decision.note.split(': ', 1)[-1].rstrip('.')}), "
+                            "and a bound has no odds path, so the replay has no odds for it")
+        elif mt.decision.kind != "none" and not odds[eid]:
             warnings.append(f"{eid}: matched, but its market has no prices in the episode")
 
     past = {e.spec.id: analogs.analog_reading(e.spec, fd) for e in ep.events}
@@ -600,11 +603,13 @@ def assemble(ep: Episode, s: Settings, c: Clients, base: date, days: list[date],
 
 
 def save(rep: dict, path: Path | None = None) -> Path:
+    """The replay for the app, under ``data/replays/``. That folder is committed, so the file leaves out which model
+    judged the matches; the run's own copy in ``out/`` and the call logs under ``.cache/ai/`` keep it."""
     import json
 
     path = path or REPLAYS / f"{rep['episode']}.json"
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(rep, indent=1, ensure_ascii=False))
+    path.write_text(json.dumps({k: v for k, v in rep.items() if k != "model"}, indent=1, ensure_ascii=False))
     return path
 
 
