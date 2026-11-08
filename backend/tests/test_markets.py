@@ -1,8 +1,11 @@
-from datetime import date
+from datetime import date, datetime, timedelta, timezone
 
+import httpx
 import pytest
 
-from redkeep.data.fred import parse_csv
+from redkeep.data.fred import Fred, FredFormatError, parse_csv
+from redkeep.data.polymarket import Polymarket
+from redkeep.http import Http
 from redkeep.markets import from_kalshi_event, from_polymarket_event, is_sports_polymarket, parse_time
 
 
@@ -55,3 +58,58 @@ def test_fred_csv_handles_both_headers_and_missing_values():
     assert out["T10YIE"] == {date(2026, 11, 2): 2.31, date(2026, 11, 3): 2.30}
     old = "DATE,VIXCLS\n2019-08-14,22.10\n"
     assert parse_csv(old)["VIXCLS"][date(2019, 8, 14)] == 22.10
+
+
+# -- data clients against stand-in servers (behaviour checked on the live APIs on 2026-11-08) --------------
+
+
+def stub(handler):
+    return Http(transport=httpx.MockTransport(handler), sleep=lambda s: None)
+
+
+def test_fred_fetches_one_series_per_request():
+    seen = []
+
+    def handler(req):
+        sid = req.url.params["id"]
+        seen.append(sid)
+        assert "," not in sid  # several ids in one request come back as a zip, and ignore the dates
+        return httpx.Response(200, text=f"observation_date,{sid}\n2026-11-02,1.5\n2026-11-03,.\n")
+
+    out = Fred(stub(handler)).series(["DGS10", "VIXCLS"], date(2026, 11, 1), date(2026, 11, 6))
+    assert seen == ["DGS10", "VIXCLS"]
+    assert out == {"DGS10": {date(2026, 11, 2): 1.5}, "VIXCLS": {date(2026, 11, 2): 1.5}}
+
+
+def test_fred_zip_is_an_error_not_garbage():
+    with pytest.raises(FredFormatError):
+        parse_csv("PK\x03\x04 zipped")
+
+
+def test_polymarket_pages_past_the_100_event_cap():
+    offsets = []
+
+    def handler(req):
+        off = int(req.url.params["offset"])
+        offsets.append(off)
+        assert int(req.url.params["limit"]) <= 100
+        n = 100 if off < 200 else 40  # the server caps pages at 100 events
+        return httpx.Response(200, json=[{"id": off + i, "markets": []} for i in range(n)])
+
+    evs = Polymarket(stub(handler)).events(since=date(2026, 11, 8))
+    assert offsets == [0, 100, 200] and len(evs) == 240
+
+
+def test_polymarket_history_stays_inside_the_15_day_limit():
+    spans = []
+
+    def handler(req):
+        a, b = int(req.url.params["startTs"]), int(req.url.params["endTs"])
+        spans.append(b - a)
+        return httpx.Response(200, json={"history": [{"t": a + 3600, "p": 0.4}, {"t": b, "p": 0.5}]})
+
+    end = datetime(2026, 11, 8, 12, tzinfo=timezone.utc)
+    start = end - timedelta(days=180)
+    pts = Polymarket(stub(handler)).history("tok", start, end)
+    assert max(spans) <= 15 * 86400 and len(spans) >= 13
+    assert all(start <= t <= end for t, _ in pts)

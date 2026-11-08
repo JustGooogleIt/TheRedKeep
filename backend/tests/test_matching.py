@@ -172,3 +172,20 @@ def test_judge_refusal_raises(tmp_path):
     a = mk("K1", "Fed cuts in Dec", 0.6)
     with pytest.raises(JudgeRefused):
         Judge(FakeClient(stop_reason="refusal"), model="m", log_dir=tmp_path).judge(SPEC["fed-cut-dec"], [a], date(2026, 11, 8))
+
+
+def test_retrieval_favours_contracts_closing_at_the_deadline():
+    spec = SPEC["fed-cut-dec"]
+
+    def at(id, close):
+        m = mk(id, "Will the Fed cut rates at an emergency FOMC meeting in 2026?", 0.5, event=id)
+        m.close_time = datetime.combine(close, datetime.min.time(), tzinfo=timezone.utc)
+        return m
+
+    later, exact, near = at("L", date(2027, 1, 1)), at("X", spec.deadline), at("N", date(2026, 12, 3))
+    r = Retriever([later, exact, near])
+    raw = r.index.scores(tokenize(" ".join([spec.title, spec.question, *spec.search])))
+    s = r.scores(spec)
+    assert raw[0] == pytest.approx(raw[1]) == pytest.approx(raw[2])  # same words, so keywords can't tell them apart
+    assert s[1] == pytest.approx(s[2]) and s[1] > s[0]  # closing within a week of the deadline tips it
+    assert [m.id for m, _ in r.candidates(spec, k=1)] in (["X"], ["N"])
