@@ -28,7 +28,7 @@ Set these in the environment. They are read at start-up and never written to dis
 
 | Variable | Needed for | Without it |
 |---|---|---|
-| `ANTHROPIC_API_KEY` | `refresh`: Claude judges every candidate market and writes the AI prior | `refresh` stops with a message |
+| `REDKEEP_ANTHROPIC_API_KEY` or `ANTHROPIC_API_KEY` | `refresh`: Claude judges every candidate market and writes the AI prior. The first name wins; use it where an agent host keeps `ANTHROPIC_API_KEY` for itself (a Claude Code cloud session did) | `refresh` stops with a message |
 | `MASSIVE_API_KEY` | Prices for exposures and the China, chips and gold factors; ETF holdings for look-through | `refresh` runs on the seven FRED factors with a warning; `analyze` stops with a message |
 | `REDKEEP_MODEL` | Optional: the Claude model to use | The newest Opus model the key can call |
 | `REDKEEP_EFFORT` | Optional: `low`, `medium` (default) or `high` | |

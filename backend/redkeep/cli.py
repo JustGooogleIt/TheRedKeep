@@ -9,7 +9,7 @@ import sys
 from datetime import date, timedelta
 from pathlib import Path
 
-from .config import Settings
+from .config import ANTHROPIC_KEY_NAMES, Settings
 from .portfolio import parse_holdings, samples
 
 
@@ -55,7 +55,11 @@ def cmd_check(s: Settings, args) -> int:
         except Exception as e:  # report every failure, keep going
             ok = False
             print(f"  FAIL  {name:<24} {type(e).__name__}: {str(e)[:160]}")
-    for name, present in (("ANTHROPIC_API_KEY", bool(s.anthropic_api_key)), ("MASSIVE_API_KEY", bool(s.massive_api_key))):
+    keys = (
+        (s.anthropic_key_name or " or ".join(ANTHROPIC_KEY_NAMES), bool(s.anthropic_api_key)),
+        ("MASSIVE_API_KEY", bool(s.massive_api_key)),
+    )
+    for name, present in keys:
         print(f"  {'set ' if present else 'MISSING'}  {name}")
     return 0 if ok else 1
 

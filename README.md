@@ -58,7 +58,7 @@ The prototype's own numbers are illustrative. A build that includes a backend sn
 ```bash
 cd backend
 uv sync && uv run pytest                  # offline tests: no keys, no network
-uv run redkeep refresh                    # builds the event library from live markets (needs ANTHROPIC_API_KEY)
+uv run redkeep refresh                    # builds the event library from live markets (needs an Anthropic key)
 uv run redkeep analyze --sample allweather  # needs MASSIVE_API_KEY for prices and holdings
 ```
 

@@ -9,10 +9,24 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent  # backend/
 DATA_DIR = ROOT / "data"
 
+# The Anthropic key, in the order the names are tried. The project's own name comes first because
+# hosts that run a Claude agent can keep ANTHROPIC_API_KEY for the agent: a Claude Code cloud
+# session listed it in its environment settings but never passed it to the commands it ran.
+ANTHROPIC_KEY_NAMES = ("REDKEEP_ANTHROPIC_API_KEY", "ANTHROPIC_API_KEY")
+
+
+def first_set(names: tuple[str, ...]) -> tuple[str, str] | None:
+    """The first of ``names`` set to a non-empty value, as (name, value)."""
+    for name in names:
+        if os.environ.get(name):
+            return name, os.environ[name]
+    return None
+
 
 @dataclass(frozen=True)
 class Settings:
     anthropic_api_key: str | None = None
+    anthropic_key_name: str | None = None  # which of ANTHROPIC_KEY_NAMES supplied it
     massive_api_key: str | None = None
     cache_dir: Path = ROOT / ".cache"
     out_dir: Path = ROOT / "out"
@@ -50,8 +64,10 @@ class Settings:
     @classmethod
     def from_env(cls) -> "Settings":
         root = Path(os.environ.get("REDKEEP_HOME", ROOT))
+        name, key = first_set(ANTHROPIC_KEY_NAMES) or (None, None)
         return cls(
-            anthropic_api_key=os.environ.get("ANTHROPIC_API_KEY") or None,
+            anthropic_api_key=key,
+            anthropic_key_name=name,
             massive_api_key=os.environ.get("MASSIVE_API_KEY") or None,
             cache_dir=root / ".cache",
             out_dir=root / "out",
