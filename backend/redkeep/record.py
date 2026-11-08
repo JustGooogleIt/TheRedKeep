@@ -99,6 +99,7 @@ def _markets(s: Settings, c, rec: Recording, now: datetime, progress) -> None:
     path = s.out_dir / "library-latest.json"
     if not path.exists():
         rec.read["Odds"] = "none yet: no snapshot says which markets matter (run `redkeep refresh`)"
+        progress(f"Odds: {rec.read['Odds']}")
         return
     snap = json.loads(path.read_text())
     keys = sorted({m["key"] for e in snap["events"] for m in e["match"]["used"] + e["match"]["near_misses"]})
