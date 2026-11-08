@@ -72,7 +72,7 @@ def test_calibrated_odds_treat_yes_and_no_alike():
     assert c.p_hat(0.0, 30) == 0.0 and c.p_hat(1.0, 30) == 1.0
 
 
-def test_the_study_uses_a_slope_only_where_it_beats_raw_odds_out_of_sample():
+def test_the_study_uses_a_slope_only_where_it_reliably_beats_raw_odds_out_of_sample():
     first = date(2025, 1, 1)
     obs = obs_at(30, *biased(1500, 1.5, seed=2), first=first, days=1000)  # a steady bias: the slope helps later on too
     obs += obs_at(7, *biased(1000, 1.8, seed=3), first=first, days=700, tag="a")  # a bias that reverses after the split
@@ -81,7 +81,7 @@ def test_the_study_uses_a_slope_only_where_it_beats_raw_odds_out_of_sample():
     rep = cal.study(obs, boot=300)
     by = {r["days"]: r for r in rep["horizons"]}
     r30 = by[30]
-    assert r30["used"] and abs(r30["b"] - 1.5) < 3 * r30["se"] and r30["gain"][0] > 0 and r30["gain"][1] < r30["gain"][0] < r30["gain"][2]
+    assert r30["used"] and abs(r30["b"] - 1.5) < 3 * r30["se"] and 0 < r30["gain"][1] < r30["gain"][0] < r30["gain"][2]
     assert r30["corrected"]["log_loss"] < r30["raw"]["log_loss"]
     assert {x["n"] for x in r30["reliability"]["raw"]} and sum(x["n"] for x in r30["reliability"]["raw"]) == r30["test"]
     r7 = by[7]
@@ -90,6 +90,10 @@ def test_the_study_uses_a_slope_only_where_it_beats_raw_odds_out_of_sample():
     assert not by[90]["used"] and by[90]["note"].startswith("too few markets")
     assert not by[1]["used"] and by[1]["train"] == 0
     assert rep["observations"] == len(obs) and rep["markets"] == {"kalshi": len({o.market for o in obs})}
+    # A gain whose 95% range includes zero isn't enough either: a mild bias in a small sample stays raw.
+    unsure = cal.study(obs_at(180, *biased(800, 1.1, seed=9), first=first, days=1000, tag="u"), boot=300)
+    r180 = next(r for r in unsure["horizons"] if r["days"] == 180)
+    assert r180["gain"][1] < 0 < r180["gain"][0] and not r180["used"] and r180["b"] == 1.0 and "includes zero" in r180["note"]
 
     # The file the engine reads keeps the slopes in use; raw odds elsewhere.
     doc = cal.to_json(rep, "2026-11-08")

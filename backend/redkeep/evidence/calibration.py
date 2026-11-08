@@ -177,9 +177,11 @@ def study(obs: Sequence[Obs], *, split: float = 0.7, min_train: int = 100, min_t
         })
         yes = fit_line([o.q for o in at], [o.y for o in at], intercept=True)
         row["yes_bias"] = {"a": yes.a, "se": yes.se_a}
-        if row["corrected"]["log_loss"] < row["raw"]["log_loss"]:
+        if gain[1] > 0:  # better on later markets, and the whole 95% range of the gain says so
             final = fit_line([o.q for o in at], [o.y for o in at])
             row.update(used=True, b=final.b, se=final.se_b)
+        elif gain[0] > 0:
+            row["note"] = "the correction scored better out of sample, but its gain's 95% range includes zero, so raw prices stay"
         else:
             row["note"] = "raw prices scored as well out of sample, so they stay"
     return report
@@ -236,7 +238,8 @@ def to_json(report: dict, fitted: str) -> dict:
     return {
         "kind": "redkeep.calibration", "version": 1, "fitted": fitted, "model": report["model"],
         "markets": report["markets"], "events": report["events"], "closed": report["closed"], "split": report["split"],
-        "horizons": [{k: r.get(k) for k in ("days", "used", "b", "se", "train", "test", "raw", "corrected", "gain", "note")
+        "horizons": [{k: r.get(k) for k in ("days", "used", "b", "se", "fit_b", "fit_se", "train", "test", "raw", "corrected",
+                                              "gain", "note")
                       if r.get(k) is not None} for r in report["horizons"]],
     }
 

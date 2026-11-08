@@ -313,7 +313,7 @@ function TweaksSheet({ tw, setTw, onClose }) {
       <div className="dr-head"><h2 className="h3" id="tw-h">Tweaks</h2><button ref=${closeRef} className="x" onClick=${onClose} aria-label="Close">×</button></div>
       <div className="tw-body">
         <div className="tw-group"><span className="label">Model</span>
-          ${Row('Odds', 'Calibrated shades long shots down', 'odds', [['market', 'Market'], ['calibrated', 'Calibrated']])}
+          ${Row('Odds', oddsTweak(), 'odds', [['market', 'Market'], ['calibrated', 'Calibrated']])}
           ${Row('Knock-on effects', 'Events that make others likelier', 'knock', [[true, 'On'], [false, 'Off']])}
           ${Row('Horizon', 'Events resolving after it are repriced', 'horizon', [[3, '3 mo'], [6, '6 mo'], [12, '12 mo']])}
           ${Row('Events listed', null, 'topN', [[8, '8'], [12, '12'], ['all', 'All']])}

@@ -1,0 +1,143 @@
+{
+ "kind": "redkeep.calibration",
+ "version": 1,
+ "fitted": "2026-11-08",
+ "model": "logit(p̂) = b · logit(q), one slope per horizon (days before the deadline)",
+ "markets": {
+  "polymarket": 1484,
+  "kalshi": 1423
+ },
+ "events": 1543,
+ "closed": [
+  "2025-01-01",
+  "2026-11-07"
+ ],
+ "split": "2026-08-05",
+ "horizons": [
+  {
+   "days": 1,
+   "used": false,
+   "b": 1.0,
+   "fit_b": 1.0135373945825938,
+   "fit_se": 0.0529716780642614,
+   "train": 1512,
+   "test": 437,
+   "raw": {
+    "n": 437,
+    "brier": 0.06850116990846682,
+    "log_loss": 0.22952452917824118
+   },
+   "corrected": {
+    "n": 437,
+    "brier": 0.06843349727841153,
+    "log_loss": 0.2293183105169269
+   },
+   "gain": [
+    0.00020621866131431408,
+    -0.0004812088967684539,
+    0.000776933369071277
+   ],
+   "note": "the correction scored better out of sample, but its gain's 95% range includes zero, so raw prices stay"
+  },
+  {
+   "days": 7,
+   "used": false,
+   "b": 1.0,
+   "fit_b": 1.1305295117303473,
+   "fit_se": 0.06380203504002312,
+   "train": 1390,
+   "test": 418,
+   "raw": {
+    "n": 418,
+    "brier": 0.09155804007177035,
+    "log_loss": 0.2855234429567779
+   },
+   "corrected": {
+    "n": 418,
+    "brier": 0.09263351898952868,
+    "log_loss": 0.2876525514263977
+   },
+   "gain": [
+    -0.0021291084696197964,
+    -0.008900820833599986,
+    0.004007291026216272
+   ],
+   "note": "raw prices scored as well out of sample, so they stay"
+  },
+  {
+   "days": 30,
+   "used": false,
+   "b": 1.0,
+   "fit_b": 1.0672680009544864,
+   "fit_se": 0.06343669384890738,
+   "train": 1117,
+   "test": 447,
+   "raw": {
+    "n": 447,
+    "brier": 0.11730134675615211,
+    "log_loss": 0.3651733870418432
+   },
+   "corrected": {
+    "n": 447,
+    "brier": 0.11731220727713773,
+    "log_loss": 0.36541317240233745
+   },
+   "gain": [
+    -0.0002397853604942239,
+    -0.0035479014144850995,
+    0.002944284149919006
+   ],
+   "note": "raw prices scored as well out of sample, so they stay"
+  },
+  {
+   "days": 90,
+   "used": false,
+   "b": 1.0,
+   "fit_b": 1.1318612609269039,
+   "fit_se": 0.10514196457108575,
+   "train": 447,
+   "test": 297,
+   "raw": {
+    "n": 297,
+    "brier": 0.09443956397306398,
+    "log_loss": 0.2962581435265135
+   },
+   "corrected": {
+    "n": 297,
+    "brier": 0.09461514712544099,
+    "log_loss": 0.2926862993455457
+   },
+   "gain": [
+    0.0035718441809678017,
+    -0.002694132065913621,
+    0.009078394060732473
+   ],
+   "note": "the correction scored better out of sample, but its gain's 95% range includes zero, so raw prices stay"
+  },
+  {
+   "days": 180,
+   "used": false,
+   "b": 1.0,
+   "fit_b": 1.3299938104835796,
+   "fit_se": 0.15034969622302177,
+   "train": 317,
+   "test": 249,
+   "raw": {
+    "n": 249,
+    "brier": 0.11820612048192772,
+    "log_loss": 0.37101883052247997
+   },
+   "corrected": {
+    "n": 249,
+    "brier": 0.11720803092370807,
+    "log_loss": 0.36587720940553803
+   },
+   "gain": [
+    0.005141621116941868,
+    -0.011156176668626653,
+    0.02085783883233793
+   ],
+   "note": "the correction scored better out of sample, but its gain's 95% range includes zero, so raw prices stay"
+  }
+ ]
+}

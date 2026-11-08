@@ -137,7 +137,8 @@ def print_calibration(rep: dict) -> None:
               f" {r['raw']['log_loss']:>12.4f} {r['corrected']['log_loss']:>9.4f}  "
               f"{g[0]:+.4f} ({g[1]:+.4f} to {g[2]:+.4f})  {use}")
     print("\n  A slope above 1 means long shots were overpriced and favorites underpriced. A horizon's slope is used "
-          "only if it\n  beat raw odds on the later markets; it is then refitted on all of them.")
+          "only if it\n  beat raw odds on the later markets across the whole 95% range of its gain; it is then refitted "
+          "on all of them.")
 
 
 def cmd_calibrate(s: Settings, args) -> int:
@@ -176,7 +177,9 @@ def cmd_calibrate(s: Settings, args) -> int:
     if args.write:
         s.calibration_file.write_text(json.dumps(calibration.to_json(report, now.date().isoformat()), indent=1,
                                                  ensure_ascii=False) + "\n")
-        print(f"Wrote {s.calibration_file}: the next refresh gives calibrated odds from these slopes")
+        used = any(r["used"] for r in report["horizons"])
+        print(f"Wrote {s.calibration_file}: " + ("the next refresh gives calibrated odds from these slopes" if used else
+                                                "no slope beat raw odds reliably, so calibrated odds stay at market odds"))
     return 0
 
 
