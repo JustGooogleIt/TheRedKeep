@@ -122,6 +122,26 @@ def test_the_catalogue_as_of_a_time_is_each_venues_last_read_before_it(store, ga
     assert store.sql("SELECT count(*) FROM quotes")[0][0] == len(pm) + len(ks) + 1 + 2  # moved, renamed, 2 delisted
 
 
+def test_a_value_that_goes_blank_is_a_new_version_and_stays_blank(store, gamma_events):
+    m = from_polymarket_event(gamma_events[0])[0]
+    store.add_markets([replace(m, bid=0.001)], seen_at=h(1))
+    store.add_markets([replace(m, bid=None)], seen_at=h(2))  # the book emptied
+    store.add_markets([replace(m, bid=None)], seen_at=h(3))  # and stayed empty: nothing new
+    store.flush()
+    assert store.sql("SELECT count(*) FROM quotes")[0][0] == 2
+    assert store.catalogue()[0].bid is None and store.catalogue(as_of=h(1.5))[0].bid == 0.001
+
+
+def test_asking_for_the_last_time_doesnt_write_a_segment(store):
+    for k, coin in enumerate(("xyz:SP500", "xyz:GOLD", "xyz:CL")):
+        assert store.last_time("candles", coin=coin, interval="1h") is None
+        store.add_candles(coin, "1h", [Candle(h(k), h(k + 1) - timedelta(milliseconds=1), 1, 1, 1, 1, 1, 1)], seen_at=h(5))
+        assert store.last_time("candles", coin=coin, interval="1h") == h(k)  # queued rows count
+    assert store.segments("candles") == []
+    assert store.flush() == {"candles": 3} and len(store.segments("candles")) == 1
+    assert store.last_time("candles", coin="xyz:GOLD", interval="1h") == h(1)
+
+
 def test_holdings_as_of_take_the_fund_s_latest_file_by_then(store):
     store.add_holdings("QQQ", date(2026, 10, 30), [("NVDA", "NVIDIA", 0.09), ("AAPL", "Apple", 0.08)], seen_at=h(0))
     store.add_holdings("QQQ", date(2026, 11, 2), [("NVDA", "NVIDIA", 0.10), ("MSFT", "Microsoft", 0.08)], seen_at=h(9))
