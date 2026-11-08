@@ -19,6 +19,7 @@ from datetime import date, datetime, timedelta, timezone
 
 from ..http import Http
 from ..markets import Market, from_polymarket_event, is_sports_polymarket
+from ..store import Store
 from . import chunks
 
 GAMMA = "https://gamma-api.polymarket.com"
@@ -27,8 +28,10 @@ CHUNK = timedelta(days=14)  # the CLOB refuses longer windows
 
 
 class Polymarket:
-    def __init__(self, http: Http, *, ttl: float | None = 15 * 60):
-        self.http, self.ttl = http, ttl
+    """With a ``store``, every market list and price history read is also recorded there, point in time."""
+
+    def __init__(self, http: Http, *, ttl: float | None = 15 * 60, store: Store | None = None):
+        self.http, self.ttl, self.store = http, ttl, store
 
     def events(self, *, since: date, pages: int = 20, page_size: int = 100, volume_min: float = 1_000) -> list[dict]:
         """Active events by 24-hour volume, ending after ``since``.
@@ -70,6 +73,8 @@ class Polymarket:
             if is_sports_polymarket(e):
                 continue
             out.extend(m for m in from_polymarket_event(e) if m.close_time is None or m.close_time.date() >= since)
+        if self.store is not None:
+            self.store.add_markets(out)
         return out
 
     def closed_events(self, tag: str, start: date, end: date, *, limit: int = 20) -> list[dict]:
@@ -83,7 +88,10 @@ class Polymarket:
     def daily(self, token_id: str) -> list[tuple[datetime, float]]:
         """A closed market's whole price history, one point a day, oldest first."""
         res = self.http.get_json(f"{CLOB}/prices-history", {"market": token_id, "interval": "max", "fidelity": 1440}, ttl=None)
-        return sorted((datetime.fromtimestamp(p["t"], timezone.utc), float(p["p"])) for p in res.get("history") or [])
+        out = sorted((datetime.fromtimestamp(p["t"], timezone.utc), float(p["p"])) for p in res.get("history") or [])
+        if self.store is not None:
+            self.store.add_odds("polymarket", token_id, 1440, out)
+        return out
 
     def history(self, token_id: str, start: datetime, end: datetime, *, fidelity_min: int = 60) -> list[tuple[datetime, float]]:
         """Price of "Yes" over time.
@@ -99,4 +107,6 @@ class Polymarket:
                 "market": token_id, "startTs": int(t.timestamp()), "endTs": int(u.timestamp()), "fidelity": fidelity_min,
             }, ttl=None if u < now - timedelta(days=1) else self.ttl)
             out.extend((datetime.fromtimestamp(p["t"], timezone.utc), float(p["p"])) for p in res.get("history") or [])
+        if self.store is not None:
+            self.store.add_odds("polymarket", token_id, fidelity_min, out)
         return sorted({(t, q) for t, q in out if start <= t <= end})

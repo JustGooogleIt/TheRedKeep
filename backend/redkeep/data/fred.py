@@ -17,6 +17,7 @@ import io
 from datetime import date, timedelta
 
 from ..http import Http
+from ..store import Store
 
 URL = "https://fred.stlouisfed.org/graph/fredgraph.csv"
 
@@ -47,8 +48,10 @@ def parse_csv(text: str) -> dict[str, dict[date, float]]:
 
 
 class Fred:
-    def __init__(self, http: Http, *, ttl: float | None = 6 * 3600):
-        self.http, self.ttl = http, ttl
+    """With a ``store``, every series read is also recorded there, so later revisions show up as new versions."""
+
+    def __init__(self, http: Http, *, ttl: float | None = 6 * 3600, store: Store | None = None):
+        self.http, self.ttl, self.store = http, ttl, store
 
     def series(self, ids: list[str], start: date, end: date) -> dict[str, dict[date, float]]:
         ttl = None if end < date.today() - timedelta(days=7) else self.ttl
@@ -57,4 +60,6 @@ class Fred:
             text = self.http.get_text(URL, {"id": i, "cosd": start.isoformat(), "coed": end.isoformat()}, ttl=ttl)
             got = parse_csv(text)
             out[i] = {d: v for d, v in got.get(i, {}).items() if start <= d <= end}
+            if self.store is not None:
+                self.store.add_closes("fred", i, out[i])
         return out

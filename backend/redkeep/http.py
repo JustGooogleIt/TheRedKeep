@@ -4,8 +4,9 @@
   ``Retry-After``.
 * Spaces out requests per host, to stay inside public rate limits.
 * Caches responses on disk, keyed by method, URL, parameters and body, with a
-  fetch timestamp. The cache doubles as the point-in-time record behind every
-  snapshot. Auth headers are never part of the key or the stored file.
+  fetch timestamp, so a rerun reads finished history without fetching it again.
+  The queryable point-in-time record is the store (``store.py``), which the data
+  clients write to. Auth headers are never part of the key or the stored file.
 """
 
 from __future__ import annotations
