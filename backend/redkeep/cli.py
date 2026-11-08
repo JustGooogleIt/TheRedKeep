@@ -269,7 +269,8 @@ def cmd_baseline(s: Settings, args) -> int:
               f"its training data.")
         rep = baseline.study(c.prior, cases=cases, typical=typical, material=material, obs=obs,
                              after=date.fromisoformat(args.after), horizon=args.horizon, most=args.most, leak=args.leak,
-                             sources={"jumps": args.jumps, "odds": args.odds})
+                             sources={k: _shown(Path(v)) if v else None for k, v in (("jumps", args.jumps),
+                                                                                       ("odds", args.odds))})
     print_baseline(rep)
     path = save(finite(rep), s.out_dir, "baseline")
     print(f"\nSaved {path}")
@@ -277,6 +278,8 @@ def cmd_baseline(s: Settings, args) -> int:
 
 
 def print_baseline(rep: dict) -> None:
+    from .jumps import SCALES
+
     m = rep["method"]
     print(f'\nE9, "just ask an AI": Claude with no tools against the engine, on markets that resolved from {m["after"]} on')
     j = rep["jumps"]
@@ -301,7 +304,12 @@ def print_baseline(rep: dict) -> None:
         if j.get("ai_weight") is not None:
             print(f"  The engine gives Claude's estimate {100 * j['ai_weight']:.0f}% of the weight, on average.")
         if j.get("ai_error_scale"):
-            print(f"  Claude's error bars would cover 80% of the realized jumps at {j['ai_error_scale']:.2f} times their width.")
+            if j["ai_error_scale"] <= SCALES[0]:
+                print("  Claude's error bars can't be sized on these markets: around its estimates, the day's own noise "
+                      "alone covers 80% of the realized jumps.")
+            else:
+                print(f"  Claude's error bars would cover 80% of the realized jumps at {j['ai_error_scale']:.2f} times "
+                      "their width.")
         bm = j.get("by_material")
         if bm and bm["material_markets"]:
             print(f"  On the {bm['material_markets']} markets Claude's funnel label calls material: "
@@ -397,11 +405,12 @@ def print_jumps(rep: dict) -> None:
 
 
 def _shown(path: Path) -> str:
-    """A path as a saved result names it: relative to the backend folder when it is inside it."""
+    """A path as a saved result names it: relative to the backend folder when it is inside it, otherwise just the
+    file's name, so a committed result carries no machine's folders."""
     try:
         return str(path.resolve().relative_to(ROOT))
     except ValueError:
-        return str(path)
+        return path.name
 
 
 def cmd_funnel(s: Settings, args) -> int:
