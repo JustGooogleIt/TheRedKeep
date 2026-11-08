@@ -283,9 +283,9 @@ class Store:
         for the hour that was still open is the candle so far."""
         cut, seen = self._cuts(as_of, known)
         done = "t <= $6" if known else "t_end <= $6"
-        vals = ", ".join(f"arg_max({_q(n)}, seen_at)" for n in ("t_end", "open", "high", "low", "close", "volume", "trades"))
-        rows = self.sql(f'SELECT t, {vals} FROM candles WHERE coin = $1 AND "interval" = $2 AND t BETWEEN $3 AND $4 '
-                        f'AND {done} AND seen_at <= $5 GROUP BY t ORDER BY t',
+        vals = ", ".join(_q(n) for n in ("t", "t_end", "open", "high", "low", "close", "volume", "trades"))
+        where = f'coin = $1 AND "interval" = $2 AND t BETWEEN $3 AND $4 AND {done} AND seen_at <= $5'
+        rows = self.sql(f"SELECT {vals} FROM ({_latest('candles', ('t',), where)}) ORDER BY t",
                         [coin, interval, naive(start), naive(end), seen, cut], tables=["candles"])
         return [(aware(r[0]), aware(r[1]), *r[2:]) for r in rows]
 
@@ -303,8 +303,8 @@ class Store:
                  known: bool = False) -> tuple[date, list[tuple[str, str, float]]] | None:
         """The fund's holdings on its latest effective date by ``as_of``, largest first."""
         cut, seen = self._cuts(as_of, known)
-        rows = self.sql("WITH v AS (SELECT effective, ticker, arg_max(name, seen_at) AS name, arg_max(weight, seen_at) AS w "
-                        "FROM holdings WHERE etf = $1 AND effective <= $2 AND seen_at <= $3 GROUP BY effective, ticker) "
+        latest = _latest("holdings", ("effective", "ticker"), "etf = $1 AND effective <= $2 AND seen_at <= $3")
+        rows = self.sql(f"WITH v AS (SELECT effective, ticker, name, weight AS w FROM ({latest})) "
                         "SELECT effective, ticker, name, w FROM v WHERE effective = (SELECT max(effective) FROM v) "
                         "ORDER BY w DESC NULLS LAST, ticker",
                         [etf, last_close_day(as_of) if as_of else date.max, seen], tables=["holdings"])
@@ -315,12 +315,9 @@ class Store:
         and details it had."""
         cut = naive(as_of) if as_of is not None else FAR
         names = [n for n in TABLES["markets"].values]
-        details = ", ".join(f"arg_max({_q(n)}, seen_at) AS {_q(n)}" for n in names)
-        quotes = ", ".join(f"arg_max({_q(n)}, seen_at) AS {_q(n)}" for n in TABLES["quotes"].values)
         rows = self.sql(
-            f"WITH q AS (SELECT venue, market, {quotes} FROM quotes WHERE seen_at <= $1 "
-            f"AND ($2::VARCHAR IS NULL OR venue = $2) GROUP BY venue, market), "
-            f"d AS (SELECT venue, market, {details} FROM markets WHERE seen_at <= $1 GROUP BY venue, market) "
+            f"WITH q AS ({_latest('quotes', ('venue', 'market'), 'seen_at <= $1 AND ($2::VARCHAR IS NULL OR venue = $2)')}), "
+            f"d AS ({_latest('markets', ('venue', 'market'), 'seen_at <= $1')}) "
             f"SELECT q.venue, q.market, q.bid, q.ask, q.last, q.volume, q.volume_24h, q.liquidity, "
             f"{', '.join('d.' + _q(n) for n in names)} FROM q JOIN d USING (venue, market) WHERE q.listed "
             f"ORDER BY q.venue, q.market",
@@ -338,11 +335,20 @@ class Store:
         return out
 
     def last_time(self, table: str, **key: Any) -> datetime | date | None:
-        """The latest time stored for rows matching ``key`` (column = value), e.g. the newest candle of a perp."""
+        """The latest time stored or queued for rows matching ``key`` (column = value), e.g. the newest candle of a
+        perp. It reads the queue as it stands rather than flushing it, so a recorder that asks before each perp's
+        read still writes one segment per flush, not one per perp."""
         t = TABLES[table]
         where = " AND ".join(f"{_q(k)} = ${i + 1}" for i, k in enumerate(key)) or "true"
-        [(v,)] = self.sql(f"SELECT max({_q(t.time)}) FROM {_q(table)} WHERE {where}", list(key.values()), tables=[table])
-        return aware(v) if isinstance(v, datetime) else v
+        at = {n: i for i, n in enumerate(t.names)}
+        with self._lock:
+            queued = [r[at[t.time]] for r in self._buf.get(table, []) if all(r[at[k]] == v for k, v in key.items())]
+            with duckdb.connect() as con:
+                self._view(con, _q(table), t)
+                [(v,)] = con.execute(f"SELECT max({_q(t.time)}) FROM {_q(table)} WHERE {where}",
+                                     list(key.values())).fetchall()
+        best = max((x for x in (v, *queued) if x is not None), default=None)
+        return aware(best) if isinstance(best, datetime) else best
 
     # -- housekeeping -----------------------------------------------------------------------------
 
@@ -386,17 +392,23 @@ class Store:
             return out
 
 
+def _latest(src: str, key: Sequence[str], where: str = "true") -> str:
+    """SQL for the latest version of each ``key`` among the rows of ``src`` that match ``where``, as a whole row. A
+    value that has since become NULL stays NULL; ``arg_max`` column by column would skip the NULL and keep the value
+    before it."""
+    k = ", ".join(_q(x) for x in key)
+    return f"SELECT * FROM {src} WHERE {where} QUALIFY row_number() OVER (PARTITION BY {k} ORDER BY seen_at DESC) = 1"
+
+
 def _new_versions(t: Table) -> str:
     """SQL for the rows of ``batch`` that are new versions: different from the version before them, whether that is
     the latest one stored (in ``old``) or an earlier row of the batch. Within one write, the last row given for a
     key wins."""
     key = ", ".join(_q(k) for k in t.key)
     pack = ", ".join(f"{_q(v)} := {_q(v)}" for v in t.values)
-    latest = ", ".join(f"arg_max({_q(v)}, seen_at) AS {_q(v)}" for v in t.values)
     cols = ", ".join(_q(k) if k in t.key else f"v.{_q(k)} AS {_q(k)}" for k in t.names)
     return (f"WITH keys AS (SELECT DISTINCT {key} FROM batch), "
-            f"latest AS (SELECT {key}, {latest}, max(seen_at) AS seen_at FROM old SEMI JOIN keys USING ({key}) "
-            f"GROUP BY {key}), "
+            f"latest AS ({_latest('old SEMI JOIN keys USING (' + key + ')', t.key)}), "
             f"given AS (SELECT * FROM batch QUALIFY row_number() OVER (PARTITION BY {key}, seen_at ORDER BY _i DESC) = 1), "
             f"seq AS (SELECT {key}, struct_pack({pack}) AS v, seen_at, false AS fresh FROM latest "
             f"UNION ALL SELECT {key}, struct_pack({pack}) AS v, seen_at, true AS fresh FROM given), "
