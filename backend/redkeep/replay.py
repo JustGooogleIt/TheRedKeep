@@ -79,7 +79,7 @@ REPLAYS = DATA_DIR / "replays"
 MAX_AGE = timedelta(days=4)  # covers a long weekend; an older last price doesn't count as the odds at a close
 PM_TAGS = ("tariffs", "trade-war", "trump", "economy", "fed", "fed-rates", "recession", "china", "economic-policy",
            "politics", "business", "finance", "geopolitics")
-SERIES_PER_EVENT = 6  # Kalshi series read per event, best first by their titles
+SERIES_PER_EVENT = 20  # Kalshi series read per event, best first by their titles (about a hundred mention tariffs)
 EQ = index("eq")
 BIG = 1.0  # a day that moved a factor a typical move or more
 
