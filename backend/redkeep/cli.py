@@ -1,4 +1,4 @@
-"""Command line: ``redkeep check | refresh | analyze | app | serve``."""
+"""Command line: ``redkeep check | refresh | analyze | calibrate | app | serve``."""
 
 from __future__ import annotations
 
@@ -140,6 +140,68 @@ def cmd_analyze(s: Settings, args) -> int:
     return 0
 
 
+def print_calibration(rep: dict) -> None:
+    venues = ", ".join(f"{n:,} {v.title()}" for v, n in sorted(rep["markets"].items()))
+    print(f"\nCalibration: {venues} resolved markets ({rep['events']:,} events, {rep['observations']:,} prices), "
+          f"closed {rep['closed'][0]} to {rep['closed'][1]}. Fitted on markets that closed before {rep['split']}, "
+          f"scored on the rest.\n")
+    print(f"  {'days':>4} {'fit':>5} {'test':>5}  {'slope':<11} {'log loss raw':>12} {'corrected':>9}  {'gain, 95% range':<26} use")
+    for r in rep["horizons"]:
+        if "raw" not in r:
+            print(f"  {r['days']:>4} {r['train']:>5} {r['test']:>5}  {r.get('note', '')}")
+            continue
+        g = r["gain"]
+        use = f"b = {r['b']:.2f}" if r["used"] else "raw odds"
+        print(f"  {r['days']:>4} {r['train']:>5} {r['test']:>5}  {r['fit_b']:4.2f} ± {r['fit_se']:4.2f}"
+              f" {r['raw']['log_loss']:>12.4f} {r['corrected']['log_loss']:>9.4f}  "
+              f"{g[0]:+.4f} ({g[1]:+.4f} to {g[2]:+.4f})  {use}")
+    print("\n  A slope above 1 means long shots were overpriced and favorites underpriced. A horizon's slope is used "
+          "only if it\n  beat raw odds on the later markets across the whole 95% range of its gain; it is then refitted "
+          "on all of them.")
+
+
+def cmd_calibrate(s: Settings, args) -> int:
+    """The long-shot study (DESIGN.md 6.4, eval E2) on resolved Polymarket and Kalshi markets."""
+    from .evidence import calibration, resolved
+    from .pipeline import finite, make_clients, save
+
+    now = datetime.now(timezone.utc).replace(microsecond=0)
+    stamp = now.strftime("%Y%m%dT%H%M%S")
+    warnings: list[str] = []
+    if args.from_file:
+        obs = calibration.read_obs(Path(args.from_file))
+        sources: dict = {"observations": str(args.from_file)}
+        print(f"Read {len(obs):,} prices from {args.from_file}")
+    else:
+        start = date.fromisoformat(args.since)
+        end = date.fromisoformat(args.until) if args.until else now.date() - timedelta(days=1)
+        print(f"Collecting resolved markets that closed from {start} to {end} (up to {args.markets:,} a venue)")
+        c = make_clients(s, claude=False)
+        obs, stats, warnings = resolved.collect(c.polymarket, c.kalshi, start, end, total=args.markets)
+        s.out_dir.mkdir(parents=True, exist_ok=True)
+        obs_path = s.out_dir / f"calibration-obs-{stamp}.jsonl.gz"
+        calibration.write_obs(obs, obs_path)
+        sources = {"since": start.isoformat(), "until": end.isoformat(), "venues": stats, "observations": obs_path.name}
+    for w in warnings:
+        print(f"  warning: {w}")
+    try:
+        report = calibration.study(obs)
+    except ValueError as e:
+        print(f"No study: {e}", file=sys.stderr)
+        return 1
+    out = {"kind": "redkeep.calibration-study", "as_of": now.isoformat(), "sources": sources, "warnings": warnings, **report}
+    path = save(finite(out), s.out_dir, "calibration")
+    print_calibration(out)
+    print(f"\nSaved {path}" + ("" if args.from_file else f" and the prices behind it, {sources['observations']}"))
+    if args.write:
+        s.calibration_file.write_text(json.dumps(calibration.to_json(report, now.date().isoformat()), indent=1,
+                                                 ensure_ascii=False) + "\n")
+        used = any(r["used"] for r in report["horizons"])
+        print(f"Wrote {s.calibration_file}: " + ("the next refresh gives calibrated odds from these slopes" if used else
+                                                "no slope beat raw odds reliably, so calibrated odds stay at market odds"))
+    return 0
+
+
 def cmd_app(s: Settings, args) -> int:
     from .appdata import export
 
@@ -173,6 +235,13 @@ def main(argv: list[str] | None = None) -> int:
     a.add_argument("--snapshot", help="library snapshot (default: the latest)")
     a.add_argument("--horizon", type=float, help="months (default 6)")
     a.add_argument("--what-if", action="append", metavar="EVENT=yes|no")
+    k = sub.add_parser("calibrate", help="measure the long-shot bias on resolved markets (eval E2)")
+    k.add_argument("--since", default="2025-01-01", help="first close date (YYYY-MM-DD, default 2025-01-01)")
+    k.add_argument("--until", help="last close date (default: yesterday)")
+    k.add_argument("--markets", type=int, default=1500, help="markets to read on each venue (default 1500)")
+    k.add_argument("--from", dest="from_file", metavar="FILE",
+                   help="rerun on the prices an earlier run saved (out/calibration-obs-*.jsonl.gz), without fetching")
+    k.add_argument("--write", action="store_true", help="save the slopes to data/calibration.json for the engine to use")
     x = sub.add_parser("app", help="export a snapshot, and any portfolio analyses, for the prototype app")
     x.add_argument("--snapshot", help="library snapshot (default: the latest)")
     x.add_argument("--analysis", nargs="*", default=[], metavar="FILE",
@@ -184,7 +253,8 @@ def main(argv: list[str] | None = None) -> int:
     args = ap.parse_args(argv)
     logging.basicConfig(level=logging.INFO if args.verbose else logging.WARNING, format="%(levelname)s %(name)s: %(message)s")
     s = Settings.from_env()
-    return {"check": cmd_check, "refresh": cmd_refresh, "analyze": cmd_analyze, "app": cmd_app, "serve": cmd_serve}[args.cmd](s, args)
+    return {"check": cmd_check, "refresh": cmd_refresh, "analyze": cmd_analyze, "calibrate": cmd_calibrate, "app": cmd_app,
+            "serve": cmd_serve}[args.cmd](s, args)
 
 
 if __name__ == "__main__":

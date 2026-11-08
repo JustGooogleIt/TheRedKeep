@@ -30,6 +30,7 @@ class Settings:
     massive_api_key: str | None = None
     cache_dir: Path = ROOT / ".cache"
     out_dir: Path = ROOT / "out"
+    calibration_file: Path = DATA_DIR / "calibration.json"  # slopes from `redkeep calibrate --write`; none: raw odds
 
     # Claude: one strong model judges the matches and writes the prior (DESIGN.md section 8).
     # REDKEEP_MODEL names it; unset, the engine uses the newest Opus model the key can call.

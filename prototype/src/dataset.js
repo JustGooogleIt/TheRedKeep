@@ -49,6 +49,7 @@ function applyDataset(id) {
   refill(LINKS, L ? L.links : DEMO.links);
   DATASET = L ? 'live' : 'demo';
   EXPOSURES = LP ? 'live' : 'demo';
+  CALIBRATION = L && L.calibration && L.calibration.markets > 0 ? L.calibration : null;
   return DATASET;
 }
 
@@ -65,4 +66,21 @@ function fmtStamp(iso) {
   const t = new Date(iso); if (isNaN(t)) return iso;
   const p = n => String(n).padStart(2, '0');
   return MONTHS[t.getUTCMonth()] + ' ' + t.getUTCDate() + ', ' + t.getUTCFullYear() + ', ' + p(t.getUTCHours()) + ':' + p(t.getUTCMinutes()) + ' UTC';
+}
+
+/* Calibrated odds. A snapshot carries the backend's study of resolved markets (`redkeep calibrate`) once one has run;
+   before that its calibrated odds equal market odds. The illustrative data shades long shots by hand. */
+let CALIBRATION = null;
+/* What Tweaks says calibrated odds do. The illustrative data shades long shots by hand; a snapshot's odds move only
+   where its study found a slope that beat raw prices reliably on later markets. */
+function oddsTweak() {
+  if (DATASET !== 'live') return 'Calibrated shades long shots down';
+  if (!CALIBRATION) return 'No study of resolved markets yet, so both match';
+  return Object.values(CALIBRATION.slopes || {}).some(b => Math.abs(b - 1) > 1e-6) ? 'Calibrated shades long shots down'
+    : 'The latest study found no reliable long-shot bias, so both match';
+}
+function calibrationNote() {
+  if (!CALIBRATION) return 'Long shots tend to be overpriced on prediction markets, so calibrated odds (in Tweaks) shade them down.';
+  return 'That is about how often prices like this one, this far from the deadline, came true across ' + CALIBRATION.markets.toLocaleString('en-US') +
+    ' resolved Polymarket and Kalshi markets (study of ' + fmtDate(CALIBRATION.fitted) + '). Tweaks can switch to calibrated odds.';
 }

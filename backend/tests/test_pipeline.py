@@ -18,7 +18,7 @@ from redkeep.evidence import weekend
 from redkeep.factors import FACTORS, NF, index
 from redkeep.markets import from_kalshi_event, from_polymarket_event
 from redkeep.matching.judge import Verdict
-from redkeep.evidence import prior as prior_mod
+from redkeep.evidence import calibration, prior as prior_mod
 from redkeep.pipeline import Clients, analyze, refresh
 
 from .synth import business_days, factor_levels, fund_closes
@@ -171,9 +171,16 @@ def kalshi_events_mod():
     return json.loads((FIX / "kalshi_events.json").read_text())["events"]
 
 
+SLOPES = {1: 1.0, 7: 1.25, 30: 1.25, 90: 1.25, 180: 1.25}  # planted: a week or more out, long shots are overpriced
+
+
 @pytest.fixture(scope="module")
 def snap(world, tmp_path_factory):
-    s = Settings(cache_dir=tmp_path_factory.mktemp("cache"))
+    tmp = tmp_path_factory.mktemp("cache")
+    (tmp / "calibration.json").write_text(json.dumps({
+        "kind": "redkeep.calibration", "version": 1, "fitted": "2026-11-01", "markets": {"kalshi": 900, "polymarket": 600},
+        "horizons": [{"days": h, "used": b != 1.0, "b": b} for h, b in SLOPES.items()]}))
+    s = Settings(cache_dir=tmp, calibration_file=tmp / "calibration.json")
     return refresh(s, world, today=TODAY, progress=lambda _: None)
 
 
@@ -203,6 +210,12 @@ def test_refresh_builds_a_complete_library(snap):
     assert [r["kind"] for r in ev["tariffs-china"]["delta"]["readings"]] == ["past", "ai"]
     st = {(l["parent"], l["child"]): l["status"] for l in snap["links"]}
     assert st[("cpi-hot", "fed-hike-dec")] == "untestable"
+    # Calibrated odds come from the slopes for the days left; an AI estimate has no market to correct.
+    assert snap["calibration"] == {"fitted": "2026-11-01", "markets": 1500, "slopes": {str(h): b for h, b in SLOPES.items()}}
+    days = (date.fromisoformat(fed["terms"]["deadline"]) - TODAY).days
+    assert fed["odds"]["p_hat"] == pytest.approx(calibration.Calibration(SLOPES).p_hat(fed["odds"]["q"], days))
+    assert abs(fed["odds"]["p_hat"] - 0.5) > abs(fed["odds"]["q"] - 0.5)
+    assert taiwan["odds"]["p_hat"] == taiwan["odds"]["q"] and rec["odds"]["p_hat"] == rec["odds"]["q"]
 
 
 def test_analysis_ranks_events_for_a_portfolio(world, snap, tmp_path):
@@ -252,6 +265,7 @@ def test_app_export_reproduces_the_engine(world, snap, tmp_path):
     data = build(snap, runs)
     ev = {e["id"]: e for e in data["events"]}
     fed = ev["fed-hike-dec"]
+    assert data["calibration"] == snap["calibration"] and fed["ph"] != fed["q"]
     assert fed["m"]["rel"] == "sum" and fed["m"]["score"] == pytest.approx(0.92)
     assert fed["seriesNote"].startswith("Sum of 2 outcomes") and len(fed["series"]) > 100 and fed["hist"]["y"] == fed["series"][-1]
     # Prices here ignore the odds, so the ETF reading is noise: too vague to count, and with nothing to check against.
@@ -290,7 +304,9 @@ def keyless(world, tmp_path_factory):
         available = False
 
     c = Clients(world.polymarket, world.kalshi, world.fred, NoMassive({}), world.judge, world.prior)
-    return c, refresh(Settings(cache_dir=tmp_path_factory.mktemp("keyless")), c, today=TODAY, progress=lambda _: None)
+    tmp = tmp_path_factory.mktemp("keyless")
+    s = Settings(cache_dir=tmp, calibration_file=tmp / "no-calibration-yet.json")
+    return c, refresh(s, c, today=TODAY, progress=lambda _: None)
 
 
 def test_without_massive_the_library_still_builds(keyless, tmp_path):
@@ -310,6 +326,9 @@ def test_the_app_takes_the_events_alone(keyless, tmp_path):
     assert data["exposures"] == "illustrative"
     assert data["tickers"] == {} and data["samples"] == [] and data["results"] == []
     assert len(data["events"]) == 10 and data["warnings"] == snap["warnings"]
+    # With no study yet, calibrated odds are market odds.
+    assert data["calibration"]["markets"] == 0 and set(data["calibration"]["slopes"].values()) == {1.0}
+    assert all(x["ph"] == x["q"] for x in data["events"])
     measured = [f["k"] for f in data["factors"] if f["typical"]]
     assert measured == ["eq", "rates", "infl", "usd", "oil", "credit", "vix"]
     for e, x in zip(snap["events"], data["events"]):  # with no prices, only the AI prior moves China, chips and gold

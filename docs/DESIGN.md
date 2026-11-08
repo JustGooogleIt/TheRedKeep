@@ -306,7 +306,9 @@ In Castle's terms, the gap between event and contract is **basis risk**: the cha
 **Prediction-market odds.**
 
 - Use the midpoint, not the last trade. The error grows with the spread and shrinks with volume.
-- Correct for the favorite-longshot bias with a calibration curve fitted on resolved markets, by category and time to expiry. The bias is well documented (Snowberg and Wolfers 2010), including on Kalshi, where low-priced contracts win far less often than their prices imply and prices become more accurate as markets approach closing (Bürgi, Deng and Whelan 2025). Otherwise, prediction markets are good aggregators of information (Wolfers and Zitzewitz 2004).
+- Correct for the favorite-longshot bias with a correction fitted on resolved markets for each time to expiry. The bias is well documented (Snowberg and Wolfers 2010), including on Kalshi, where low-priced contracts win far less often than their prices imply and prices become more accurate as markets approach closing (Bürgi, Deng and Whelan 2025). Otherwise, prediction markets are good aggregators of information (Wolfers and Zitzewitz 2004).
+- The correction is a line in log-odds, one slope for each horizon `h` (1, 7, 30, 90 and 180 days before the deadline, interpolated between them): `logit p̂ = b_h · logit q`. A slope above 1 means long shots are overpriced and favorites underpriced. With no intercept, yes and no are treated alike (`p̂(1 − q) = 1 − p̂(q)`), so the correction doesn't depend on how a question is worded; a two-parameter fit is reported as a check for a bias toward yes. One parameter per horizon can't chase noise the way a binned curve can, and the reliability tables show whether the line fits. A horizon's slope is used only if it beats raw prices on later markets across the whole 95% range of the gain (E2, [section 10](#10-how-we-prove-it-works)); otherwise `p̂ = q` there.
+- Priced-in moves keep using `q`, since that is what the market has priced. `p̂` is the engine's own view: it drives the calibrated simulation and a hedge's expected cost.
 - Cross-venue check: when Polymarket and Kalshi both list an event, disagreement beyond the spreads is flagged.
 
 **Options.**
@@ -515,6 +517,10 @@ Ground rules: time-based splits only (fit on the past, test on the future), poin
 | E8 | Historical replay | Would the system have helped on real days? | April 2025 tariffs and the pause; other episodes | Predicted vs. realized portfolio moves; ranking of the events that mattered | AI-only |
 | E9 | "Just ask an AI" | Is the system better than a strong model with no tools? | Same portfolios and dates | E2, E3 and E8 metrics | Claude with no tools |
 
+**How E2 runs.** `redkeep calibrate` reads yes/no markets that resolved since January 2025. On Polymarket these are the busiest closed events of each month under the economy, finance, geopolitics, tech and politics tags; on Kalshi, the settled markets of series filed under the matching categories, leaving out daily, hourly and combination series. Sports, crypto, entertainment, weather and thin markets are left out. Markets are sampled evenly by a hash of their ids: at most three from one event, so a 40-rung ladder can't dominate, and a few dozen per series, or per tag and month. Each market is priced 1, 7, 30, 90 and 180 days before its deadline, but only while it was still trading, since the engine only prices open markets; the price is the last daily one, if it is under three days old. Markets are split by the date they closed: each horizon's slope is fitted on the earliest 70% and scored on the rest against raw prices, by Brier score, log loss and a reliability table, overall and by venue and category. The 95% range of the gain comes from resampling whole events, since the outcomes of one event's markets are tied together. A horizon's slope is used only if it lowers the out-of-sample log loss across the whole 95% range of the gain, and the slopes in use are then refitted on every market. The prices behind a run are saved, so it can be rerun and audited without fetching.
+
+**What the first run found.** On November 8, 2026 the study read 1,423 Kalshi and 1,484 Polymarket markets that closed between January 2025 and November 2026 (1,543 events, 6,631 prices). The fitted slopes ran from 1.01 at one day out to 1.33 at 180 days, so long shots did look overpriced, most of all far from the deadline. But no horizon's correction beat raw prices reliably on the later markets: every gain's 95% range includes zero, and at 7 and 30 days the correction did slightly worse. The engine therefore keeps market odds (`p̂ = q`) for now. This supports the assumption that liquid markets are reasonably calibrated ([section 13](#13-assumptions-and-limitations)). Reruns as more markets resolve will show whether the bias firms up.
+
 **Ground truth for jumps.** When a market resolves, its odds jump to 0 or 1, so the realized jump is the factor move in the resolution window divided by the odds change (`1 − q` or `−q`). The same data sets each source's weight (6.5): weights are fitted on an earlier period and evaluated on a later one, so the evals stay honest.
 
 ---
@@ -592,17 +598,17 @@ TheRedKeep/
 │   ├── build.py               # writes index.html
 │   └── check.js               # checks the prototype's math against the doc, and against the backend's numbers
 ├── backend/                   # built so far: the M3 slice (see its README)
-│   ├── data/                  # events.toml (the event library), portfolios.toml (samples)
+│   ├── data/                  # events.toml (the event library), portfolios.toml (samples), calibration.json (E2's slopes)
 │   ├── redkeep/
 │   │   ├── data/              # polymarket.py, kalshi.py, fred.py, massive.py; next: hyperliquid.py, options
 │   │   ├── matching/          # retrieve.py, judge.py, ladders.py, decide.py
-│   │   ├── evidence/          # odds.py, windows.py, analogs.py, prior.py; next: options.py
+│   │   ├── evidence/          # odds.py, windows.py, analogs.py, prior.py, calibration.py and resolved.py (E2); next: options.py
 │   │   ├── engine/            # fusion.py, impact.py, simulate.py
 │   │   ├── exposure.py        # look-through, regressions and fit
 │   │   ├── pipeline.py        # refresh (the shared library) and analyze (per portfolio)
 │   │   └── api.py, cli.py     # FastAPI routes and the `redkeep` command
 │   └── tests/
-│   # planned: events/ (the funnel and Laya), graph/ (learned links), hedging/, jobs/ (backtests, calibration)
+│   # planned: events/ (the funnel and Laya), graph/ (learned links), hedging/, jobs/ (backtests, scheduled reruns of E2)
 ├── evals/                     # e0_screening ... e9_baseline, reports/
 └── frontend/                  # Next.js app
 ```
@@ -631,6 +637,8 @@ Build a thin vertical slice first, then widen it.
 
 **Coherence checks (M7)** are built: every refresh checks each event's related prices against the rules in [6.6](#66-event-graph) and records the checks and any violations in the snapshot. Odds that related markets contradict make the event tier B, and a link's measured weight is capped where today's odds can't take it. The app's event drawer shows the verdict under the matched market, and a capped link's note under its knock-on effect.
 
+**Calibration (E2)** is built and has run: `redkeep calibrate` collects resolved markets from both venues, runs the study and, with `--write`, saves the result to `backend/data/calibration.json`. The first run, on 2,907 markets, found no correction that reliably beats market odds, so calibrated odds equal market odds for now ([section 10](#10-how-we-prove-it-works)). Every snapshot carries the study's size and date, and the prototype says what it found.
+
 ---
 
 ## 16. Decisions and open questions
@@ -647,6 +655,7 @@ Build a thin vertical slice first, then widen it.
 | Which sample portfolios? | Famous published allocations: All Weather, Buffett's 90/10, the Permanent Portfolio and a Yale-style mix ([9.2](#92-screens)) |
 | Default horizon? | Six months, adjustable |
 | How much of Protect and Track to build? | Optional. Single-event hedge sizing is in the prototype; the optimizer and tracking are described, not built ([section 7](#7-optional-extension-hedging-with-event-contracts)) |
+| How are market odds calibrated? | One slope in log-odds per horizon, fitted on resolved Polymarket and Kalshi markets and used only where it reliably beats raw prices out of sample. None does yet, so the engine uses market odds ([6.4](#64-evidence), E2) |
 
 **Still open**
 
