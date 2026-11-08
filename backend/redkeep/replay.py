@@ -6,7 +6,8 @@ evening, at the 4 p.m. New York close:
 
 * **The markets.** The episode's events are matched by the same retrieval, judge and rules as a refresh, among the
   Polymarket and Kalshi markets listed at some point during the episode, closed ones included. The judge is told
-  the episode's first evening as today's date. A market counts only from the first close after it was listed.
+  the episode's first evening as today's date. A market counts only from the first close after it was listed, and
+  for an event that happened during the episode, only markets listed before it happened are candidates.
 * **The odds.** Each matched market's archived prices, read at every close: the last price at or before 4 p.m.,
   if it is under four days old. Hourly prices are used where the venue still serves them, daily ones otherwise
   (stamped after the close, so they lag by most of a day). An event resolves at the first close after the moment
@@ -341,12 +342,18 @@ class Matched:
     candidates: int
 
 
+def listed_before(markets: Sequence[Market], t: datetime | None) -> list[Market]:
+    """The markets listed before ``t``. A market listed after an event happened can't have priced it, and its rules
+    often say what happened."""
+    return list(markets) if t is None else [m for m in markets if m.opened is None or m.opened < t]
+
+
 def _match(c: Clients, s: Settings, ep: Episode, cat: Catalogue, base: date, closes: list[date], start: datetime,
            end: datetime, progress: Progress) -> list[Matched]:
     """Match every event among the markets listed during the episode. Each candidate's price for the decision is its
     price at the first close it was listed for; its odds each evening come from its own history later."""
-    retriever = Retriever(cat.markets)
-    got = {e.spec.id: retriever.candidates(e.spec, k=s.candidates_per_event) for e in ep.events}
+    got = {e.spec.id: Retriever(listed_before(cat.markets, e.happened)).candidates(e.spec, k=s.candidates_per_event)
+           for e in ep.events}
     priced: dict[str, Market] = {}
     for m in dedupe(m for g in got.values() for m, _ in g):
         p = prices(c, m, start, end, archived=m.id in cat.archived, hourly=False)

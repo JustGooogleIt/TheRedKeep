@@ -4,6 +4,7 @@ closed markets the way Polymarket and Kalshi do. Nothing here is market data."""
 import json
 from dataclasses import replace
 from datetime import date, datetime, time, timedelta, timezone
+from types import SimpleNamespace
 
 import numpy as np
 import pytest
@@ -225,10 +226,11 @@ class Judge:
     WORDS = {"universal": "universal", "china": "retaliate", "recession": "recession", "pause": "pause"}
 
     def __init__(self):
-        self.today = set()
+        self.today, self.seen = set(), {}
 
     def judge(self, spec, markets, today):
         self.today.add(today)
+        self.seen[spec.id] = [m.title for m in markets]
         out = []
         for m in markets:
             hit = self.WORDS[spec.id] in m.title.lower()
@@ -254,6 +256,7 @@ def rep(episode, tmp_path_factory):
     c = clients(*build_world())
     out = replay.run(Settings(cache_dir=tmp_path_factory.mktemp("c")), c, episode, progress=lambda _: None)
     out["_judged_on"] = sorted(c.judge.today)
+    out["_seen"] = c.judge.seen
     return out
 
 
@@ -292,7 +295,18 @@ def test_the_judge_matches_as_of_the_first_evening(rep):
     assert ev(rep, "universal")["odds"]["granularity"] == ["hourly"]
     assert ev(rep, "recession")["odds"]["markets"][0]["key"] == "kalshi:KXREC-25"
     assert rep["catalogue"]["polymarket"] == 2  # the Fed market closed before the episode
-    json.dumps({k: v for k, v in rep.items() if k != "_judged_on"}, allow_nan=False)
+    json.dumps({k: v for k, v in rep.items() if not k.startswith("_")}, allow_nan=False)
+
+
+def test_an_event_that_happened_is_matched_only_among_markets_listed_before_it(rep):
+    # The China market was listed on April 3, after the universal tariffs were announced on April 2.
+    china = "Will China retaliate with tariffs on US goods by April 30?"
+    assert china in rep["_seen"]["china"] and china not in rep["_seen"]["universal"]
+    m = lambda t: SimpleNamespace(opened=t)  # noqa: E731
+    at = datetime(2025, 4, 2, 20, 10, tzinfo=timezone.utc)
+    early, late, unknown = m(at - timedelta(hours=1)), m(at + timedelta(hours=1)), m(None)
+    assert replay.listed_before([early, late, unknown], at) == [early, unknown]
+    assert replay.listed_before([early, late], None) == [early, late]
 
 
 def test_an_event_counts_only_once_a_market_lists_it(rep):
