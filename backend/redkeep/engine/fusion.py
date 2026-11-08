@@ -9,13 +9,20 @@ about independent markets agreeing with each other.
 Tiers:
 
 * A, Confirmed: odds from a well-matched, liquid market, and the jump backed by
-  two or more market readings that agree.
+  two or more precise market readings that agree.
 * B, Contested: market readings of the odds or the jump disagree beyond their
   error bars. The disagreement is the insight.
-* C, Provisional: odds observed, but the jump has fewer than two market
+* C, Provisional: odds observed, but the jump has fewer than two precise market
   readings, or the match is weak.
 * D, Unpriced: no prediction market fits; odds and jump come from past events
   and the AI only.
+
+A market reading is precise when it could confirm the jump on its own. Projected
+onto the fused jump, its error bar on the jump's size is ``1 / sqrt(Σ_f δ̂_f² / σ_f²)``
+of the jump (the same projection as the app's jump chart). At ``QUORUM_SE`` or less,
+the reading alone tells the jump from no jump at two standard errors. A vaguer
+reading still enters the average and the χ² check, so it can contest a jump, but
+it can't help confirm one: two vague readings agree with anything.
 """
 
 from __future__ import annotations
@@ -31,6 +38,7 @@ from ..factors import NF
 DeltaKind = Literal["etf", "hl", "opt", "past", "ai"]
 MARKET_DELTA_KINDS = {"etf", "hl", "opt"}
 ALPHA = 0.05  # significance level for "disagree beyond the error bars"
+QUORUM_SE = 0.5  # largest error bar on the jump's size, as a share of it, for a reading to count in the quorum
 
 
 @dataclass
@@ -55,11 +63,12 @@ class FusedDelta:
     delta: np.ndarray
     sigma: np.ndarray
     weights: dict[str, np.ndarray]  # each reading's share of the precision, per factor
-    n_market: int
+    n_market: int  # precise market readings: the ones that count toward the quorum
     chi2: float
     dof: int
     p_value: float | None
-    agree: bool | None  # None when fewer than two market readings overlap
+    agree: bool | None  # over all market readings; None when no two of them share a factor
+    n_market_all: int = 0  # market readings of any precision
 
 
 @dataclass
@@ -110,7 +119,7 @@ def fuse_delta(readings: Sequence[DeltaReading]) -> FusedDelta:
     sigma = np.where(tot > 0, 1.0 / np.sqrt(safe), np.inf)
     weights = {r.name: np.where(tot > 0, P[i] / safe, 0.0) for i, r in enumerate(readings)}
 
-    # Consistency among market readings only, factor by factor.
+    # Consistency among market readings only, factor by factor. Every market reading takes part, vague or not.
     mk = [i for i, r in enumerate(readings) if r.market]
     chi2, dof = 0.0, 0
     for f in range(NF):
@@ -121,10 +130,20 @@ def fuse_delta(readings: Sequence[DeltaReading]) -> FusedDelta:
         m = (w * X[rows, f]).sum() / w.sum()
         chi2 += float((w * (X[rows, f] - m) ** 2).sum())
         dof += len(rows) - 1
-    n_market = sum(1 for i in mk if P[i].sum() > 0)
+    n_all = sum(1 for i in mk if P[i].sum() > 0)
+    n_market = sum(1 for i in mk if size_error(P[i], mean) <= QUORUM_SE)
     p_value = float(chi2_dist.sf(chi2, dof)) if dof else None
     agree = None if p_value is None else p_value >= ALPHA
-    return FusedDelta(mean, sigma, weights, n_market, chi2, dof, p_value, agree)
+    return FusedDelta(mean, sigma, weights, n_market, chi2, dof, p_value, agree, n_all)
+
+
+def size_error(precision: np.ndarray, fused: np.ndarray) -> float:
+    """A reading's error bar on the size of the fused jump, as a share of it, from its precision ``1/σ²`` per factor.
+
+    Fitting the reading as ``k`` times the fused jump by weighted least squares gives ``se(k) = 1/sqrt(Σ_f δ̂_f²/σ_f²)``.
+    """
+    info = float(np.sum(precision * np.asarray(fused, float) ** 2))
+    return 1 / np.sqrt(info) if info > 0 else np.inf
 
 
 def fuse_odds(readings: Sequence[OddsReading]) -> FusedOdds:
@@ -157,13 +176,20 @@ def assign_tier(*, odds: FusedOdds, delta: FusedDelta, match_good: bool, liquid:
     if delta.agree is False:
         return Tier("B", "Market readings of the jump disagree beyond their error bars.", badges)
     if match_good and liquid and delta.n_market >= 2 and delta.agree:
-        return Tier("A", "Odds from a well-matched, liquid market, and two or more market readings of the jump agree.", badges)
+        return Tier("A", "Odds from a well-matched, liquid market, and two or more precise market readings of the jump agree.", badges)
+    vague = delta.n_market_all - delta.n_market
     if not match_good:
         why = "The odds come from a weak match (a ladder edge, a bound or an overlapping question)."
     elif not liquid:
         why = "The matched market is thin, so its odds are less reliable."
+    elif delta.n_market == 0 and vague:
+        why = "The market readings of the jump are too vague to confirm it: their error bars are over half the jump."
     elif delta.n_market == 0:
         why = "No market reading of the jump yet; it comes from past events and the AI."
-    else:
+    elif delta.n_market == 1 and vague:
+        why = "Only one market reading of the jump is precise enough to count; the others' error bars are over half the jump."
+    elif delta.n_market == 1:
         why = "Only one market reading of the jump."
+    else:
+        why = "The market readings of the jump cover different factors, so they can't check each other."
     return Tier("C", why, badges)

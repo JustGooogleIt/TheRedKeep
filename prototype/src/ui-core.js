@@ -309,10 +309,12 @@ function Exposure({ P }) {
   const rows = FACTORS.map((f, k) => ({ key: f.k, name: f.name, v: P.b[k], f })).concat(P.extras.map(e => ({ key: e.k, name: e.name, v: e.v, f: e, extra: true })));
   const mx = Math.max(1, ...rows.map(r => Math.abs(r.v)));
   const typ = f => +f.typical.toPrecision(2) + (f.unit === '%' ? '%' : ' ' + f.unit);
-  const gap = new Set(UNMEASURED.map(f => f.k));
-  const tip = r => r.name + ': a typical move (' + typ(r.f) + ') moves the portfolio ' + fmtPct(r.v, 2) + (gap.has(r.key) ? '. This snapshot has no price data on it, so only the AI prior estimates how events move it.' : '');
+  const gap = new Set(UNMEASURED.map(f => f.k)), perp = new Set(PERP_FACTORS);
+  const tip = r => r.name + ': a typical move (' + typ(r.f) + ') moves the portfolio ' + fmtPct(r.v, 2) + (!gap.has(r.key) ? ''
+    : perp.has(r.key) ? '. This snapshot has no price data on it. Hyperliquid’s weekend perp measures how some events move it; otherwise only the AI prior estimates that.'
+    : '. This snapshot has no price data on it, so only the AI prior estimates how events move it.');
   const note = [isDemoSide() && 'Illustrative exposures, rescaled to this snapshot’s typical moves. The engine measures real ones from each holding’s daily prices.',
-    gap.size > 0 && 'This snapshot has no price data yet on ' + listAnd(UNMEASURED.map(f => f.name)) + ', so only the AI prior estimates how events move ' + (gap.size === 1 ? 'it.' : 'them.')].filter(Boolean);
+    gap.size > 0 && gapNote(perp)].filter(Boolean);
   return html`<section className="card" aria-labelledby="ex-h">
     <div className="card-head"><div><span className="kicker">Step 2 · Exposure<${DemoPill} /></span><h3 className="h3" id="ex-h" style=${{ marginTop: 6 }}>Which way it leans</h3>
       <p className="sub">How much the portfolio moves when each factor makes a typical weekly move. Hover a row for its scale.</p></div></div>
@@ -331,3 +333,10 @@ function DemoPill() {
   return isDemoSide() ? html`<span className="pill pill-demo" title="This snapshot brings events, odds and jumps. Prices, holdings and exposures here are illustrative.">Illustrative</span>` : null;
 }
 const listAnd = xs => (xs.length < 3 ? xs.join(' and ') : xs.slice(0, -1).join(', ') + ', and ' + xs[xs.length - 1]);
+/* The factors a snapshot has no price data on, and what still measures how events move them. */
+function gapNote(perp) {
+  const hl = UNMEASURED.filter(f => perp.has(f.k)), them = UNMEASURED.length === 1 ? 'it.' : 'them.';
+  const head = 'This snapshot has no price data yet on ' + listAnd(UNMEASURED.map(f => f.name));
+  if (!hl.length) return head + ', so only the AI prior estimates how events move ' + them;
+  return head + '. Hyperliquid’s weekend perps measure how some events move ' + listAnd(hl.map(f => f.name)) + '; otherwise only the AI prior estimates how events move ' + them;
+}

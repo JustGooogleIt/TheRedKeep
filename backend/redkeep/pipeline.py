@@ -11,6 +11,7 @@ from __future__ import annotations
 import json
 import logging
 import math
+from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta, timezone
@@ -23,19 +24,21 @@ from . import exposure as exposure_mod
 from . import factordata
 from .config import Settings
 from .data.fred import Fred
+from .data.hyperliquid import Hyperliquid
 from .data.kalshi import Kalshi
 from .data.massive import Massive
 from .data.polymarket import Polymarket
+from .engine import coherence
 from .engine.fusion import (DeltaReading, FusedDelta, FusedOdds, OddsReading, Tier, assign_tier, fuse_delta,
                             fuse_odds)
 from .engine.impact import EngineEvent, Link, build_state
 from .engine.simulate import simulate
 from .events import EventSpec, Library, load_library
-from .evidence import analogs, calibration, odds as odds_mod, prior as prior_mod, windows
+from .evidence import analogs, calibration, odds as odds_mod, prior as prior_mod, weekend, windows
 from .factors import FACTORS, KEYS
 from .http import Http, HttpError
 from .markets import Market, dedupe
-from .matching.decide import Candidate, Decision, decide
+from .matching.decide import Candidate, Decision, decide, price, related
 from .matching.judge import Judge
 from .matching.retrieve import Retriever
 
@@ -52,6 +55,7 @@ class Clients:
     judge: Judge | None
     prior: prior_mod.AIPrior | None
     model: str | None = None
+    hyperliquid: Hyperliquid | None = None  # weekend windows; none means ETF windows only
 
 
 def pick_model(client: Any, wanted: str | None) -> str:
@@ -79,7 +83,8 @@ def make_clients(s: Settings, *, claude: bool = True) -> Clients:
         model = pick_model(client, s.model)
         judge = Judge(client, model=model, effort=s.effort, log_dir=s.cache_dir / "ai")
         prior = prior_mod.AIPrior(client, model=model, effort=s.effort, log_dir=s.cache_dir / "ai")
-    return Clients(Polymarket(http), Kalshi(http), Fred(http), Massive(http, s.massive_api_key), judge, prior, model)
+    return Clients(Polymarket(http), Kalshi(http), Fred(http), Massive(http, s.massive_api_key), judge, prior, model,
+                   Hyperliquid(http))
 
 
 # -- JSON helpers -------------------------------------------------------------------
@@ -167,29 +172,33 @@ def history_from(d: Decision) -> str | None:
     return f"{venue}: {legs[0][0].market.title}"
 
 
-def fetch_history(c: Clients, cand: Candidate, start: datetime, end: datetime) -> dict[date, float]:
+def fetch_points(c: Clients, cand: Candidate, start: datetime, end: datetime) -> list[tuple[datetime, float]]:
+    """A market's hourly odds, on the event's side, oldest first."""
     m = cand.market
     if m.venue == "polymarket" and m.token_yes:
         pts = c.polymarket.history(m.token_yes, start, end)
     elif m.venue == "kalshi" and m.series:
         pts = c.kalshi.history(m.series, m.id, start, end)
     else:
-        return {}
-    daily = windows.at_close(pts)
-    return {d: (1 - q if cand.verdict.polarity == "no" else q) for d, q in daily.items()}
+        return []
+    return sorted((t, 1 - q if cand.verdict.polarity == "no" else q) for t, q in pts)
 
 
-def event_history(c: Clients, d: Decision, start: datetime, end: datetime) -> dict[date, float]:
-    legs = history_legs(d)
-    if not legs:
-        return {}
-    series = []
-    for cand, w in legs:
+def event_legs(c: Clients, d: Decision, start: datetime, end: datetime) -> weekend.Legs:
+    """The hourly odds of the markets that stand in for the event, with their weights."""
+    out = []
+    for cand, w in history_legs(d):
         try:
-            series.append((fetch_history(c, cand, start, end), w))
+            out.append((fetch_points(c, cand, start, end), w))
         except HttpError as e:
             log.warning("no history for %s: %s", cand.market.key, e)
-            return {}
+            return []
+    return out
+
+
+def daily_history(legs: weekend.Legs) -> dict[date, float]:
+    """The event's odds at each day's 4 p.m. New York close, on the days every leg has one."""
+    series = [(windows.at_close(pts), w) for pts, w in legs]
     common = set.intersection(*(set(s) for s, _ in series)) if series else set()
     return {day: min(1.0, sum(w * s[day] for s, w in series)) for day in sorted(common)}
 
@@ -210,9 +219,75 @@ def check_link(parent: dict[date, float], child: dict[date, float], *, min_days:
     return {"w_data": slope, "se": se, "t": slope / se if se > 0 else 0.0, "n": len(dp)}
 
 
+def quote_halfwidth(d: Decision) -> float:
+    """How far the event's own odds may sit from the truth because of the quotes that set them: the half-spreads of
+    the tighter venue's markets, added up when its reading sums several outcomes."""
+    by_venue: dict[str, float] = defaultdict(float)
+    for c in d.used:
+        by_venue[c.market.venue] += coherence.half_spread(c.market.bid, c.market.ask)
+    return min(by_venue.values(), default=coherence.NO_QUOTE)
+
+
+def market_coherence(d: Decision, cands: list[Candidate], q: float, groups: dict[tuple[str, str], list[Market]],
+                     s: Settings) -> tuple[list[coherence.Finding], int]:
+    """The decision's own coherence checks (ladders, crossed bounds), plus those that need the fused odds (related
+    markets against the event) or the whole catalogue (exclusive outcomes adding up past one). DESIGN.md 6.6."""
+    found, checks = list(d.coherence), d.checks
+    if d.kind == "match":
+        used = {c.market.key for c in d.used}
+        ok = [c for c in cands if c.verdict.same_entity and c.verdict.relation != "unrelated" and c.q is not None
+              and c.market.key not in used]
+        below, above = related(ok, s)
+        found += coherence.bounds(q, quote_halfwidth(d), below=[price(c) for c in below], above=[price(c) for c in above])
+        checks += len(below) + len(above)
+    for key in sorted({(c.market.venue, c.market.event_id) for c in d.used if c.verdict.relation == "part_of"}):
+        outcomes = [m for m in groups.get(key, []) if m.mid is not None]
+        if len(outcomes) >= 2:
+            f = coherence.exclusive_sum([coherence.Price(m.key, m.outcome or m.title, m.mid, coherence.half_spread(m.bid, m.ask))
+                                         for m in outcomes], group=outcomes[0].event_title or outcomes[0].title)
+            found += [f] if f else []
+            checks += 1
+    return sorted(found, key=lambda f: f.excess, reverse=True), checks
+
+
+CONTESTED = "Related prediction markets contradict each other on these odds by more than their spreads allow."
+
+
+def contest(tier: Tier, d: Decision, found: list[coherence.Finding]) -> tuple[Tier, bool]:
+    """Whether the coherence findings involve the event's own odds (a bound or a sum, or a market the odds rest on),
+    and the tier that follows: contested odds are tier B, as when two venues disagree. A finding elsewhere on a
+    ladder is only a possible mispricing."""
+    used = {c.market.key for c in d.used}
+    mine = any(f.kind in ("bound", "sum") or used & set(f.keys) for f in found)
+    return (Tier("B", CONTESTED, tier.badges) if mine and tier.tier in ("A", "C") else tier), mine
+
+
+def link_record(ln, chk: dict | None, odds_now: dict[str, tuple[float, str]]) -> dict:
+    """A proposed link (the library's ``LinkSpec``), checked against the odds data: left out when the data can't test
+    it or doesn't support it, and otherwise used with the measured slope, capped where today's odds can't take it
+    (DESIGN.md 6.6)."""
+    rec = {"parent": ln.parent, "child": ln.child, "w_proposed": ln.w, "reason": ln.reason}
+    if chk is None:
+        return {**rec, "status": "untestable", "used": False,
+                "note": "One of the two events has no market history to test the link."}
+    if chk["t"] * math.copysign(1, ln.w) < 2:
+        return {**rec, **chk, "status": "unconfirmed", "used": False,
+                "note": "The odds data doesn't support the link, so the engine leaves it out."}
+    rec.update(chk, status="confirmed", used=True, w=max(-1.0, min(1.0, chk["w_data"])),
+               note="The odds data agrees with the proposed direction; the engine uses the measured slope.")
+    if ln.parent in odds_now and ln.child in odds_now:
+        (qp, parent), (qc, child) = odds_now[ln.parent], odds_now[ln.child]
+        w, f = coherence.link(qp, qc, rec["w"], parent=parent, child=child)
+        if f:
+            rec.update(w=w, capped=f.note, note="The odds data agrees with the proposed direction; the engine uses the "
+                                                "measured slope, capped at what today's odds allow.")
+    return rec
+
+
 def refresh(s: Settings, c: Clients, *, today: date | None = None, progress: Progress = print) -> dict:
     if c.judge is None:
-        raise RuntimeError("ANTHROPIC_API_KEY is not set: the matcher needs Claude to judge candidates")
+        raise RuntimeError("No Anthropic key (set REDKEEP_ANTHROPIC_API_KEY or ANTHROPIC_API_KEY): "
+                           "the matcher needs Claude to judge candidates")
     now = datetime.now(timezone.utc)
     today = today or now.date()
     lib = load_library()
@@ -221,6 +296,10 @@ def refresh(s: Settings, c: Clients, *, today: date | None = None, progress: Pro
 
     markets = catalogue(lib, c, today, progress)
     retriever = Retriever(markets)
+    groups: dict[tuple[str, str], list[Market]] = defaultdict(list)  # mutually exclusive outcomes, for the sum check
+    for m in markets:
+        if m.exclusive:
+            groups[(m.venue, m.event_id)].append(m)
 
     # Factor data: recent history for typical moves and jump windows; long history for analogs.
     fd = factordata.load(c.fred, c.massive, today - timedelta(days=int(365 * 3)), today)
@@ -245,15 +324,34 @@ def refresh(s: Settings, c: Clients, *, today: date | None = None, progress: Pro
 
     # Odds histories for the matched events, up to the end of ``today`` (a rerun for an earlier day stops there).
     end = min(now, datetime.combine(today + timedelta(days=1), time(0), timezone.utc))
-    hist = {spec.id: event_history(c, d, end - timedelta(days=s.history_days), end) for spec, _, d in matched}
-    wf = windows.jump_windows({k: v for k, v in hist.items() if v}, fd, move=s.window_move)
-    progress(f"Jump windows: {len(wf.windows)} days with sharp odds moves; readings for {len(wf.readings)} events")
+    start = end - timedelta(days=s.history_days)
+    legs = {spec.id: event_legs(c, d, start, end) for spec, _, d in matched}
+    hist = {k: daily_history(v) for k, v in legs.items()}
+
+    # Weekend windows on Hyperliquid's perps, a second market reading of the jump (DESIGN.md 6.4). They go first:
+    # Monday's daily ETF window spans the weekend, so on the perps' factors the ETF windows leave those days out.
+    wk, perps, skip = None, None, {}
+    if c.hyperliquid is not None:
+        perps = weekend.load(c.hyperliquid, start, end)
+        warnings += perps.warnings
+        typical = np.array([t if np.isfinite(t) else f.typical_default for t, f in zip(fd.typical, FACTORS)])
+        wk = weekend.weekend_windows({k: v for k, v in legs.items() if v}, perps, typical, start, end,
+                                     move=s.window_move, min_moves=s.weekend_min_moves)
+        skip = weekend.overlap(wk, fd.dates)
+        progress(f"Weekend windows: {len(wk.windows)} of {wk.weekends} weekends with sharp odds moves; "
+                 f"readings for {len(wk.readings)} events ({', '.join(perps.coins.values()) or 'no perps'})")
+    wf = windows.jump_windows({k: v for k, v in hist.items() if v}, fd, move=s.window_move, skip=skip,
+                              left_to=f"the {weekend.perp_names(wk.used)} perps" if wk else "")
+    progress(f"Jump windows: {len(wf.windows)} days with sharp odds moves; readings for {len(wf.readings)} events"
+             + (f"; {wf.left_out} that span a measured weekend left to the perps" if wf.left_out else ""))
 
     events = []
     for (spec, cands, d), pr in zip(matched, priors):
         readings: list[DeltaReading] = []
         if spec.id in wf.readings:
             readings.append(wf.readings[spec.id])
+        if wk and spec.id in wk.readings:
+            readings.append(wk.readings[spec.id])
         a = analogs.analog_reading(spec, fd_long)
         if a:
             readings.append(a)
@@ -267,6 +365,8 @@ def refresh(s: Settings, c: Clients, *, today: date | None = None, progress: Pro
         fo = fuse_odds(odds_readings)
         liquid = odds_mod.liquid([c.market for c in d.used], volume=s.liquid_volume, spread=s.liquid_spread)
         tier = assign_tier(odds=fo, delta=fused, match_good=d.good, liquid=liquid)
+        found, checks = market_coherence(d, cands, fo.q, groups, s) if fo.from_market else ([], 0)
+        tier, contested = contest(tier, d, found)
         events.append({
             "id": spec.id, "title": spec.title, "short": spec.short, "category": spec.category,
             "question": spec.question, "resolves": spec.resolves.isoformat(), "why": spec.why, "order": spec.order,
@@ -279,28 +379,20 @@ def refresh(s: Settings, c: Clients, *, today: date | None = None, progress: Pro
             "match": {"kind": d.kind, "note": d.note, "good": d.good, "liquid": liquid, "lo": d.lo, "hi": d.hi,
                       "candidates": len(cands), "used": [_market_json(x) for x in d.used],
                       "near_misses": [_market_json(x) for x in d.near_misses], "ladders": d.ladders},
-            "delta": {"value": fused.delta, "sigma": fused.sigma, "n_market": fused.n_market, "chi2": fused.chi2,
+            "delta": {"value": fused.delta, "sigma": fused.sigma, "n_market": fused.n_market,
+                      "n_market_all": fused.n_market_all, "chi2": fused.chi2,
                       "dof": fused.dof, "p_value": fused.p_value, "agree": fused.agree,
                       "weights": {k: v for k, v in fused.weights.items()},
                       "readings": [_reading_json(r) for r in readings]},
             "tier": {"tier": tier.tier, "reason": tier.reason, "badges": tier.badges},
+            "coherence": {"checks": checks, "contested": contested, "findings": [f.json() for f in found]},
             "history": [[k.isoformat(), v] for k, v in sorted(hist[spec.id].items())],
             "history_from": history_from(d) if hist[spec.id] else None,
             "prior": pr.model_dump() if pr else None,
         })
 
-    links = []
-    for ln in lib.links:
-        rec = {"parent": ln.parent, "child": ln.child, "w_proposed": ln.w, "reason": ln.reason}
-        chk = check_link(hist.get(ln.parent, {}), hist.get(ln.child, {}))
-        if chk is None:
-            rec.update(status="untestable", used=False, note="One of the two events has no market history to test the link.")
-        elif chk["t"] * math.copysign(1, ln.w) >= 2:
-            rec.update(chk, status="confirmed", used=True, w=max(-1.0, min(1.0, chk["w_data"])),
-                       note="The odds data agrees with the proposed direction; the engine uses the measured slope.")
-        else:
-            rec.update(chk, status="unconfirmed", used=False, note="The odds data doesn't support the link, so the engine leaves it out.")
-        links.append(rec)
+    odds_now = {e["id"]: (e["odds"]["q"], e["short"]) for e in events}
+    links = [link_record(ln, check_link(hist.get(ln.parent, {}), hist.get(ln.child, {})), odds_now) for ln in lib.links]
 
     snap = {
         "kind": "redkeep.library", "version": 1, "as_of": now.isoformat(timespec="seconds"), "today": today.isoformat(),
@@ -308,7 +400,11 @@ def refresh(s: Settings, c: Clients, *, today: date | None = None, progress: Pro
                                         "kalshi": sum(m.venue == "kalshi" for m in markets)},
         "factors": [{"key": f.key, "name": f.name, "unit": f.unit, "typical": fd.typical[i], "source": fd.sources.get(f.key)}
                     for i, f in enumerate(FACTORS)],
-        "windows": {"count": len(wf.windows), "days": len(fd.dates), "move": s.window_move},
+        "windows": {"count": len(wf.windows), "days": len(fd.dates), "move": s.window_move, "left_out": wf.left_out,
+                    "weekends": None if wk is None else {
+                        "count": len(wk.windows), "weekends": wk.weekends, "readings": len(wk.readings),
+                        "coins": perps.coins, "used": {f: len(v) for f, v in wk.used.items()},
+                        "censored": [[d.isoformat(), f] for d, f in wk.censored]}},
         "calibration": cal.summary(),
         "events": events, "links": links, "warnings": warnings,
     }

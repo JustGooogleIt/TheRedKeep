@@ -9,7 +9,7 @@ import sys
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
-from .config import Settings
+from .config import ANTHROPIC_KEY_NAMES, Settings
 from .portfolio import parse_holdings, samples
 
 
@@ -37,11 +37,26 @@ def cmd_check(s: Settings, args) -> int:
             raise claude_error
         return f"model {c.model} available"
 
+    def hyperliquid() -> str:
+        """The perps the weekend windows look for, as trade[XYZ] lists them, and a day of candles for the first."""
+        from .evidence.weekend import PERPS
+
+        listed = c.hyperliquid.coins("xyz")
+        found = {p.name: next((x for x in p.coins if x in listed), None) for p in PERPS}
+        if not any(found.values()):
+            raise RuntimeError(f"none of {[x for p in PERPS for x in p.coins]} among {len(listed)} listed perps")
+        coin = next(x for x in found.values() if x)
+        now = datetime.now(timezone.utc)
+        n = len(c.hyperliquid.candles(coin, now - timedelta(days=1), now))
+        return (", ".join(f"{x} {listed[x].get('maxLeverage')}x" if x else f"no {name} perp" for name, x in found.items())
+                + f"; {n} hourly {coin} candles in the last day")
+
     today = date.today()
     checks = [
         ("Polymarket (Gamma)", lambda: f"{len(c.polymarket.search('recession', limit=3))} events for 'recession'"),
         ("Kalshi", lambda: f"{len(c.kalshi.http.get_json('https://api.elections.kalshi.com/trade-api/v2/events', {'limit': 5, 'status': 'open'}).get('events', []))} open events"),
         ("FRED", lambda: f"DGS10 has {len(c.fred.series(['DGS10'], today - timedelta(days=20), today).get('DGS10', {}))} recent days"),
+        ("Hyperliquid (trade[XYZ])", hyperliquid),
     ]
     if c.massive.available:
         checks.append(("Massive (prices)", lambda: f"SPY has {len(c.massive.closes('SPY', today - timedelta(days=20), today))} recent closes"))
@@ -55,7 +70,11 @@ def cmd_check(s: Settings, args) -> int:
         except Exception as e:  # report every failure, keep going
             ok = False
             print(f"  FAIL  {name:<24} {type(e).__name__}: {str(e)[:160]}")
-    for name, present in (("ANTHROPIC_API_KEY", bool(s.anthropic_api_key)), ("MASSIVE_API_KEY", bool(s.massive_api_key))):
+    keys = (
+        (s.anthropic_key_name or " or ".join(ANTHROPIC_KEY_NAMES), bool(s.anthropic_api_key)),
+        ("MASSIVE_API_KEY", bool(s.massive_api_key)),
+    )
+    for name, present in keys:
         print(f"  {'set ' if present else 'MISSING'}  {name}")
     return 0 if ok else 1
 

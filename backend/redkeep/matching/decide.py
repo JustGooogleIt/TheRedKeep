@@ -11,6 +11,11 @@ In order of preference, per venue:
    bound; usable when the range is at most ``max_bound_width`` wide.
 4. **Nothing fits**: the event has no market and becomes tier D. The closest
    near-misses are kept with the judge's reason for rejecting them.
+
+Along the way, the related prices are checked for coherence (``engine/coherence.py``):
+a ladder's rungs must rise or fall in order, and a lower bound can't sit above an
+upper one. The pipeline adds the checks that need the fused odds or the whole
+catalogue.
 """
 
 from __future__ import annotations
@@ -22,6 +27,7 @@ from datetime import date
 from typing import Literal
 
 from ..config import Settings
+from ..engine import coherence
 from ..engine.fusion import OddsReading
 from ..events import EventSpec
 from ..evidence.odds import VENUE_NAMES, describe_liquidity, event_side, market_sigma
@@ -58,6 +64,30 @@ class Decision:
     lo: float | None = None
     hi: float | None = None
     ladders: list[dict] = field(default_factory=list)
+    coherence: list[coherence.Finding] = field(default_factory=list)  # related prices that break the rules
+    checks: int = 0  # how many comparisons the coherence checks made
+
+
+@dataclass
+class Ladder:
+    result: ladders.LadderResult
+    legs: list[Candidate]  # the rungs the estimate rests on
+    rungs: list[tuple[float, coherence.Price]]  # every rung, for the coherence check
+    increasing: bool
+
+
+def price(c: Candidate) -> coherence.Price:
+    """A candidate's event-side odds, as the coherence checks read them."""
+    m = c.market
+    label = ("No: " if c.verdict.polarity == "no" else "") + (m.outcome or m.title)
+    return coherence.Price(m.key, label, c.q, coherence.half_spread(m.bid, m.ask))
+
+
+def related(cands: list[Candidate], s: Settings) -> tuple[list[Candidate], list[Candidate]]:
+    """Markets that imply the event (lower bounds) and markets the event implies (upper bounds)."""
+    lo = [c for c in cands if c.verdict.relation == "implies" and c.verdict.score >= s.leg_min]
+    hi = [c for c in cands if c.verdict.relation == "implied_by" and c.verdict.score >= s.leg_min]
+    return lo, hi
 
 
 def _venue(v: str) -> str:
@@ -109,7 +139,7 @@ def _direct(cands: list[Candidate], s: Settings) -> tuple[list[OddsReading], lis
     return readings, used
 
 
-def _ladders(spec: EventSpec, cands: list[Candidate], s: Settings) -> list[tuple[ladders.LadderResult, list[Candidate]]]:
+def _ladders(spec: EventSpec, cands: list[Candidate], s: Settings) -> list[Ladder]:
     out = []
     groups: dict[tuple[str, str], list[Candidate]] = defaultdict(list)
     for c in cands:
@@ -121,8 +151,9 @@ def _ladders(spec: EventSpec, cands: list[Candidate], s: Settings) -> list[tuple
             pts = [ladders.LadderPoint(c.verdict.market_threshold, c.q, c.sigma, c.market.key) for c in legs
                    if c.verdict.market_threshold is not None and c.verdict.deadline == "same"]
             if len(pts) >= 2:
-                r = ladders.estimate(pts, spec.threshold, increasing=spec.direction == "below", space="logit")
-                out.append((r, [by_key[k] for k in r.legs]))
+                up = spec.direction == "below"
+                r = ladders.estimate(pts, spec.threshold, increasing=up, space="logit")
+                out.append(Ladder(r, [by_key[k] for k in r.legs], [(p.x, price(by_key[p.key])) for p in pts], up))
                 continue
         pts = []
         for c in legs:
@@ -134,8 +165,13 @@ def _ladders(spec: EventSpec, cands: list[Candidate], s: Settings) -> list[tuple
                 pts.append(ladders.LadderPoint(float((d - EPOCH).days), c.q, c.sigma, c.market.key))
         if len(pts) >= 2:
             r = ladders.estimate(pts, float((spec.deadline - EPOCH).days), increasing=True, space="hazard")
-            out.append((r, [by_key[k] for k in r.legs]))
+            out.append(Ladder(r, [by_key[k] for k in r.legs], [(p.x, price(by_key[p.key])) for p in pts], True))
     return out
+
+
+def _check_ladders(lads: list[Ladder]) -> tuple[list[coherence.Finding], int]:
+    found = [f for lad in lads for f in coherence.ladder(lad.rungs, increasing=lad.increasing)]
+    return found, sum(len(lad.rungs) * (len(lad.rungs) - 1) // 2 for lad in lads)
 
 
 def decide(spec: EventSpec, cands: list[Candidate], s: Settings) -> Decision:
@@ -146,34 +182,41 @@ def decide(spec: EventSpec, cands: list[Candidate], s: Settings) -> Decision:
         return Decision("match", readings, used, _near_misses(cands, used), "Matched to a market asking the same question.", True)
 
     lads = _ladders(spec, ok, s)
-    inter = [(r, legs) for r, legs in lads if r.kind == "interpolated"]
+    inter = [lad for lad in lads if lad.result.kind == "interpolated"]
     if inter:
-        readings, used, info = [], [], []
+        readings, used, info, chosen = [], [], [], []
         for venue in ("kalshi", "polymarket"):
-            best = [(r, legs) for r, legs in inter if legs[0].market.venue == venue]
+            best = [lad for lad in inter if lad.legs[0].market.venue == venue]
             if not best:
                 continue
-            r, legs = min(best, key=lambda x: x[0].sigma)
+            lad = min(best, key=lambda x: x.result.sigma)
+            r, legs = lad.result, lad.legs
             rungs = " · ".join(f"{c.market.outcome or c.market.title} {_pct(c.q)}" for c in legs)
             readings.append(OddsReading(f"{_venue(venue)} ladder", r.q, r.sigma, "ladder", rungs))
             used.extend(legs)
+            chosen.append(lad)
             info.append({"venue": venue, "fitted": r.fitted, "note": r.note})
         good = min(c.verdict.score for c in used) >= s.match_min
+        found, checks = _check_ladders(chosen)
         return Decision("ladder", readings, used, _near_misses(cands, used), "Interpolated along a ladder of related markets.",
-                        good, ladders=info)
+                        good, ladders=info, coherence=found, checks=checks)
 
-    lo_c = [c for c in ok if c.verdict.relation == "implies" and c.verdict.score >= s.leg_min]
-    hi_c = [c for c in ok if c.verdict.relation == "implied_by" and c.verdict.score >= s.leg_min]
-    lo = max([c.q for c in lo_c] + [r.lo for r, _ in lads], default=0.0)
-    hi = min([c.q for c in hi_c] + [r.hi for r, _ in lads], default=1.0)
-    used = lo_c + hi_c + [c for _, legs in lads for c in legs]
+    lo_c, hi_c = related(ok, s)
+    lo = max([c.q for c in lo_c] + [lad.result.lo for lad in lads], default=0.0)
+    hi = min([c.q for c in hi_c] + [lad.result.hi for lad in lads], default=1.0)
+    used = lo_c + hi_c + [c for lad in lads for c in lad.legs]
     if (lo > 0 or hi < 1) and abs(hi - lo) <= s.max_bound_width:
         a, b = min(lo, hi), max(lo, hi)
         note = f"Only bounded by related markets: between {_pct(a)} and {_pct(b)}."
         if lo > hi:
             note = f"Related markets contradict each other: a lower bound of {_pct(lo)} sits above an upper bound of {_pct(hi)}."
         r = OddsReading("Bound", (a + b) / 2, max((b - a) / math.sqrt(12), 0.01), "bound", note, lo=a, hi=b)
-        return Decision("bound", [r], used, _near_misses(cands, used), note, False, lo=a, hi=b)
+        found, checks = _check_ladders(lads)
+        crossed = [f for x in lo_c for y in hi_c if (f := coherence.crossed(price(x), price(y)))]
+        found += coherence.worst(crossed, "pair of bounds", "pairs of bounds")
+        checks += len(lo_c) * len(hi_c)
+        return Decision("bound", [r], used, _near_misses(cands, used), note, False, lo=a, hi=b,
+                        coherence=sorted(found, key=lambda f: f.excess, reverse=True), checks=checks)
 
     misses = _near_misses(cands, [])
     if lo > 0 or hi < 1:

@@ -43,9 +43,13 @@ function ErrBar({ k, s, market }) {
 }
 
 function verdictText(f) {
+  const vague = Math.max((f.nAll ?? f.nMarket) - f.nMarket, 0);
+  if (f.agree === false && f.dof) return html`<span className="mk bad">!</span><p><b>Market readings disagree.</b> χ² ${f.chi2.toFixed(1)} is over the 5% cutoff of ${f.crit}. The engine shows the event as contested instead of averaging the gap away.</p>`;
   if (f.nMarket >= 2 && f.agree) return html`<span className="mk ok">✓</span><p><b>Market readings agree.</b> χ² ${f.chi2.toFixed(2)} is under the 5% cutoff of ${f.crit}, so the fused jump stands.</p>`;
-  if (f.nMarket >= 2) return html`<span className="mk bad">!</span><p><b>Market readings disagree.</b> χ² ${f.chi2.toFixed(1)} is over the 5% cutoff of ${f.crit}. The engine shows the event as contested instead of averaging the gap away.</p>`;
+  if (f.nMarket >= 2) return html`<span className="mk mid">≈</span><p><b>Market readings of different factors.</b> They don’t share a factor, so they can’t check each other yet and the jump is provisional.</p>`;
+  if (f.nMarket === 1 && vague) return html`<span className="mk mid">≈</span><p><b>One precise market reading.</b> The ${vague === 1 ? 'other market reading’s error bar is' : 'other market readings’ error bars are'} over half the jump, too wide to confirm it, so the jump is provisional.</p>`;
   if (f.nMarket === 1) return html`<span className="mk mid">≈</span><p><b>One market reading.</b> Nothing to cross-check it against yet, so the jump is provisional.</p>`;
+  if (vague) return html`<span className="mk mid">≈</span><p><b>${vague === 1 ? 'One market reading, too vague to count.' : 'Market readings too vague to count.'}</b> ${vague === 1 ? 'Its error bar is' : 'Their error bars are'} over half the jump, too wide to confirm it, so the jump is provisional.</p>`;
   return html`<span className="mk mid">≈</span><p><b>No market readings.</b> The jump comes from past events and the AI prior only.</p>`;
 }
 
@@ -93,6 +97,18 @@ function Explain({ e, P, q, ifYes, ifNo }) {
     ${st.text && html`<p className=${cls('ai-out', st.s === 'err' && 'sub')} aria-live="polite">${st.text}</p>`}
   </div>`;
 }
+
+/* A backend snapshot checks the related prices against the rules of probability (DESIGN.md 6.6). */
+function cohText(c) {
+  if (!c.flags.length) return html`<span className="mk ok">✓</span><p><b>Related prices add up.</b> ${c.n === 1 ? 'One check' : c.n + ' checks'} against the rules of probability, all within the markets’ spreads.</p>`;
+  return html`<span className="mk bad">!</span><p><b>Related prices don’t add up.</b> ${c.flags.join(' ')} ${c.contested
+    ? 'The odds rest on these prices, so the event counts as contested.'
+    : 'The odds don’t rest on these prices, so they stand, but one of the related markets is probably mispriced.'}</p>`;
+}
+
+/* If a parent at odds q happens, a child's odds move by w · (1 − q): w is P(child | parent) − P(child | not parent). */
+function knockPts(w, q) { const p = Math.round(Math.abs(w) * (1 - q) * 100); return p + (p === 1 ? ' point' : ' points'); }
+function capNote(e, other) { const n = e.coh && e.coh.caps && e.coh.caps[other]; return n ? html`<span className="sub" style=${{ display: 'block' }}>${n}</span>` : ''; }
 
 function Drawer({ e, S, P, tw, sampleId, whatIf, setWhatIf, onOpen, onClose, aiOK }) {
   const V = P.V; const closeRef = useRef(null); const bodyRef = useRef(null);
@@ -159,6 +175,7 @@ function Drawer({ e, S, P, tw, sampleId, whatIf, setWhatIf, onOpen, onClose, aiO
             <table className="cmp"><thead><tr><th></th><th>The event</th><th>The market</th><th></th></tr></thead><tbody>${e.m.cmp.map(([k, a, b, s]) => html`<tr key=${k}><td className="label">${k}</td><td>${a}</td><td>${b}</td><td><span className=${'mk ' + ['bad', 'mid', 'ok'][s]} title=${['Differs', 'Close', 'Same'][s]}>${['✕', '≈', '✓'][s]}</span></td></tr>`)}</tbody></table>
             ${e.m.ladder && html`<p className="sub">${e.m.ladder}</p>`}
             ${e.m.note && html`<p className="note">${e.m.note}</p>`}
+            ${e.coh && e.coh.n > 0 && html`<div className="verdict">${cohText(e.coh)}</div>`}
           <//>` : html`<p className="note"><b>Nothing fits.</b> No listed market resolves on this event, so the odds and the jump come from past events and an AI estimate, with wide error bars.</p>`}
           ${e.miss && html`<${Frag}><span className="label" style=${{ display: 'block', marginTop: 16 }}>Rejected near-misses</span><ul className="miss">${e.miss.map(([v, t, why]) => html`<li key=${t}><span className="label">${v}</span><b>${t}</b><span>${why}</span></li>`)}</ul><//>`}
         </section>
@@ -182,8 +199,8 @@ function Drawer({ e, S, P, tw, sampleId, whatIf, setWhatIf, onOpen, onClose, aiO
         </section>
 
         ${(e.children.length > 0 || e.parents.length > 0) && html`<section className="dr-sec"><span className="label">Knock-on effects</span><ul className="knock">
-          ${e.knock.map(k => { const ce = S.byId[k.id]; return html`<li key=${'c' + k.id}>If it happens, <button onClick=${() => onOpen(k.id)}>${ce.t}</button> becomes ${k.w > 0 ? 'more' : 'less'} likely by ${Math.round(Math.abs(k.w) * 100)} points. That adds <b className=${tone(k.d)}>${fmtPct(k.d, 2)}</b> to the full move.</li>`; })}
-          ${e.parents.map(p => html`<li key=${'p' + p.id}><button onClick=${() => onOpen(p.id)}>${S.byId[p.id].t}</button> would make this ${p.w > 0 ? 'more' : 'less'} likely by ${Math.round(Math.abs(p.w) * 100)} points.</li>`)}
+          ${e.knock.map(k => { const ce = S.byId[k.id]; return html`<li key=${'c' + k.id}>If it happens, <button onClick=${() => onOpen(k.id)}>${ce.t}</button> becomes ${k.w > 0 ? 'more' : 'less'} likely by ${knockPts(k.w, q)}. That adds <b className=${tone(k.d)}>${fmtPct(k.d, 2)}</b> to the full move.${capNote(e, k.id)}</li>`; })}
+          ${e.parents.map(p => { const pe = S.byId[p.id]; return html`<li key=${'p' + p.id}><button onClick=${() => onOpen(p.id)}>${pe.t}</button> would make this ${p.w > 0 ? 'more' : 'less'} likely by ${knockPts(p.w, pe.resolved ? pe.q0 : pe.qEff)}.${capNote(e, p.id)}</li>`; })}
         </ul></section>`}
 
         <section className="dr-sec"><span className="label">Why it moves you</span><p style=${{ margin: 0 }}>${e.why}</p>
@@ -356,8 +373,8 @@ function Footer({ ds }) {
       ${ds !== 'live'
         ? html`<p>Everything here is illustrative: prices, odds, exposures, market matches and evidence readings are made up for the prototype, shaped like the real system’s inputs. Nothing here is investment advice.</p>`
         : EXPOSURES === 'live'
-          ? html`<p>Backend snapshot of ${fmtStamp(RK_LIVE.asOf)}: odds from Polymarket and Kalshi, prices and factor data from Massive and FRED, market matches judged by Claude, and jumps and exposures estimated by the engine. The April 2025 replay stays illustrative. Nothing here is investment advice.</p>`
-          : html`<p>Backend snapshot of ${fmtStamp(RK_LIVE.asOf)}: odds from Polymarket and Kalshi, factor data from ${UNMEASURED.length ? 'FRED' : 'Massive and FRED'}, market matches judged by Claude, and jumps estimated by the engine. The portfolios’ prices, holdings and exposures are illustrative, rescaled to the snapshot’s typical moves, and so is the April 2025 replay. Nothing here is investment advice.</p>`}
+          ? html`<p>Backend snapshot of ${fmtStamp(RK_LIVE.asOf)}: odds from Polymarket and Kalshi, prices and factor data from Massive and FRED${WEEKENDS ? ', weekend perp prices from Hyperliquid' : ''}, market matches judged by Claude, and jumps and exposures estimated by the engine. The April 2025 replay stays illustrative. Nothing here is investment advice.</p>`
+          : html`<p>Backend snapshot of ${fmtStamp(RK_LIVE.asOf)}: odds from Polymarket and Kalshi, factor data from ${UNMEASURED.length ? 'FRED' : 'Massive and FRED'}${WEEKENDS ? ', weekend perp prices from Hyperliquid' : ''}, market matches judged by Claude, and jumps estimated by the engine. The portfolios’ prices, holdings and exposures are illustrative, rescaled to the snapshot’s typical moves, and so is the April 2025 replay. Nothing here is investment advice.</p>`}
     </div>
   </div></footer>`;
 }

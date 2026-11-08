@@ -16,12 +16,15 @@ function daysBetween(a, b) { return Math.round((parseDate(b) - parseDate(a)) / D
 function fmtDate(s, withYear = true) { const [y, m, d] = s.split('-').map(Number); return MONTHS[m - 1] + ' ' + d + (withYear ? ', ' + y : ''); }
 
 const TIERS = {
-  A: { name: 'Confirmed', rule: 'Odds from a well-matched, liquid market, and the jump backed by two or more market readings that agree.' },
+  A: { name: 'Confirmed', rule: 'Odds from a well-matched, liquid market, and the jump backed by two or more precise market readings that agree.' },
   B: { name: 'Contested', rule: 'Market readings disagree beyond their error bars. The disagreement is the insight.' },
-  C: { name: 'Provisional', rule: 'Odds are observed, but the jump has only one market reading or the match is weak.' },
+  C: { name: 'Provisional', rule: 'Odds are observed, but the jump has fewer than two precise market readings or the match is weak.' },
   D: { name: 'Unpriced', rule: 'No market fits. Odds and jump come from past events and the AI only.' },
 };
 const MARKET_KINDS = new Set(['opt', 'hl', 'etf']);
+// A market reading counts toward the quorum only if it could confirm the jump alone: its error bar on the
+// jump's size is at most half the jump, so it tells the jump from no jump at two standard errors.
+const QUORUM_SE = 0.5;
 
 /* ---------- 6.1 Exposure engine: look-through, arrow, extras, fit ---------- */
 function holdingValue(h) { const t = TICKERS[h.t]; if (!t || !(h.a > 0)) return 0; return h.u === 'usd' ? h.a : h.a * t.px; }
@@ -127,12 +130,13 @@ function fuseReadings(src) {
   const rd = src.map(([kind, name, detail, k, sig]) => ({ kind, name, detail, k, sig, market: MARKET_KINDS.has(kind) }));
   let sw = 0, sx = 0; rd.forEach(r => { const w = 1 / (r.sig * r.sig); sw += w; sx += w * r.k; });
   const kbar = sx / sw;
-  rd.forEach(r => { r.kn = r.k / kbar; r.sn = r.sig / kbar; r.w = (1 / (r.sig * r.sig)) / sw; });
+  rd.forEach(r => { r.kn = r.k / kbar; r.sn = r.sig / kbar; r.w = (1 / (r.sig * r.sig)) / sw; r.precise = r.market && Math.abs(r.sn) <= QUORUM_SE; });
   const mk = rd.filter(r => r.market);
   let chi2 = 0; mk.forEach(r => { chi2 += Math.pow((r.kn - 1) / r.sn, 2); });
   const dof = Math.max(mk.length - 1, 0);
   const crit = [0, 3.84, 5.99, 7.81, 9.49][dof] || 9.49;
-  return { rd, nMarket: mk.length, chi2, dof, crit, agree: mk.length >= 2 && chi2 <= crit };
+  // Every market reading takes part in the χ² check, so a vague one can still contest the jump; only precise ones confirm it.
+  return { rd, nMarket: mk.filter(r => r.precise).length, nAll: mk.length, chi2, dof, crit, agree: dof ? chi2 <= crit : null };
 }
 function oddsDisagree(odds) {
   if (!odds || odds.length < 2) return null;
