@@ -65,6 +65,7 @@ The API serves the latest snapshot (`GET /events`, `GET /events/{id}`, either wi
 | Weekend windows | The same regression on weekends with a 5-point odds move. Prices come from hourly trade candles, not the oracle, and each boundary price is the median of the closes around it and the next open, so one bad print can't set it. A move that comes within a quarter step of trade[XYZ]'s discovery-bound cap is censored and left out. Error bars come from calm weekends. Monday's daily ETF window spans the weekend, so on these three factors it is left to the perps: the two readings rest on separate data and count as independent | 6.4 |
 | Tiers | A: a well-matched liquid market and two precise market readings of the jump that agree (a reading is precise when its error bar on the jump's size is at most half the jump). B: readings disagree. C: priced, but fewer than two precise market readings or a weak match. D: no market fits | 4.6, 6.5 |
 | Links | Proposed knock-on links are used only when the two events' odds histories agree in direction (t ≥ 2), with the measured slope | 4.4, 6.6 |
+| Coherence | `engine/coherence.py`: each event's related prices are checked against the rules of probability. Ladders must rise or fall in order, markets that imply the event (or that it implies) bound its odds, and mutually exclusive outcomes add up to at most 100%, each within the quotes' half-spreads plus a point. A contradiction the event's odds rest on makes it tier B. A confirmed link's slope is capped where it would push either conditional probability below 0 or above 1 | 6.6 |
 | Exposures | Weighted ridge regression of each holding's daily returns on the ten factors over two years (recent days count more), fit tested out of sample on the last six months; look-through via ETF Global holdings | 6.1 |
 | Impact | `Δ = b · δ`, knock-ons through the graph, priced-in moves `(1 − q)Δ` and `−qΔ`, swing `|Δ|√(q(1 − q))`, and a seeded 20,000-run simulation over the event graph | 4.1 to 4.4, 4.7 |
 
@@ -77,6 +78,7 @@ The API serves the latest snapshot (`GET /events`, `GET /events/{id}`, either wi
 - **No calibration yet.** Calibrated odds equal market odds until the long-shot study (E2) fits the correction.
 - **Fund-level exposures.** A fund's arrow comes from its own returns; per-holding regressions come next and give the same arrow for an unchanged fund.
 - **Point-in-time storage.** Responses are cached, not yet stored as a queryable history (DuckDB, M1).
+- **Coherence within each event's markets.** The checks compare the markets matched to one event. Checking across events, such as a market on two events happening together against the bounds its parts allow, needs joint markets in the catalogue.
 
 ## Layout
 

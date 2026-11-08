@@ -29,6 +29,7 @@ from __future__ import annotations
 import json
 import math
 import re
+from collections import defaultdict
 from datetime import date
 
 import numpy as np
@@ -143,7 +144,16 @@ def _project(r: dict, fused: np.ndarray) -> list | None:
     return [r["kind"], r["name"], r["detail"], round(k, 4), round(1 / math.sqrt(info), 4)]
 
 
-def _event(e: dict, today: str) -> dict:
+def _coherence(e: dict, caps: dict[str, str]) -> dict | None:
+    """The checks on an event's related prices (DESIGN.md 6.6), and the notes on its knock-on links that the engine
+    capped, by the event at the other end. Snapshots from before the checks carry neither."""
+    c = e.get("coherence")
+    if c is None:
+        return None
+    return {"n": c["checks"], "contested": c["contested"], "flags": [f["note"] for f in c["findings"]], "caps": caps}
+
+
+def _event(e: dict, today: str, caps: dict[str, str]) -> dict:
     odds, dl = e["odds"], e["delta"]
     fused = _vec(dl["value"], 0.0)
     dof = dl.get("dof") or 0
@@ -161,6 +171,7 @@ def _event(e: dict, today: str) -> dict:
         "tierWhy": e["tier"]["reason"],
         "why": e["why"],
         "matchNote": e["match"]["note"],
+        "coh": _coherence(e, caps),
         "hist": None,
     }
     past = [(d, round(q, 4)) for d, q in e["history"] if d < today]  # closes before today; today's odds are q
@@ -219,6 +230,10 @@ def build(snap: dict, analyses: list[dict]) -> dict:
         })
 
     evs, used = engine_inputs(snap)
+    caps: dict[str, dict[str, str]] = defaultdict(dict)  # links capped at what today's odds allow, from either end
+    for ln in snap["links"]:
+        if ln.get("capped"):
+            caps[ln["parent"]][ln["child"]] = caps[ln["child"]][ln["parent"]] = ln["capped"]
     links, _ = validate_links({e.id: e for e in evs}, used)  # the links the engine itself applies
     by_key = {f["key"]: f for f in snap["factors"]}
     data = {
@@ -227,9 +242,9 @@ def build(snap: dict, analyses: list[dict]) -> dict:
         "catalogue": snap["catalogue"], "windows": snap["windows"], "warnings": snap["warnings"],
         "factors": [{"k": f.key, "typical": by_key.get(f.key, {}).get("typical"),
                      "proxy": _proxy(by_key.get(f.key, {}).get("source"), f.name)} for f in FACTORS],
-        "events": [_event(e, snap["today"]) for e in snap["events"]],
+        "events": [_event(e, snap["today"], caps[e["id"]]) for e in snap["events"]],
         "links": [[ln.parent, ln.child, ln.w] for ln in links],
-        "linkChecks": [{k: ln.get(k) for k in ("parent", "child", "status", "w_proposed", "w_data", "t", "n", "note")}
+        "linkChecks": [{k: ln.get(k) for k in ("parent", "child", "status", "w_proposed", "w_data", "w", "t", "n", "note", "capped")}
                        for ln in snap["links"]],
         "tickers": tickers, "names": names, "samples": sample_rows, "results": results,
     }

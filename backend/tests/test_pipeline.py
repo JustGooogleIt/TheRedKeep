@@ -187,6 +187,8 @@ def test_refresh_builds_a_complete_library(snap):
     assert {r["source"] for r in fed["odds"]["readings"]} == {"Kalshi (sum)", "Polymarket (sum)"}
     assert fed["odds"]["cross_checked"]
     assert fed["tier"]["tier"] in ("A", "B", "C")
+    # Each venue's outcomes add up to at most one, within their quotes.
+    assert fed["coherence"] == {"checks": 2, "contested": False, "findings": []}
     assert len(fed["history"]) > 100
     assert any(r["kind"] == "etf" for r in fed["delta"]["readings"])  # jump windows found the sharp moves
     # A lower bound alone is too wide to use: nothing fits, with the near-miss and its reason.
@@ -226,6 +228,22 @@ def test_what_if_resolves_an_event(world, snap, tmp_path):
     assert "taiwan" not in [d["id"] for d in a["simulation"]["drivers"]]
 
 
+def test_the_export_carries_the_coherence_checks(keyless):
+    """Each event brings its checks, and a capped link's note shows from either end. Older snapshots have neither."""
+    _, snap = keyless
+    pair = ("israel-iran", "hormuz-reopens")
+    links = [dict(l, status="confirmed", used=True, w=-0.1, capped="Capped.") if (l["parent"], l["child"]) == pair else l
+             for l in snap["links"]]
+    data = build({**snap, "links": links}, [])
+    ev = {e["id"]: e for e in data["events"]}
+    assert ev["israel-iran"]["coh"]["caps"] == {"hormuz-reopens": "Capped."}
+    assert ev["hormuz-reopens"]["coh"]["caps"] == {"israel-iran": "Capped."}
+    assert ev["fed-hike-dec"]["coh"]["n"] == 2 and ev["taiwan"]["coh"]["n"] == 0
+    assert [l["capped"] for l in data["linkChecks"] if l["capped"]] == ["Capped."]
+    old = {**snap, "events": [{k: v for k, v in e.items() if k != "coherence"} for e in snap["events"]]}
+    assert all(e["coh"] is None for e in build(old, [])["events"])
+
+
 def test_app_export_reproduces_the_engine(world, snap, tmp_path):
     s = Settings(cache_dir=tmp_path)
     holdings = [("QQQ", 1_000_000, "usd"), ("NVDA", 500, "shares")]
@@ -241,6 +259,7 @@ def test_app_export_reproduces_the_engine(world, snap, tmp_path):
     assert fed["fusion"]["nAll"] == 1 and fed["fusion"]["nMarket"] == 0 and fed["fusion"]["agree"] is None
     assert fed["tier"] == "C" and fed["tierWhy"].startswith("The market readings of the jump are too vague")
     assert ev["taiwan"]["m"] is None and ev["taiwan"]["hist"] is None
+    assert fed["coh"] == {"n": 2, "contested": False, "flags": [], "caps": {}}
     assert ev["recession"]["miss"][0][2].startswith("Closes Dec 31, 2026")
     # The AI prior is the only reading for Taiwan, so it is exactly the fused jump.
     assert ev["taiwan"]["src"] == [["ai", "AI prior", ev["taiwan"]["src"][0][2], 1.0, pytest.approx(ev["taiwan"]["src"][0][4])]]
