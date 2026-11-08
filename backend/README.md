@@ -44,6 +44,8 @@ uv run redkeep refresh                                 # build the event library
 uv run redkeep analyze --sample allweather             # a sample portfolio: allweather, buffett, permanent, qqq, swensen, tech
 uv run redkeep analyze --holdings "VTI:300000, TLT:400000, NVDA:120sh"
 uv run redkeep analyze --sample qqq --what-if tariffs-china=yes --horizon 12
+uv run redkeep calibrate --write                       # the long-shot study on resolved markets (E2); --write saves data/calibration.json
+uv run redkeep calibrate --from out/calibration-obs-<time>.jsonl.gz   # rerun the study on saved prices, without fetching
 uv run redkeep app --analysis out/analysis-allweather-latest.json out/analysis-qqq-latest.json \
                    --out ../prototype/src/live.js      # then: python3 ../prototype/build.py
 uv run redkeep app --out ../prototype/src/live.js      # events only: the prototype keeps its illustrative portfolios
@@ -51,6 +53,8 @@ uv run redkeep serve                                   # the API on http://127.0
 ```
 
 The API serves the latest snapshot (`GET /events`, `GET /events/{id}`, either with `?as_of=` for an older one) and analyzes portfolios against it (`POST /portfolio/analyze` with holdings, an optional horizon and what-ifs).
+
+`calibrate` saves the full report (`out/calibration-<time>.json`: slopes, scores, and reliability tables overall, by venue and by category) and the prices behind it (`out/calibration-obs-<time>.jsonl.gz`). Resolved markets and their price histories don't change, so they stay cached and a rerun is quick.
 
 `refresh` takes a few minutes the first time and caches every HTTP response and every Claude call under `.cache/`, so a rerun is quick and returns the same matches. Each Claude call is saved with its request and response under `.cache/ai/`, so any match or prior can be traced to the call that produced it.
 
@@ -66,13 +70,14 @@ The API serves the latest snapshot (`GET /events`, `GET /events/{id}`, either wi
 | Links | Proposed knock-on links are used only when the two events' odds histories agree in direction (t ≥ 2), with the measured slope | 4.4, 6.6 |
 | Exposures | Weighted ridge regression of each holding's daily returns on the ten factors over two years (recent days count more), fit tested out of sample on the last six months; look-through via ETF Global holdings | 6.1 |
 | Impact | `Δ = b · δ`, knock-ons through the graph, priced-in moves `(1 − q)Δ` and `−qΔ`, swing `|Δ|√(q(1 − q))`, and a seeded 20,000-run simulation over the event graph | 4.1 to 4.4, 4.7 |
+| Calibration | `redkeep calibrate`: resolved yes/no markets since January 2025 from both venues (the busiest closed Polymarket events each month under five tags; settled Kalshi markets of series in the matching categories; no sports, crypto, daily series or thin markets), sampled evenly by a hash of their ids and priced 1, 7, 30, 90 and 180 days before their deadlines while still trading. One slope in log-odds per horizon, fitted on the earliest 70% by close date and kept only if it lowers the log loss on the rest; calibrated odds `p̂` sit beside market odds in every snapshot | 6.4, E2 |
 
 ## Not yet, and why it matters
 
 - **Only one market reading of each jump.** Daily ETF windows are the only market reading in this slice, so no event can reach tier A yet: tier A needs two that agree. Options (event-day volatility and the two-world fit, milestone M6) and Hyperliquid's weekend windows add the second and third.
 - **Daily windows, not 30-minute ones.** A day holds other news, so the error bars are wider than the design's intraday windows would give. They carry through fusion honestly.
 - **Ten hand-picked events.** The funnel that screens every market (Laya taught by Claude, M4) replaces the hand-written library.
-- **No calibration yet.** Calibrated odds equal market odds until the long-shot study (E2) fits the correction.
+- **Calibration needs a live run.** Calibrated odds equal market odds until `redkeep calibrate --write` has saved slopes to `data/calibration.json`. The study scores each venue and category separately as a check, but one slope per horizon serves them all for now.
 - **Fund-level exposures.** A fund's arrow comes from its own returns; per-holding regressions come next and give the same arrow for an unchanged fund.
 - **Point-in-time storage.** Responses are cached, not yet stored as a queryable history (DuckDB, M1).
 

@@ -1,0 +1,164 @@
+{
+  "polymarket_closed_events": [
+    {
+      "id": "910001",
+      "ticker": "fed-decision-in-june-2025",
+      "slug": "fed-decision-in-june-2025",
+      "title": "Fed decision in June?",
+      "startDate": "2025-03-02T17:00:00Z",
+      "endDate": "2025-06-18T12:00:00Z",
+      "closed": true,
+      "volume": 4100000,
+      "tags": [{"id": "100196", "label": "Fed Rates", "slug": "fed-rates"}, {"id": "100328", "label": "Economy", "slug": "economy"},
+               {"id": "2", "label": "Politics", "slug": "politics"}],
+      "markets": [
+        {
+          "id": "530001", "question": "Fed decreases interest rates by 25 bps after June 2025 meeting?",
+          "slug": "fed-decreases-interest-rates-by-25-bps-after-june-2025-meeting",
+          "endDate": "2025-06-18T12:00:00Z", "startDate": "2025-03-02T17:00:00Z", "createdAt": "2025-03-02T16:40:00.000000Z",
+          "acceptingOrdersTimestamp": "2025-03-02T17:05:00Z", "closedTime": "2025-06-18 18:31:07+00",
+          "outcomes": "[\"Yes\", \"No\"]", "outcomePrices": "[\"0\", \"1\"]",
+          "clobTokenIds": "[\"111000000000000000000000000000000000000000000000000000000000000000001\", \"111000000000000000000000000000000000000000000000000000000000000000002\"]",
+          "volumeNum": 900000, "volume": "900000", "closed": true, "umaResolutionStatus": "resolved", "lastTradePrice": 0.001
+        },
+        {
+          "id": "530002", "question": "No change in Fed interest rates after June 2025 meeting?",
+          "slug": "no-change-in-fed-interest-rates-after-june-2025-meeting",
+          "endDate": "2025-06-18T12:00:00Z", "startDate": "2025-03-02T17:00:00Z", "createdAt": "2025-03-02T16:40:00.000000Z",
+          "acceptingOrdersTimestamp": "2025-03-02T17:05:00Z", "closedTime": "2025-06-18 18:31:09+00",
+          "outcomes": "[\"Yes\", \"No\"]", "outcomePrices": "[\"1\", \"0\"]",
+          "clobTokenIds": "[\"111000000000000000000000000000000000000000000000000000000000000000003\", \"111000000000000000000000000000000000000000000000000000000000000000004\"]",
+          "volumeNum": 2500000, "volume": "2500000", "closed": true, "umaResolutionStatus": "resolved", "lastTradePrice": 0.999
+        },
+        {
+          "id": "530003", "question": "Fed increases interest rates by 25+ bps after June 2025 meeting?",
+          "endDate": "2025-06-18T12:00:00Z", "startDate": "2025-03-02T17:00:00Z", "closedTime": "2025-06-18 18:31:11+00",
+          "outcomes": "[\"Yes\", \"No\"]", "outcomePrices": "[\"0.0005\", \"0.9995\"]",
+          "clobTokenIds": "[\"111000000000000000000000000000000000000000000000000000000000000000005\", \"111000000000000000000000000000000000000000000000000000000000000000006\"]",
+          "volumeNum": 300000, "closed": true, "umaResolutionStatus": "resolved"
+        },
+        {
+          "id": "530004", "question": "Fed decreases interest rates by 50+ bps after June 2025 meeting?",
+          "endDate": "2025-06-18T12:00:00Z", "startDate": "2025-03-02T17:00:00Z", "closedTime": "2025-06-18 18:31:13+00",
+          "outcomes": "[\"Yes\", \"No\"]", "outcomePrices": "[\"0\", \"1\"]",
+          "clobTokenIds": "[\"111000000000000000000000000000000000000000000000000000000000000000007\", \"111000000000000000000000000000000000000000000000000000000000000000008\"]",
+          "volumeNum": 200000, "closed": true, "umaResolutionStatus": "proposed"
+        }
+      ]
+    },
+    {
+      "id": "910002",
+      "title": "Which party wins the most seats?",
+      "endDate": "2025-05-03T12:00:00Z",
+      "closed": true,
+      "tags": [{"id": "2", "label": "Politics", "slug": "politics"}, {"id": "101970", "label": "World", "slug": "world"}],
+      "markets": [
+        {
+          "id": "530011", "question": "Which party wins the most seats?", "endDate": "2025-05-03T12:00:00Z",
+          "closedTime": "2025-05-04 09:00:00+00", "outcomes": "[\"Labor\", \"Coalition\"]", "outcomePrices": "[\"1\", \"0\"]",
+          "clobTokenIds": "[\"222000000000000000000000000000000000000000000000000000000000000000001\", \"222000000000000000000000000000000000000000000000000000000000000000002\"]",
+          "volumeNum": 400000, "closed": true, "umaResolutionStatus": "resolved"
+        }
+      ]
+    },
+    {
+      "id": "910003",
+      "title": "NBA Finals: Who will win?",
+      "endDate": "2025-06-22T12:00:00Z",
+      "closed": true,
+      "tags": [{"id": "1", "label": "Sports", "slug": "sports"}, {"id": "745", "label": "NBA", "slug": "nba"}],
+      "markets": [
+        {
+          "id": "530021", "question": "Will the home team win the NBA Finals?", "endDate": "2025-06-22T12:00:00Z",
+          "closedTime": "2025-06-23 03:10:00+00", "outcomes": "[\"Yes\", \"No\"]", "outcomePrices": "[\"1\", \"0\"]",
+          "clobTokenIds": "[\"333000000000000000000000000000000000000000000000000000000000000000001\", \"333000000000000000000000000000000000000000000000000000000000000000002\"]",
+          "volumeNum": 5000000, "closed": true, "umaResolutionStatus": "resolved"
+        }
+      ]
+    }
+  ],
+  "polymarket_daily": {
+    "history": [
+      {"t": 1748736005, "p": 0.07},
+      {"t": 1748822405, "p": 0.06},
+      {"t": 1749340805, "p": 0.04},
+      {"t": 1749427205, "p": 0.035},
+      {"t": 1750118405, "p": 0.01}
+    ]
+  },
+  "kalshi_series": {
+    "series": [
+      {"ticker": "KXCPIYOY", "frequency": "monthly", "title": "Inflation", "category": "Economics", "tags": ["Inflation"]},
+      {"ticker": "KXINXD", "frequency": "daily", "title": "S&P 500 daily range", "category": "Financials", "tags": ["S&P"]},
+      {"ticker": "KXMVESPORTSMULTIGAMEEXTENDED", "frequency": "custom", "title": "Multi-game combos", "category": "Economics", "tags": []},
+      {"ticker": "KXRECSSNBER", "frequency": "one_off", "title": "Recession", "category": "Economics", "tags": ["GDP"]},
+      {"ticker": "KXNBAGAME", "frequency": "custom", "title": "NBA games", "category": "Sports", "tags": ["Basketball"]}
+    ],
+    "cursor": ""
+  },
+  "kalshi_settled_historical": {
+    "markets": [
+      {
+        "ticker": "KXCPIYOY-25JUN-T2.8", "event_ticker": "KXCPIYOY-25JUN", "market_type": "binary",
+        "title": "Will inflation be above 2.8% in June 2025?", "status": "finalized", "result": "no",
+        "open_time": "2025-06-11T14:00:00Z", "close_time": "2025-07-15T12:29:00Z", "expected_expiration_time": "2025-07-15T14:00:00Z",
+        "volume_fp": "152000.00", "open_interest_fp": "0.00", "last_price": "0.0300", "settlement_value": "0.0000"
+      },
+      {
+        "ticker": "KXCPIYOY-25JUN-T2.5", "event_ticker": "KXCPIYOY-25JUN", "market_type": "binary",
+        "title": "Will inflation be above 2.5% in June 2025?", "status": "finalized", "result": "yes",
+        "open_time": "2025-06-11T14:00:00Z", "close_time": "2025-07-15T12:29:00Z", "expected_expiration_time": "2025-07-15T14:00:00Z",
+        "volume_fp": "3100.00", "open_interest_fp": "0.00", "last_price": "0.9800", "settlement_value": "1.0000"
+      },
+      {
+        "ticker": "KXCPIYOY-25JUN-T2.7", "event_ticker": "KXCPIYOY-25JUN", "market_type": "binary",
+        "title": "Will inflation be above 2.7% in June 2025?", "status": "finalized", "result": "",
+        "open_time": "2025-06-11T14:00:00Z", "close_time": "2025-07-15T12:29:00Z", "expected_expiration_time": "2025-07-15T14:00:00Z",
+        "volume_fp": "88000.00", "open_interest_fp": "0.00", "last_price": "0.5000", "settlement_value": null
+      }
+    ],
+    "cursor": ""
+  },
+  "kalshi_settled_live": {
+    "markets": [
+      {
+        "ticker": "KXCPIYOY-25SEP-T3.0", "event_ticker": "KXCPIYOY-25SEP", "market_type": "binary",
+        "title": "Will inflation be above 3.0% in September 2025?", "status": "finalized", "result": "yes",
+        "open_time": "2025-09-10T14:00:00Z", "close_time": "2025-10-24T12:29:00Z", "expected_expiration_time": "2025-10-24T14:00:00Z",
+        "volume_fp": "61000.00", "open_interest_fp": "0.00", "last_price_dollars": "0.9900", "settlement_value_dollars": "1.0000"
+      }
+    ],
+    "cursor": ""
+  },
+  "kalshi_candles_live": {
+    "ticker": "KXCPIYOY-25SEP-T3.0",
+    "candlesticks": [
+      {"end_period_ts": 1760328000,
+       "yes_bid": {"open_dollars": "0.4000", "low_dollars": "0.3900", "high_dollars": "0.4200", "close_dollars": "0.4100"},
+       "yes_ask": {"open_dollars": "0.4300", "low_dollars": "0.4200", "high_dollars": "0.4500", "close_dollars": "0.4300"},
+       "price": {"open_dollars": "0.4100", "low_dollars": "0.4100", "high_dollars": "0.4300", "close_dollars": "0.4200",
+                 "mean_dollars": "0.4150", "previous_dollars": "0.4000"},
+       "volume_fp": "1200.00", "open_interest_fp": "50000.00"},
+      {"end_period_ts": 1760414400,
+       "yes_bid": {"close_dollars": "0.0000"},
+       "yes_ask": {"close_dollars": "0.0000"},
+       "price": {"open_dollars": null, "close_dollars": null, "previous_dollars": "0.4200"},
+       "volume_fp": "0.00", "open_interest_fp": "50000.00"}
+    ]
+  },
+  "kalshi_candles_historical": {
+    "ticker": "KXCPIYOY-25JUN-T2.8",
+    "candlesticks": [
+      {"end_period_ts": 1751774400,
+       "yes_bid": {"open": "0.0500", "low": "0.0400", "high": "0.0600", "close": "0.0500"},
+       "yes_ask": {"open": "0.0700", "low": "0.0600", "high": "0.0800", "close": "0.0700"},
+       "price": {"open": null, "low": null, "high": null, "close": null, "mean": null, "previous": "0.0600"},
+       "volume": "0.00", "open_interest": "41000.00"},
+      {"end_period_ts": 1751860800,
+       "yes_bid": {"open": null, "low": null, "high": null, "close": null},
+       "yes_ask": {"open": null, "low": null, "high": null, "close": null},
+       "price": {"open": "0.0300", "low": "0.0300", "high": "0.0400", "close": "0.0400", "mean": "0.0350", "previous": "0.0600"},
+       "volume": "900.00", "open_interest": "41500.00"}
+    ]
+  }
+}

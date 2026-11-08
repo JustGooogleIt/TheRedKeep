@@ -144,7 +144,7 @@ function Drawer({ e, S, P, tw, sampleId, whatIf, setWhatIf, onOpen, onClose, aiO
 
         <section className="dr-sec"><span className="label">Odds</span>
           <div className="odds-big"><span className="v">${fmtOdds(q)}</span><span className="sub" style=${{ margin: 0 }}>${e.m ? 'market odds' : 'AI estimate, no market'}${e.q0 !== e.q && !e.resolved ? ' · live' : ''}${dy != null && Math.abs(dy) >= 0.005 ? ' · ' + fmtPts(dy) + ' since yesterday' : ''}</span></div>
-          ${Math.abs(e.ph - e.q) >= 0.005 && html`<p className="sub">Calibrated: ${fmtOdds(e.ph0)}. Long shots tend to be overpriced on prediction markets, so calibrated odds (in Tweaks) shade them down.</p>`}
+          ${Math.abs(e.ph - e.q) >= 0.005 && html`<p className="sub">Calibrated: ${fmtOdds(e.ph0)}. ${calibrationNote()}</p>`}
           ${!e.resolved && Math.abs(e.shift) >= 0.005 && html`<p className="note">Your what-if moves these odds from ${fmtOdds(e.q0)} to ${fmtOdds(e.qEff)} through the event graph.</p>`}
           <ul className="venues">${e.odds.map(([n, v, se]) => html`<li key=${n}><span>${n}</span><span>${fmtOdds(v)} ± ${(se * 100).toFixed(se * 100 < 2 ? 1 : 0)}</span></li>`)}</ul>
           ${dis && dis.z > 2 && html`<p className="note">${e.odds[0][0]} and ${e.odds[1][0]} disagree by ${Math.round(dis.gap * 100)} points, ${dis.z.toFixed(1)} times their combined error. One of them is probably mispriced.</p>`}

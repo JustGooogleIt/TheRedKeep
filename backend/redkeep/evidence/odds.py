@@ -6,8 +6,9 @@
   The half-spread term treats the true price as anywhere inside the quote; the
   volume term gives a $1k market about ±10 points and a $1M market about ±0.5.
   These constants are placeholders until the calibration study (E2) fits them.
-* The favorite-longshot correction maps market odds to calibrated odds ``p̂``.
-  Until E2 is run on resolved markets, the table is the identity, so ``p̂ = q``.
+* The favorite-longshot correction, from market odds to calibrated odds ``p̂``,
+  lives in ``calibration.py``: one slope in log-odds per horizon, fitted on
+  resolved markets (E2).
 """
 
 from __future__ import annotations
@@ -52,22 +53,3 @@ def describe_liquidity(m: Market) -> str:
 
 def liquid(markets: Sequence[Market], *, volume: float, spread: float) -> bool:
     return any(m.volume >= volume and (m.spread is not None and m.spread <= spread) for m in markets)
-
-
-def calibrate(q: float, table: Sequence[tuple[float, float]] | None = None) -> float:
-    """Favorite-longshot correction: piecewise-linear in logit space through (q, p̂) points."""
-    if not table:
-        return q
-    pts = sorted(table)
-    lg = lambda p: math.log(max(p, 1e-6) / max(1 - p, 1e-6))  # noqa: E731
-    x = lg(q)
-    xs, ys = [lg(a) for a, _ in pts], [lg(b) for _, b in pts]
-    if x <= xs[0]:
-        y = ys[0] + (x - xs[0])
-    elif x >= xs[-1]:
-        y = ys[-1] + (x - xs[-1])
-    else:
-        i = next(i for i in range(len(xs) - 1) if xs[i] <= x <= xs[i + 1])
-        t = (x - xs[i]) / (xs[i + 1] - xs[i])
-        y = ys[i] + t * (ys[i + 1] - ys[i])
-    return 1 / (1 + math.exp(-y))

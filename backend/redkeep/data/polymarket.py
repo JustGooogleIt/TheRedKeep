@@ -4,6 +4,13 @@ No key is needed. Endpoints and fields checked against live responses on
 2026-11-08: ``/events`` and ``/public-search`` return events with nested
 markets; ``/prices-history`` returns ``{"history": [{"t": unix_s, "p": price}]}``.
 ``/events`` pages hold at most 100 events whatever ``limit`` asks for.
+
+Closed markets (for the calibration study, E2): ``/events?closed=true`` filters
+by ``tag_slug``, and a resolved market's ``outcomePrices`` say who won
+(``["1", "0"]`` is yes). Its whole history comes in one call with
+``interval=max`` and daily ``fidelity``: a point at about 00:00 UTC each day,
+with occasional gaps of days, ending before ``closedTime``. A market that lived
+less than a day has no daily points.
 """
 
 from __future__ import annotations
@@ -64,6 +71,19 @@ class Polymarket:
                 continue
             out.extend(m for m in from_polymarket_event(e) if m.close_time is None or m.close_time.date() >= since)
         return out
+
+    def closed_events(self, tag: str, start: date, end: date, *, limit: int = 20) -> list[dict]:
+        """The busiest closed events tagged ``tag`` whose end date falls between ``start`` and ``end``."""
+        settled = end < datetime.now(timezone.utc).date() - timedelta(days=14)
+        return self.http.get_json(f"{GAMMA}/events", {
+            "closed": "true", "tag_slug": tag, "order": "volume", "ascending": "false", "limit": limit,
+            "end_date_min": start.isoformat(), "end_date_max": end.isoformat(),
+        }, ttl=None if settled else self.ttl) or []
+
+    def daily(self, token_id: str) -> list[tuple[datetime, float]]:
+        """A closed market's whole price history, one point a day, oldest first."""
+        res = self.http.get_json(f"{CLOB}/prices-history", {"market": token_id, "interval": "max", "fidelity": 1440}, ttl=None)
+        return sorted((datetime.fromtimestamp(p["t"], timezone.utc), float(p["p"])) for p in res.get("history") or [])
 
     def history(self, token_id: str, start: datetime, end: datetime, *, fidelity_min: int = 60) -> list[tuple[datetime, float]]:
         """Price of "Yes" over time.

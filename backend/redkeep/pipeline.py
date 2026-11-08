@@ -31,7 +31,7 @@ from .engine.fusion import (DeltaReading, FusedDelta, FusedOdds, OddsReading, Ti
 from .engine.impact import EngineEvent, Link, build_state
 from .engine.simulate import simulate
 from .events import EventSpec, Library, load_library
-from .evidence import analogs, odds as odds_mod, prior as prior_mod, windows
+from .evidence import analogs, calibration, odds as odds_mod, prior as prior_mod, windows
 from .factors import FACTORS, KEYS
 from .http import Http, HttpError
 from .markets import Market, dedupe
@@ -217,6 +217,7 @@ def refresh(s: Settings, c: Clients, *, today: date | None = None, progress: Pro
     today = today or now.date()
     lib = load_library()
     warnings: list[str] = []
+    cal = calibration.load(s.calibration_file)  # every slope 1 (raw odds) until `redkeep calibrate --write` has run
 
     markets = catalogue(lib, c, today, progress)
     retriever = Retriever(markets)
@@ -271,7 +272,8 @@ def refresh(s: Settings, c: Clients, *, today: date | None = None, progress: Pro
             "question": spec.question, "resolves": spec.resolves.isoformat(), "why": spec.why, "order": spec.order,
             "terms": {"deadline": spec.deadline.isoformat(), "threshold": spec.threshold, "unit": spec.threshold_unit,
                       "direction": spec.direction, "source": spec.source},
-            "odds": {"q": fo.q, "sigma": fo.sigma, "p_hat": odds_mod.calibrate(fo.q), "from_market": fo.from_market,
+            "odds": {"q": fo.q, "sigma": fo.sigma, "from_market": fo.from_market,
+                     "p_hat": cal.p_hat(fo.q, max((spec.deadline - today).days, 0)) if fo.from_market else fo.q,
                      "cross_checked": fo.cross_checked, "disagree": fo.disagree, "z": fo.z,
                      "readings": [_odds_json(r) for r in odds_readings]},
             "match": {"kind": d.kind, "note": d.note, "good": d.good, "liquid": liquid, "lo": d.lo, "hi": d.hi,
@@ -307,6 +309,7 @@ def refresh(s: Settings, c: Clients, *, today: date | None = None, progress: Pro
         "factors": [{"key": f.key, "name": f.name, "unit": f.unit, "typical": fd.typical[i], "source": fd.sources.get(f.key)}
                     for i, f in enumerate(FACTORS)],
         "windows": {"count": len(wf.windows), "days": len(fd.dates), "move": s.window_move},
+        "calibration": cal.summary(),
         "events": events, "links": links, "warnings": warnings,
     }
     return finite(snap)

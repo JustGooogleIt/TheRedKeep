@@ -224,6 +224,7 @@ def build(snap: dict, analyses: list[dict]) -> dict:
         "kind": "redkeep.app", "version": 1, "asOf": snap["as_of"], "today": snap["today"],
         "exposures": "backend" if analyses else "illustrative",
         "catalogue": snap["catalogue"], "windows": snap["windows"], "warnings": snap["warnings"],
+        "calibration": snap.get("calibration"),
         "factors": [{"k": f.key, "typical": by_key.get(f.key, {}).get("typical"),
                      "proxy": _proxy(by_key.get(f.key, {}).get("source"), f.name)} for f in FACTORS],
         "events": [_event(e, snap["today"]) for e in snap["events"]],

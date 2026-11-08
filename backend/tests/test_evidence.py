@@ -89,8 +89,6 @@ def test_past_events_measure_the_move_on_the_day():
 def test_market_odds_error_grows_with_spread_and_shrinks_with_volume():
     assert odds.market_sigma(0.01, 5e6) < odds.market_sigma(0.01, 5e4) < odds.market_sigma(0.01, 1e3)
     assert odds.market_sigma(0.10, 5e6) > odds.market_sigma(0.01, 5e6)
-    assert odds.calibrate(0.3) == 0.3  # identity until E2 fits the long-shot correction
-    assert odds.calibrate(0.05, [(0.05, 0.03), (0.5, 0.5), (0.95, 0.97)]) == pytest.approx(0.03)
 
 
 def test_fusion_and_tiers():
