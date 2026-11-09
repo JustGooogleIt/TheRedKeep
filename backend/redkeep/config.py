@@ -30,6 +30,7 @@ class Settings:
     massive_api_key: str | None = None
     cache_dir: Path = ROOT / ".cache"
     out_dir: Path = ROOT / "out"
+    store_dir: Path = ROOT / "store"  # the point-in-time store: every price read, with when it was seen (store.py)
     calibration_file: Path = DATA_DIR / "calibration.json"  # slopes from `redkeep calibrate --write`; none: raw odds
 
     # Claude: one strong model judges the matches and writes the prior (DESIGN.md section 8).
@@ -74,6 +75,7 @@ class Settings:
             massive_api_key=os.environ.get("MASSIVE_API_KEY") or None,
             cache_dir=root / ".cache",
             out_dir=root / "out",
+            store_dir=root / "store",
             model=os.environ.get("REDKEEP_MODEL") or None,
             effort=os.environ.get("REDKEEP_EFFORT", cls.effort),
         )

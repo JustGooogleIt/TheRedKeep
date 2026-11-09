@@ -1,4 +1,4 @@
-"""Command line: ``redkeep check | refresh | analyze | calibrate | app | serve``."""
+"""Command line: ``redkeep check | refresh | analyze | calibrate | record | store | app | serve``."""
 
 from __future__ import annotations
 
@@ -202,6 +202,47 @@ def cmd_calibrate(s: Settings, args) -> int:
     return 0
 
 
+def cmd_record(s: Settings, args) -> int:
+    """Bring the point-in-time store up to date (DESIGN.md milestone M1)."""
+    from .pipeline import make_clients
+    from .record import record
+
+    c = make_clients(s, claude=False, fresh=True)  # a recording is what the sources say now, never a cached reply
+    rec = record(s, c, intervals=tuple(args.interval or ["1h"]), engine_perps=args.engine_perps, skip=tuple(args.skip))
+    for w in rec.warnings:
+        print(f"  warning: {w}")
+    added = ", ".join(f"{n:,} {t}" for t, n in rec.added.items() if n) or "nothing new"
+    print(f"\nRecorded {rec.started:%Y-%m-%d %H:%M} UTC into {s.store_dir}: {added}")
+    if args.compact:
+        print_compaction(c.store.compact())
+    return 0
+
+
+def print_compaction(done: dict[str, tuple[int, int]]) -> None:
+    merged = [f"{t} {a} to {b}" for t, (a, b) in done.items() if a != b]
+    print("Compacted segments: " + (", ".join(merged) if merged else "nothing to merge"))
+
+
+def cmd_store(s: Settings, args) -> int:
+    """What the point-in-time store holds."""
+    from .store import Store
+
+    st = Store(s.store_dir)
+    if args.compact:
+        print_compaction(st.compact())
+    rows = st.status()
+    size = sum(r["bytes"] for r in rows)
+    print(f"\nPoint-in-time store at {s.store_dir}: {sum(r['segments'] for r in rows)} segments, {size / 1e6:.1f} MB\n")
+    print(f"  {'table':<9} {'rows':>11} {'segments':>8}  {'about':<33} seen")
+    for r in rows:
+        a, b = (str(x)[:16] if x else "" for x in r["about"])
+        s0, s1 = (f"{x:%Y-%m-%d %H:%M}" if x else "" for x in r["seen"])
+        about = f"{a} to {b}" if a else ""
+        seen = f"{s0} to {s1}" if s0 else ""
+        print(f"  {r['table']:<9} {r['rows']:>11,} {r['segments']:>8}  {about:<33} {seen}")
+    return 0
+
+
 def cmd_app(s: Settings, args) -> int:
     from .appdata import export
 
@@ -242,6 +283,18 @@ def main(argv: list[str] | None = None) -> int:
     k.add_argument("--from", dest="from_file", metavar="FILE",
                    help="rerun on the prices an earlier run saved (out/calibration-obs-*.jsonl.gz), without fetching")
     k.add_argument("--write", action="store_true", help="save the slopes to data/calibration.json for the engine to use")
+    from .data.hyperliquid import INTERVALS
+
+    rc = sub.add_parser("record", help="add what's new to the point-in-time store: candles, quotes, odds, factor series")
+    rc.add_argument("--interval", action="append", choices=list(INTERVALS),
+                    help="Hyperliquid candle interval (default 1h); repeat for more")
+    rc.add_argument("--engine-perps", action="store_true",
+                    help="record only the perps the weekend windows use, not every trade[XYZ] perp")
+    rc.add_argument("--skip", action="append", default=[], choices=["perps", "markets", "factors"],
+                    help="leave out a source; repeat for more")
+    rc.add_argument("--compact", action="store_true", help="merge the store's segments afterwards")
+    so = sub.add_parser("store", help="show what the point-in-time store holds")
+    so.add_argument("--compact", action="store_true", help="first merge each month's segments into one")
     x = sub.add_parser("app", help="export a snapshot, and any portfolio analyses, for the prototype app")
     x.add_argument("--snapshot", help="library snapshot (default: the latest)")
     x.add_argument("--analysis", nargs="*", default=[], metavar="FILE",
@@ -253,8 +306,8 @@ def main(argv: list[str] | None = None) -> int:
     args = ap.parse_args(argv)
     logging.basicConfig(level=logging.INFO if args.verbose else logging.WARNING, format="%(levelname)s %(name)s: %(message)s")
     s = Settings.from_env()
-    return {"check": cmd_check, "refresh": cmd_refresh, "analyze": cmd_analyze, "calibrate": cmd_calibrate, "app": cmd_app,
-            "serve": cmd_serve}[args.cmd](s, args)
+    return {"check": cmd_check, "refresh": cmd_refresh, "analyze": cmd_analyze, "calibrate": cmd_calibrate,
+            "record": cmd_record, "store": cmd_store, "app": cmd_app, "serve": cmd_serve}[args.cmd](s, args)
 
 
 if __name__ == "__main__":

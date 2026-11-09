@@ -6,6 +6,7 @@ The engine behind the prototype, as a vertical slice (milestone M3 in the [build
 markets (Polymarket, Kalshi) ──► match each event (Claude) ──► odds, or "nothing fits"
 factor data (FRED, Massive), weekend perps (Hyperliquid) ──► jump windows, past events, AI prior ──► fused jump and tier
 holdings (Massive) ──► look-through and exposures ──► impacts, priced-in moves, swing, simulation
+every read ──► the point-in-time store (DuckDB over Parquet), kept current by `redkeep record`
 ```
 
 `refresh` builds the shared event library and saves a dated snapshot. `analyze` runs a portfolio against the latest snapshot in a few seconds. `app` feeds a snapshot, and any analyses, into the prototype, which then offers a switch between its illustrative data and the backend's. With no analyses the prototype shows the snapshot's events against its own illustrative portfolios and labels their exposures as illustrative: that needs only the Anthropic key.
@@ -32,7 +33,7 @@ Set these in the environment. They are read at start-up and never written to dis
 | `MASSIVE_API_KEY` | Prices for exposures and the China, chips and gold factors; ETF holdings for look-through | `refresh` runs on the seven FRED factors with a warning; `analyze` stops with a message |
 | `REDKEEP_MODEL` | Optional: the Claude model to use | The newest Opus model the key can call |
 | `REDKEEP_EFFORT` | Optional: `low`, `medium` (default) or `high` | |
-| `REDKEEP_HOME` | Optional: where `.cache/` and `out/` live | `backend/` |
+| `REDKEEP_HOME` | Optional: where `.cache/`, `out/` and `store/` live | `backend/` |
 
 Polymarket, Kalshi, FRED and Hyperliquid need no keys. The machine needs outbound access to `gamma-api.polymarket.com`, `clob.polymarket.com`, `api.elections.kalshi.com`, `fred.stlouisfed.org`, `api.hyperliquid.xyz`, `api.massive.com` and `api.anthropic.com`.
 
@@ -46,6 +47,9 @@ uv run redkeep analyze --holdings "VTI:300000, TLT:400000, NVDA:120sh"
 uv run redkeep analyze --sample qqq --what-if tariffs-china=yes --horizon 12
 uv run redkeep calibrate --write                       # the long-shot study on resolved markets (E2); --write saves data/calibration.json
 uv run redkeep calibrate --from out/calibration-obs-<time>.jsonl.gz   # rerun the study on saved prices, without fetching
+uv run redkeep record                                  # add what's new to the point-in-time store; run it hourly
+uv run redkeep record --interval 1h --interval 15m     # finer candles too (the API keeps 5,000 of each: 52 days at 15m)
+uv run redkeep store                                   # what the store holds; --compact merges its segments
 uv run redkeep app --analysis out/analysis-allweather-latest.json out/analysis-qqq-latest.json \
                    --out ../prototype/src/live.js      # then: python3 ../prototype/build.py
 uv run redkeep app --out ../prototype/src/live.js      # events only: the prototype keeps its illustrative portfolios
@@ -57,6 +61,28 @@ The API serves the latest snapshot (`GET /events`, `GET /events/{id}`, either wi
 `calibrate` saves the full report (`out/calibration-<time>.json`: slopes, scores, and reliability tables overall, by venue and by category) and the prices behind it (`out/calibration-obs-<time>.jsonl.gz`). Resolved markets and their price histories don't change, so they stay cached and a rerun is quick.
 
 `refresh` takes a few minutes the first time and caches every HTTP response and every Claude call under `.cache/`, so a rerun is quick and returns the same matches. Each Claude call is saved with its request and response under `.cache/ai/`, so any match or prior can be traced to the call that produced it.
+
+## The point-in-time store
+
+`store/` keeps every price the backend reads with two clocks: the time the price is about and the time the store first saw it (`redkeep/store.py`). The data clients write to it as they read, so `refresh`, `analyze`, `calibrate` and `check` all add to it. `redkeep record` brings it up to date between runs, reading every source fresh rather than from the response cache (settled markets and old candles, which can't change, stay cached):
+
+- **Hyperliquid candles** for every trade[XYZ] perp, from the last one stored. The API keeps only the latest 5,000 candles of each interval, so older ones exist only here. The first run reads all that the API still has.
+- **Both catalogues**: every listed market's details and quotes, and which markets are no longer listed. Neither venue keeps past quotes.
+- **Odds** of the markets the latest snapshot used or nearly used, hourly, from the last point stored.
+- **Factor series**: FRED, and Massive closes and ETF holdings with a key. The last 30 days are read again each time, so a revision is stored as a new version.
+
+| Table | One row is | Versioned by |
+|---|---|---|
+| `odds` | a market's Yes price at a time (`step` 60 for hourly, 1440 for daily) | venue, market, step, time |
+| `candles` | a Hyperliquid candle | coin, interval, open time |
+| `closes` | a daily level from FRED or Massive | source, series, day |
+| `holdings` | one holding in an ETF's file | fund, effective date, ticker |
+| `markets` | a listed market's details (title, rules, deadline, tokens) | venue, market |
+| `quotes` | a market's bid, ask, last price and volume, and whether it is still listed | venue, market |
+
+A write adds a row only when it differs from the latest version stored, so recording the same data again adds nothing, and an hourly read of some 66,000 markets stores only the quotes that moved. Reads take `as_of=T` (nothing about times after T, latest version) and `known=True` (only what the store had seen by T). `Store.catalogue(as_of=T)` rebuilds the market list as it stood at T.
+
+Run `record` from cron on a machine that stays up, hourly, with a daily `redkeep store --compact` to merge the segments. The store records only from the day it is first scheduled.
 
 ## What runs, stage by stage
 
@@ -77,12 +103,12 @@ The API serves the latest snapshot (`GET /events`, `GET /events/{id}`, either wi
 ## Not yet, and why it matters
 
 - **A second market reading on three factors only.** Hyperliquid's weekend windows give a second reading on stocks, oil and gold, so an event can reach tier A once its odds have moved sharply on at least two weekends in the last 180 days and the two readings agree. Options (event-day volatility and the two-world fit, milestone M6) add a reading on every factor. The NVIDIA perp (chips), the dollar and rates perps, and holidays are left out for now.
-- **Hourly candles go back about 208 days.** Hyperliquid keeps only the latest 5,000 candles of each interval. Finished chunks stay in the response cache; the candle recorder (M1) will keep them for good.
+- **Hourly candles go back about 208 days.** Hyperliquid keeps only the latest 5,000 candles of each interval. `redkeep record` keeps them for good, but only from the day it is first scheduled.
 - **Daily windows, not 30-minute ones.** A day holds other news, so the error bars are wider than the design's intraday windows would give. They carry through fusion honestly.
 - **Ten hand-picked events.** The funnel that screens every market (Laya taught by Claude, M4) replaces the hand-written library.
 - **No reliable long-shot bias yet.** The first study (November 8, 2026, on 2,907 resolved markets) fitted slopes from 1.01 to 1.33, but none beat raw prices reliably on later markets, so `data/calibration.json` keeps every horizon at market odds. Rerunning `redkeep calibrate --write` as markets resolve will pick up a bias once the data supports it. The study scores each venue and category separately as a check, but one slope per horizon serves them all for now.
 - **Fund-level exposures.** A fund's arrow comes from its own returns; per-holding regressions come next and give the same arrow for an unchanged fund.
-- **Point-in-time storage.** Responses are cached, not yet stored as a queryable history (DuckDB, M1).
+- **The store starts on its first run.** Quotes and catalogue snapshots exist only from then on. Earlier days rest on the venues' own odds histories and FRED's current data, recorded as seen later, which the strict view (`known=True`) leaves out.
 - **Coherence within each event's markets.** The checks compare the markets matched to one event. Checking across events, such as a market on two events happening together against the bounds its parts allow, needs joint markets in the catalogue.
 
 ## Layout
@@ -93,8 +119,9 @@ backend/
 ├── redkeep/
 │   ├── data/          polymarket.py, kalshi.py, fred.py, massive.py, hyperliquid.py
 │   ├── matching/      retrieve.py, judge.py, ladders.py, decide.py
-│   ├── evidence/      odds.py, windows.py, weekend.py, analogs.py, prior.py
-│   ├── engine/        fusion.py, impact.py, simulate.py
+│   ├── evidence/      odds.py, windows.py, weekend.py, analogs.py, prior.py, calibration.py and resolved.py (E2)
+│   ├── engine/        fusion.py, impact.py, simulate.py, coherence.py
+│   ├── store.py       the point-in-time store; record.py keeps it current
 │   ├── factors.py, factordata.py, exposure.py
 │   ├── pipeline.py    refresh and analyze
 │   ├── appdata.py     the export for the prototype

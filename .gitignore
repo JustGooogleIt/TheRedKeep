@@ -9,3 +9,6 @@ backend/.cache/
 backend/out/
 .pytest_cache/
 *.egg-info/
+
+# backend: the point-in-time store (Parquet segments written by every run and by `redkeep record`)
+backend/store/

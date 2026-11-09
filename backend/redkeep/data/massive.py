@@ -17,6 +17,7 @@ from __future__ import annotations
 from datetime import date, datetime, timedelta, timezone
 
 from ..http import Http, HttpError
+from ..store import Store
 
 BASE = "https://api.massive.com"
 
@@ -26,8 +27,10 @@ class MassiveUnavailable(RuntimeError):
 
 
 class Massive:
-    def __init__(self, http: Http, api_key: str | None, *, ttl: float | None = 6 * 3600):
-        self.http, self.ttl = http, ttl
+    """With a ``store``, every close and holdings file read is also recorded there, point in time."""
+
+    def __init__(self, http: Http, api_key: str | None, *, ttl: float | None = 6 * 3600, store: Store | None = None):
+        self.http, self.ttl, self.store = http, ttl, store
         self._headers = {"Authorization": f"Bearer {api_key}"} if api_key else None
 
     @property
@@ -49,6 +52,8 @@ class Massive:
                 out[datetime.fromtimestamp(bar["t"] / 1000, timezone.utc).date()] = float(bar["c"])
             nxt = res.get("next_url")
             if not nxt:
+                if self.store is not None:
+                    self.store.add_closes("massive", ticker, out)
                 return out
             res = self._get(nxt, ttl=ttl)
 
@@ -83,4 +88,8 @@ class Massive:
         while res.get("next_url"):
             res = self._get(res["next_url"], ttl=None)
             out.extend(res.get("results") or [])
+        if self.store is not None:
+            self.store.add_holdings(etf, eff, [(r.get("constituent_ticker") or r.get("constituent_name") or "?",
+                                                r.get("constituent_name") or "", float(r.get("weight") or 0))
+                                               for r in out])
         return eff, out

@@ -19,6 +19,7 @@ from datetime import date, datetime, timedelta, timezone
 
 from ..http import Http
 from ..markets import SKIP_KALSHI_CATEGORIES, Market, from_kalshi_event
+from ..store import Store
 from . import chunks
 
 BASE = "https://api.elections.kalshi.com/trade-api/v2"
@@ -52,8 +53,10 @@ def candle_price(c: dict) -> float | None:
 
 
 class Kalshi:
-    def __init__(self, http: Http, *, ttl: float | None = 15 * 60):
-        self.http, self.ttl = http, ttl
+    """With a ``store``, every market list and price history read is also recorded there, point in time."""
+
+    def __init__(self, http: Http, *, ttl: float | None = 15 * 60, store: Store | None = None):
+        self.http, self.ttl, self.store = http, ttl, store
 
     def events(self, *, pages: int = 80) -> list[dict]:
         out, cursor = [], None
@@ -73,6 +76,8 @@ class Kalshi:
             if e.get("category") in SKIP_KALSHI_CATEGORIES:
                 continue
             out.extend(m for m in from_kalshi_event(e) if m.close_time is None or m.close_time.date() >= since)
+        if self.store is not None:
+            self.store.add_markets(out)
         return out
 
     def history(self, series: str, ticker: str, start: datetime, end: datetime, *, period_min: int = 60) -> list[tuple[datetime, float]]:
@@ -87,6 +92,8 @@ class Kalshi:
                 mid = candle_price(c)
                 if mid is not None:
                     out.append((datetime.fromtimestamp(c["end_period_ts"], timezone.utc), mid))
+        if self.store is not None:
+            self.store.add_odds("kalshi", ticker, period_min, out)
         return sorted({(t, q) for t, q in out if start <= t <= end})
 
     # -- settled markets, for the calibration study ----------------------------------------------
@@ -119,4 +126,6 @@ class Kalshi:
             q = candle_price(c)
             if q is not None:
                 out.append((datetime.fromtimestamp(c["end_period_ts"], timezone.utc), q))
+        if self.store is not None:
+            self.store.add_odds("kalshi", ticker, 1440, out)
         return sorted(out)

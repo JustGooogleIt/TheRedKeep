@@ -27,7 +27,8 @@ def settings() -> Settings:
 
 @lru_cache
 def clients() -> Clients:
-    return make_clients(settings(), claude=False)  # the API only analyzes; refresh runs from the command line
+    # The API only analyzes, and doesn't record; refresh and record run from the command line.
+    return make_clients(settings(), claude=False, record=False)
 
 
 def snapshot(as_of: str | None = None) -> dict:

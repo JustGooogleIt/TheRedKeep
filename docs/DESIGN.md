@@ -532,10 +532,17 @@ Ground rules: time-based splits only (fit on the past, test on the future), poin
 | Massive | Stock and ETF prices, current and historical ETF holdings, option chains | API key from Castle (pending) | The key is expected to include options and historical holdings. Fallback: free daily prices and issuers' holdings files |
 | Polymarket | Market list, prices, price history, resolutions | Public APIs | |
 | Kalshi | Market list, prices, price history, resolutions | Public API | CFTC-regulated venue |
-| Hyperliquid (trade[XYZ] markets) | Weekend and holiday prices for stocks, oil, chips and gold | Public API, read-only | Keeps only the latest 5,000 candles, so we record from day one; Tardis or 0xArchive for older history ([6.4](#64-evidence)) |
+| Hyperliquid (trade[XYZ] markets) | Weekend and holiday prices for stocks, oil, chips and gold | Public API, read-only | Keeps only the latest 5,000 candles, so `redkeep record` stores them from day one; Tardis or 0xArchive for older history ([6.4](#64-evidence)) |
 | FRED | Yields, breakevens, credit spreads, VIX (daily) | Public | Factor proxies and long history |
 | Claude API | AI steps | Personal key | |
 | Laya | Funnel screening | Open weights on Hugging Face (Apache 2.0) | Fine-tuned on Claude's labels; Jev is the fallback ([section 8](#8-where-the-ai-is-used-and-where-it-isnt)) |
+
+**Point-in-time storage.** Every evaluation in [section 10](#10-how-we-prove-it-works) and the replay screen depend on one rule: a run as of a past date may only use what was knowable then. So every price the engine reads is stored with two clocks: the time it is about (an odds point's hour, a candle's open, a close's day, a holdings file's date) and the time we first saw it. A rerecorded value adds nothing, and a revised one (a FRED restatement, or an hour's candle that was still open when first read) is stored as a new version beside the old one. A query as of date T then answers one of two questions:
+
+- **What the sources now say about times up to T.** Nothing after T, latest version. For prices that never change once printed, such as odds points and finished candles, this is exactly what was knowable at T, even when we recorded it later. That makes a replay of April 2025 possible from the venues' own histories.
+- **What we had seen by T.** This strict view is for data that gets revised (closes, holdings, market details) and for quotes, which no venue keeps: a spread as of last Tuesday exists only if we recorded it.
+
+The store is DuckDB over append-only Parquet segments, one per write, so a recorder and a refresh can write at the same time. Each segment is renamed into place once complete and never changed afterwards.
 
 ---
 
@@ -600,10 +607,11 @@ TheRedKeep/
 ├── backend/                   # built so far: the M3 slice (see its README)
 │   ├── data/                  # events.toml (the event library), portfolios.toml (samples), calibration.json (E2's slopes)
 │   ├── redkeep/
-│   │   ├── data/              # polymarket.py, kalshi.py, fred.py, massive.py; next: hyperliquid.py, options
+│   │   ├── data/              # polymarket.py, kalshi.py, fred.py, massive.py, hyperliquid.py; next: options
 │   │   ├── matching/          # retrieve.py, judge.py, ladders.py, decide.py
-│   │   ├── evidence/          # odds.py, windows.py, analogs.py, prior.py, calibration.py and resolved.py (E2); next: options.py
-│   │   ├── engine/            # fusion.py, impact.py, simulate.py
+│   │   ├── evidence/          # odds.py, windows.py, weekend.py, analogs.py, prior.py, calibration.py and resolved.py (E2); next: options.py
+│   │   ├── engine/            # fusion.py, impact.py, simulate.py, coherence.py
+│   │   ├── store.py           # the point-in-time store (DuckDB over Parquet); record.py keeps it current
 │   │   ├── exposure.py        # look-through, regressions and fit
 │   │   ├── pipeline.py        # refresh (the shared library) and analyze (per portfolio)
 │   │   └── api.py, cli.py     # FastAPI routes and the `redkeep` command
@@ -638,6 +646,8 @@ Build a thin vertical slice first, then widen it.
 **Coherence checks (M7)** are built: every refresh checks each event's related prices against the rules in [6.6](#66-event-graph) and records the checks and any violations in the snapshot. Odds that related markets contradict make the event tier B, and a link's measured weight is capped where today's odds can't take it. The app's event drawer shows the verdict under the matched market, and a capped link's note under its knock-on effect.
 
 **Calibration (E2)** is built and has run: `redkeep calibrate` collects resolved markets from both venues, runs the study and, with `--write`, saves the result to `backend/data/calibration.json`. The first run, on 2,907 markets, found no correction that reliably beats market odds, so calibrated odds equal market odds for now ([section 10](#10-how-we-prove-it-works)). Every snapshot carries the study's size and date, and the prototype says what it found.
+
+**Point-in-time storage (M1)** is built ([section 11](#11-data-sources)): the data clients record every market list, odds history, candle, close and holdings file they read, so each run adds to the store. `redkeep record` keeps it current between runs, for example hourly. It adds Hyperliquid candles for every trade[XYZ] perp from the last one stored, both venues' catalogues with their quotes, the matched markets' odds and the factor series. Older candles than the API keeps, and past quotes, exist only in the store. The store runs wherever the backend runs, so it records from the day it is first scheduled on a machine that stays up.
 
 ---
 

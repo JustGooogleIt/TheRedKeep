@@ -8,6 +8,7 @@ vector math over the snapshot, then the simulation.
 
 from __future__ import annotations
 
+import atexit
 import json
 import logging
 import math
@@ -41,6 +42,7 @@ from .markets import Market, dedupe
 from .matching.decide import Candidate, Decision, decide, price, related
 from .matching.judge import Judge
 from .matching.retrieve import Retriever
+from .store import Store
 
 log = logging.getLogger(__name__)
 Progress = Callable[[str], None]
@@ -56,6 +58,7 @@ class Clients:
     prior: prior_mod.AIPrior | None
     model: str | None = None
     hyperliquid: Hyperliquid | None = None  # weekend windows; none means ETF windows only
+    store: Store | None = None  # where the data clients record what they read; none: nothing is recorded
 
 
 def pick_model(client: Any, wanted: str | None) -> str:
@@ -72,9 +75,17 @@ def pick_model(client: Any, wanted: str | None) -> str:
     return best
 
 
-def make_clients(s: Settings, *, claude: bool = True) -> Clients:
-    """Data clients, plus Claude for matching and the prior when ``claude`` is on and a key is set."""
+def make_clients(s: Settings, *, claude: bool = True, record: bool = True, fresh: bool = False) -> Clients:
+    """Data clients, plus Claude for matching and the prior when ``claude`` is on and a key is set.
+
+    With ``record``, the data clients also save what they read to the point-in-time store, which is flushed when the
+    process exits. With ``fresh``, nothing that can still change comes from the response cache, so every read is
+    what the source says now: ``redkeep record`` reads this way. Settled markets and old candles stay cached."""
     http = Http(cache_dir=s.cache_dir / "http", min_interval=s.request_spacing)
+    ttl = {"ttl": 0} if fresh else {}
+    store = Store(s.store_dir) if record else None
+    if store is not None:
+        atexit.register(store.flush)
     judge = prior = model = None
     if claude and s.anthropic_api_key:
         import anthropic
@@ -83,8 +94,9 @@ def make_clients(s: Settings, *, claude: bool = True) -> Clients:
         model = pick_model(client, s.model)
         judge = Judge(client, model=model, effort=s.effort, log_dir=s.cache_dir / "ai")
         prior = prior_mod.AIPrior(client, model=model, effort=s.effort, log_dir=s.cache_dir / "ai")
-    return Clients(Polymarket(http), Kalshi(http), Fred(http), Massive(http, s.massive_api_key), judge, prior, model,
-                   Hyperliquid(http))
+    return Clients(Polymarket(http, store=store, **ttl), Kalshi(http, store=store, **ttl), Fred(http, store=store, **ttl),
+                   Massive(http, s.massive_api_key, store=store, **ttl), judge, prior, model,
+                   Hyperliquid(http, store=store, **ttl), store)
 
 
 # -- JSON helpers -------------------------------------------------------------------
