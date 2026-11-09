@@ -98,7 +98,7 @@ In order of what they would improve most:
 ## A ten-minute demo
 
 1. **The question (1 minute).** The QQQ example above: the jump, what's priced in, the swing.
-2. **A portfolio (2 minutes).** Open [`prototype/index.html`](../prototype/index.html). Scroll the dragon story, then pick All Weather. Events are ranked by swing. Open Hormuz: two market readings that agree make it tier A. Open the Bank of Japan hike: the coherence check made it tier B. Open an event that nothing fits, with the near-misses and why they were rejected.
+2. **A portfolio (2 minutes).** Open [red-keep.vercel.app](https://red-keep.vercel.app), or [`prototype/index.html`](../prototype/index.html) from a clone. Scroll the dragon story, then pick All Weather. Events are ranked by swing. Open Hormuz: two market readings that agree make it tier A. Open the Bank of Japan hike: the coherence check made it tier B. Open an event that nothing fits, with the near-misses and why they were rejected.
 3. **The replay (2 minutes).** Step through April 2025 one evening at a time: the pause call, what the events explain each day, and the two days no matched market priced, and why.
 4. **The evals (3 minutes).** E0 (the screen keeps 96% of what matters), E2 (market odds stand), E3 (honest error bars, vague point estimates, and the material split), E8 (28% explained) and E9 (the markets beat Claude on odds; on jumps the engine ties it, and a single reading alone does far worse).
 5. **What's next (2 minutes).** Options for the quorum's second reading, Massive, and a prior that knows today's news.
