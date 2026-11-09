@@ -17,7 +17,7 @@ function fmtDate(s, withYear = true) { const [y, m, d] = s.split('-').map(Number
 
 const TIERS = {
   A: { name: 'Confirmed', rule: 'Odds from a well-matched, liquid market, and the jump backed by two or more precise market readings that agree.' },
-  B: { name: 'Contested', rule: 'Market readings disagree beyond their error bars. The disagreement is the insight.' },
+  B: { name: 'Contested', rule: 'Market readings disagree beyond their error bars, or the market\'s jump points the opposite way from past events and the AI. The disagreement is the insight.' },
   C: { name: 'Provisional', rule: 'Odds are observed, but the jump has fewer than two precise market readings or the match is weak.' },
   D: { name: 'Unpriced', rule: 'No market fits. Odds and jump come from past events and the AI only.' },
 };

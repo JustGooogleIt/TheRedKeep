@@ -14,7 +14,7 @@ import logging
 import math
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from datetime import date, datetime, time, timedelta, timezone
 from pathlib import Path
 from typing import Any, Callable
@@ -393,6 +393,7 @@ def refresh(s: Settings, c: Clients, *, today: date | None = None, progress: Pro
             "delta": {"value": fused.delta, "sigma": fused.sigma, "n_market": fused.n_market,
                       "n_market_all": fused.n_market_all, "chi2": fused.chi2,
                       "dof": fused.dof, "p_value": fused.p_value, "agree": fused.agree,
+                      "conflict": asdict(fused.conflict) if fused.conflict else None,
                       "weights": {k: v for k, v in fused.weights.items()},
                       "readings": [_reading_json(r) for r in readings]},
             "tier": {"tier": tier.tier, "reason": tier.reason, "badges": tier.badges},
