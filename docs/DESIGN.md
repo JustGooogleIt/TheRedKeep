@@ -612,7 +612,7 @@ So the markets earn their place on odds, which is why the AI never sets a probab
 
 | Source | Used for | Access | Notes |
 |---|---|---|---|
-| Massive | Stock and ETF prices, current and historical ETF holdings, option chains | API key from Castle (pending) | The key is expected to include options and historical holdings. Fallback: free daily prices and issuers' holdings files |
+| Massive | Stock and ETF prices, current and historical ETF holdings, option chains | API key from Castle (pending); a free key for now | The free plan gives two years of end-of-day prices for stocks, ETFs and options at 5 calls a minute, which the client paces to. ETF holdings are a paid add-on, and its options come without implied volatility or open interest. Fallback: a fund's own returns, and issuers' holdings files |
 | Polymarket | Market list, prices, price history, resolutions | Public APIs | |
 | Kalshi | Market list, prices, price history, resolutions | Public API | CFTC-regulated venue |
 | Hyperliquid (trade[XYZ] markets) | Weekend and holiday prices for stocks, oil, chips and gold | Public API, read-only | Keeps only the latest 5,000 candles, so `redkeep record` stores them from day one; Tardis or 0xArchive for older history ([6.4](#64-evidence)) |
@@ -754,7 +754,7 @@ Build a thin vertical slice first, then widen it.
 |---|---|
 | Which model screens the funnel? | Laya, fine-tuned on Claude's labels, with Jev as the baseline and fallback ([section 8](#8-where-the-ai-is-used-and-where-it-isnt)) |
 | When are related prices incoherent? | When they break a rule of probability by more than their quotes allow: the half-spreads of the prices involved, plus a point. Contradicted odds make the event tier B, and a link's weight is capped at what today's odds allow ([6.6](#66-event-graph)) |
-| What does the Massive key cover? | It is expected to include option chains and historical ETF holdings |
+| What does the Massive key cover? | A free key for now: two years of end-of-day prices for stocks, ETFs and options, at 5 calls a minute. No ETF holdings, and no implied volatility or open interest on options |
 | Which Hyperliquid perps are usable? | Stocks, oil, chips (NVIDIA) and, weakly, gold, on weekends and holidays only ([6.4](#64-evidence)) |
 | When does a market reading count toward the quorum? | When it could confirm the jump on its own: its error bar on the jump's size is at most half the jump. Vaguer readings can contest a jump but not confirm it ([4.6](#46-fusion-and-the-market-quorum)) |
 | Which sample portfolios? | Famous published allocations: All Weather, Buffett's 90/10, the Permanent Portfolio and a Yale-style mix ([9.2](#92-screens)) |
@@ -764,7 +764,7 @@ Build a thin vertical slice first, then widen it.
 
 **Still open**
 
-- Confirm the Massive key's coverage when it arrives: option chains and historical holdings.
+- Confirm the free Massive key's coverage with `redkeep check` when it arrives. On it, options (M6) would have to work out implied volatility from end-of-day option prices, which is slower; Massive's $29 a month options plan gives it directly.
 - Confirm Hyperliquid coin names and live depth on a live run. The engine looks for both `xyz:CL` and `xyz:WTIOIL`, and `redkeep check` lists what the `meta` endpoint returns, with each perp's maximum leverage, which sets its discovery-bound step.
 - Does fine-tuned Laya match Jev on E0?
 - Can we get CME futures data for weeknight windows?

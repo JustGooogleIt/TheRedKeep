@@ -13,6 +13,7 @@ DATA_DIR = ROOT / "data"
 # hosts that run a Claude agent can keep ANTHROPIC_API_KEY for the agent: a Claude Code cloud
 # session listed it in its environment settings but never passed it to the commands it ran.
 ANTHROPIC_KEY_NAMES = ("REDKEEP_ANTHROPIC_API_KEY", "ANTHROPIC_API_KEY")
+MASSIVE_HOST = "api.massive.com"
 
 
 def first_set(names: tuple[str, ...]) -> tuple[str, str] | None:
@@ -56,14 +57,26 @@ class Settings:
     window_move: float = 0.05  # a "sharp" daily odds move, in probability
     weekend_min_moves: int = 2  # sharp weekend moves an event needs for a Hyperliquid reading
 
+    # Massive's free plan allows 5 calls a minute; paid plans have no limit. Calls to it are spaced to fit, so a
+    # first run on a free key waits instead of failing, and the response cache keeps later runs from calling
+    # again. MASSIVE_CALLS_PER_MINUTE sets the limit; 0 means none.
+    massive_calls_per_minute: float = 5.0
+
     request_spacing: dict[str, float] = field(default_factory=lambda: {
         "gamma-api.polymarket.com": 0.15,
         "clob.polymarket.com": 0.15,
         "api.elections.kalshi.com": 0.25,
         "fred.stlouisfed.org": 0.5,
-        "api.massive.com": 0.05,
+        MASSIVE_HOST: 0.05,
         "api.hyperliquid.xyz": 1.5,  # 1,200 weight a minute; a candle request weighs about 28
     })
+
+    def spacing(self) -> dict[str, float]:
+        """Seconds between requests to each host, with Massive's set by its call limit, plus 5% to spare."""
+        out = dict(self.request_spacing)
+        if self.massive_calls_per_minute > 0:
+            out[MASSIVE_HOST] = max(out.get(MASSIVE_HOST, 0.0), 1.05 * 60.0 / self.massive_calls_per_minute)
+        return out
 
     @classmethod
     def from_env(cls) -> "Settings":
@@ -78,4 +91,17 @@ class Settings:
             store_dir=root / "store",
             model=os.environ.get("REDKEEP_MODEL") or None,
             effort=os.environ.get("REDKEEP_EFFORT", cls.effort),
+            massive_calls_per_minute=_calls_per_minute(os.environ.get("MASSIVE_CALLS_PER_MINUTE")),
         )
+
+
+def _calls_per_minute(raw: str | None) -> float:
+    if raw is None or not raw.strip():
+        return Settings.massive_calls_per_minute
+    try:
+        n = float(raw)
+    except ValueError:
+        n = -1.0
+    if not n >= 0:
+        raise ValueError(f"MASSIVE_CALLS_PER_MINUTE must be a number of calls a minute, or 0 for no limit; got {raw!r}")
+    return n
