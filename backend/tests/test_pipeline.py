@@ -124,7 +124,9 @@ class FakeJudge:
 
 class FakePrior:
     def estimate(self, spec, today, typical):
-        return prior_mod.Prior(probability=0.08, probability_reasoning="Base rate.", move_reasoning="Risk-off.",
+        # Below the recession's 6% floor from a related market, which holds it there.
+        q = 0.03 if spec.id == "recession" else 0.08
+        return prior_mod.Prior(probability=q, probability_reasoning="Base rate.", move_reasoning="Risk-off.",
                                moves=prior_mod.FactorMoves(eq=-1.0, rates=-0.4, infl=0.1, usd=0.2, oil=0.5, credit=0.8,
                                                            vix=1.2, china=-0.5, chips=-0.6, gold=0.6))
 
@@ -203,8 +205,10 @@ def test_refresh_builds_a_complete_library(snap):
     assert rec["match"]["kind"] == "none" and rec["tier"]["tier"] == "D"
     assert "between 6% and 100%" in rec["match"]["note"]
     assert rec["match"]["near_misses"][0]["reason"].startswith("Closes Dec 31, 2026")
-    # With no market, the AI prior sets the odds and the jump comes from past events and the AI only.
+    # With no market, the AI prior sets the odds and the jump comes from past events and the AI only. The range
+    # the related market implies is too wide to price the event, but it still holds the prior inside it.
     assert rec["odds"]["readings"][0]["kind"] == "ai"
+    assert rec["odds"]["q"] == pytest.approx(0.06) and "held at 6%" in rec["odds"]["readings"][0]["detail"]
     taiwan = ev["taiwan"]
     assert taiwan["tier"]["tier"] == "D" and taiwan["odds"]["q"] == pytest.approx(0.08)
     assert [r["kind"] for r in ev["tariffs-china"]["delta"]["readings"]] == ["past", "ai"]

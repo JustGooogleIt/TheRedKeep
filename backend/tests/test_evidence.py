@@ -197,3 +197,15 @@ def test_ai_prior_request_and_readings(tmp_path):
     assert np.all(d.sigma >= prior.TAU_DELTA) and d.sigma[index("usd")] < d.sigma[index("vix")]
     o = prior.odds_reading(got)
     assert o.kind == "ai" and not o.market and o.q == 0.12
+
+
+def test_the_prior_is_held_inside_a_range_related_markets_imply():
+    p = prior.Prior(probability=0.03, probability_reasoning="Base rate.", move_reasoning="m",
+                    moves=prior.FactorMoves(eq=0, rates=0, infl=0, usd=0, oil=0, credit=0, vix=0, china=0, chips=0, gold=0))
+    held = prior.odds_reading(p, lo=0.04)
+    assert held.q == pytest.approx(0.04) and held.kind == "ai"
+    assert held.detail == "Claude said 3%, below the 4% floor that related markets set, so it is held at 4%. Base rate."
+    assert prior.odds_reading(p, hi=0.02).q == pytest.approx(0.02)  # a ceiling holds it too
+    assert prior.odds_reading(p, lo=0.02, hi=0.5).q == pytest.approx(0.03)  # inside the range: untouched
+    assert prior.odds_reading(p, lo=0.5, hi=0.2).q == pytest.approx(0.03)  # ends that contradict each other say nothing
+    assert prior.odds_reading(p).detail == "Base rate."

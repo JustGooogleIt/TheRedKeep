@@ -369,7 +369,7 @@ def refresh(s: Settings, c: Clients, *, today: date | None = None, progress: Pro
         if pr:
             readings.append(prior_mod.delta_reading(pr))
         fused = fuse_delta(readings)
-        odds_readings = list(d.readings) or ([prior_mod.odds_reading(pr)] if pr else [])
+        odds_readings = list(d.readings) or ([prior_mod.odds_reading(pr, lo=d.lo, hi=d.hi)] if pr else [])
         if not odds_readings:
             warnings.append(f"{spec.id}: no odds at all (no market fits and no AI prior)")
             continue
