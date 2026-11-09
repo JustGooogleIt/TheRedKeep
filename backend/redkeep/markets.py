@@ -45,6 +45,7 @@ class Market:
     token_yes: str | None = None  # Polymarket CLOB token for "Yes"
     category: str | None = None
     strike: dict[str, Any] = field(default_factory=dict)
+    opened: datetime | None = None  # when it was listed, where the venue says (the replay reads markets as of a date)
 
     @property
     def key(self) -> str:
@@ -139,11 +140,13 @@ def is_sports_polymarket(ev: dict) -> bool:
     return bool(labels & {"sports", "esports", "nba", "nfl", "soccer", "mlb", "nhl"})
 
 
-def from_polymarket_event(ev: dict) -> list[Market]:
+def from_polymarket_event(ev: dict, *, closed: bool = False) -> list[Market]:
+    """The event's yes/no markets that are still trading, or with ``closed`` also those that have closed (for the
+    historical replay, which reads markets as they were listed then)."""
     out = []
     exclusive = bool(ev.get("negRisk"))
     for m in ev.get("markets") or []:
-        if m.get("closed") or m.get("archived") or m.get("active") is False:
+        if not closed and (m.get("closed") or m.get("archived") or m.get("active") is False):
             continue
         outcomes = [str(o).lower() for o in _json_list(m.get("outcomes"))]
         if outcomes and outcomes != ["yes", "no"]:
@@ -173,11 +176,46 @@ def from_polymarket_event(ev: dict) -> list[Market]:
             token_yes=tokens[0] if tokens else None,
             category=None,
             strike={"threshold": _num(m.get("groupItemThreshold"))},
+            opened=parse_time(m.get("acceptingOrdersTimestamp") or m.get("startDate") or m.get("createdAt")),
         ))
     return out
 
 
 # -- Kalshi -----------------------------------------------------------------------
+
+
+def from_kalshi_market(m: dict, *, series: str | None, event_title: str = "", exclusive: bool = False,
+                      category: str | None = None) -> Market | None:
+    """One binary market, from an event's nested list or a series' list of settled markets."""
+    if m.get("market_type", "binary") != "binary":
+        return None
+    bid, ask, last = _kalshi_price(m, "yes_bid"), _kalshi_price(m, "yes_ask"), _kalshi_price(m, "last_price")
+    if ask == 0:
+        ask = None  # no one is selling
+    ref = last if last else ((bid or 0) + (ask or 1)) / 2
+    rules = "\n".join(s for s in (m.get("rules_primary"), m.get("rules_secondary")) if s)
+    return Market(
+        venue="kalshi",
+        id=str(m.get("ticker")),
+        event_id=str(m.get("event_ticker")),
+        title=str(m.get("title") or event_title),
+        event_title=event_title,
+        outcome=m.get("yes_sub_title") or m.get("subtitle") or None,
+        rules=rules,
+        close_time=parse_time(m.get("close_time")),
+        bid=bid,
+        ask=ask,
+        last=last,
+        volume=_kalshi_count(m, "volume") * ref,
+        volume_24h=_kalshi_count(m, "volume_24h") * ref,
+        liquidity=_kalshi_count(m, "open_interest") * ref,
+        exclusive=exclusive,
+        url=f"https://kalshi.com/markets/{str(series or '').lower()}",
+        series=series,
+        category=category,
+        strike={k: m.get(k) for k in ("strike_type", "floor_strike", "cap_strike", "custom_strike") if m.get(k) is not None},
+        opened=parse_time(m.get("open_time")),
+    )
 
 
 def from_kalshi_event(ev: dict) -> list[Market]:
@@ -186,34 +224,11 @@ def from_kalshi_event(ev: dict) -> list[Market]:
     for m in ev.get("markets") or []:
         if m.get("status") not in (None, "active", "open", "initialized"):
             continue
-        if m.get("market_type", "binary") != "binary":
-            continue
-        bid, ask, last = _kalshi_price(m, "yes_bid"), _kalshi_price(m, "yes_ask"), _kalshi_price(m, "last_price")
-        if ask == 0:
-            ask = None  # no one is selling
-        ref = last if last else ((bid or 0) + (ask or 1)) / 2
-        rules = "\n".join(s for s in (m.get("rules_primary"), m.get("rules_secondary")) if s)
-        out.append(Market(
-            venue="kalshi",
-            id=str(m.get("ticker")),
-            event_id=str(ev.get("event_ticker") or m.get("event_ticker")),
-            title=str(m.get("title") or ev.get("title") or ""),
-            event_title=str(ev.get("title") or ""),
-            outcome=m.get("yes_sub_title") or m.get("subtitle") or None,
-            rules=rules,
-            close_time=parse_time(m.get("close_time")),
-            bid=bid,
-            ask=ask,
-            last=last,
-            volume=_kalshi_count(m, "volume") * ref,
-            volume_24h=_kalshi_count(m, "volume_24h") * ref,
-            liquidity=_kalshi_count(m, "open_interest") * ref,
-            exclusive=bool(ev.get("mutually_exclusive")),
-            url=f"https://kalshi.com/markets/{str(series or '').lower()}",
-            series=series,
-            category=ev.get("category"),
-            strike={k: m.get(k) for k in ("strike_type", "floor_strike", "cap_strike", "custom_strike") if m.get(k) is not None},
-        ))
+        mk = from_kalshi_market({**m, "event_ticker": ev.get("event_ticker") or m.get("event_ticker")}, series=series,
+                                event_title=str(ev.get("title") or ""), exclusive=bool(ev.get("mutually_exclusive")),
+                                category=ev.get("category"))
+        if mk is not None:
+            out.append(mk)
     return out
 
 

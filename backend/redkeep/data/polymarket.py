@@ -87,11 +87,40 @@ class Polymarket:
 
     def daily(self, token_id: str) -> list[tuple[datetime, float]]:
         """A closed market's whole price history, one point a day, oldest first."""
-        res = self.http.get_json(f"{CLOB}/prices-history", {"market": token_id, "interval": "max", "fidelity": 1440}, ttl=None)
+        return self.lifetime(token_id, fidelity_min=1440)
+
+    def lifetime(self, token_id: str, *, fidelity_min: int = 1440) -> list[tuple[datetime, float]]:
+        """A closed market's whole price history in one call (``interval=max``), oldest first."""
+        res = self.http.get_json(f"{CLOB}/prices-history", {"market": token_id, "interval": "max", "fidelity": fidelity_min},
+                                 ttl=None)
         out = sorted((datetime.fromtimestamp(p["t"], timezone.utc), float(p["p"])) for p in res.get("history") or [])
         if self.store is not None:
-            self.store.add_odds("polymarket", token_id, 1440, out)
+            self.store.add_odds("polymarket", token_id, fidelity_min, out)
         return out
+
+    # -- markets as they were listed on past dates, for the historical replay (eval E8) ---------------
+
+    def listed_events(self, tag: str, start: date, end: date, *, closed: bool, pages: int = 3) -> list[dict]:
+        """Events tagged ``tag`` that were listed by ``end`` and ended on or after ``start``, busiest first. Gamma's
+        start date is when an event was listed. Nothing here is recorded in the store: these are past listings, not
+        today's catalogue."""
+        out: list[dict] = []
+        for i in range(pages):
+            batch = self.http.get_json(f"{GAMMA}/events", {
+                "closed": "true" if closed else "false", "tag_slug": tag, "order": "volume", "ascending": "false",
+                "limit": 100, "offset": 100 * i, "start_date_max": end.isoformat(), "end_date_min": start.isoformat(),
+            }, ttl=7 * 24 * 3600 if closed else self.ttl) or []
+            out.extend(batch)
+            if len(batch) < 100:
+                break
+        return out
+
+    def search_closed(self, query: str, *, limit: int = 20) -> list[dict]:
+        """Closed events that match ``query``, with their closed markets."""
+        res = self.http.get_json(f"{GAMMA}/public-search", {
+            "q": query, "limit_per_type": limit, "events_status": "closed", "keep_closed_markets": 1,
+        }, ttl=7 * 24 * 3600)
+        return res.get("events") or []
 
     def history(self, token_id: str, start: datetime, end: datetime, *, fidelity_min: int = 60) -> list[tuple[datetime, float]]:
         """Price of "Yes" over time.

@@ -346,6 +346,7 @@ button.tile::after { content: "→"; position: absolute; top: 14px; right: 16px;
 .legend .arrow { display: inline-block; width: 18px; height: 2px; background: var(--accent); margin-right: 8px; vertical-align: 3px; position: relative; }
 .legend .arrow::after { content: ""; position: absolute; right: -2px; top: -3px; border: 4px solid transparent; border-left: 6px solid var(--accent); border-right: 0; }
 .legend .ln { display: inline-block; width: 18px; height: 2px; background: var(--accent); margin-right: 6px; vertical-align: 3px; }
+.legend .tick { display: inline-block; width: 14px; height: 2.5px; background: var(--ink); border-radius: 2px; margin-right: 6px; vertical-align: 3px; }
 .lg-t { display: inline-flex; align-items: center; }
 
 .flat svg { width: 100%; height: auto; display: block; }
@@ -498,6 +499,10 @@ button.tile::after { content: "→"; position: absolute; top: 14px; right: 16px;
 .calls td { padding: 10px 10px 10px 0; border-top: 1px solid var(--line); vertical-align: top; }
 .calls td.n { font-family: var(--f-mono); white-space: nowrap; }
 .calls small { font-size: 11px; color: var(--ink-3); }
+.calls small a { color: inherit; }
+.calls td:first-child { min-width: 150px; }
+.rp-rank { margin: 8px 0 0; padding-left: 20px; font-size: 13px; line-height: 1.5; }
+.rp-rank li { margin: 4px 0; }
 .scroll-x { overflow-x: auto; }
 .rp-chart svg { width: 100%; height: auto; display: block; }
 

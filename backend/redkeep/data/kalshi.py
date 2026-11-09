@@ -80,12 +80,16 @@ class Kalshi:
             self.store.add_markets(out)
         return out
 
-    def history(self, series: str, ticker: str, start: datetime, end: datetime, *, period_min: int = 60) -> list[tuple[datetime, float]]:
-        """Midpoint of the "Yes" bid and ask at the end of each period, in 60-day chunks on a fixed grid."""
+    def history(self, series: str, ticker: str, start: datetime, end: datetime, *, period_min: int = 60,
+                archived: bool = False) -> list[tuple[datetime, float]]:
+        """Midpoint of the "Yes" bid and ask at the end of each period, in 60-day chunks on a fixed grid. An archived
+        market (settled before the archive cutoff) is read from the historical endpoint."""
         out: list[tuple[datetime, float]] = []
         now = datetime.now(timezone.utc)
+        url = (f"{BASE}/historical/markets/{ticker}/candlesticks" if archived
+               else f"{BASE}/series/{series}/markets/{ticker}/candlesticks")
         for t, u in chunks(start, end, timedelta(days=60)):
-            res = self.http.get_json(f"{BASE}/series/{series}/markets/{ticker}/candlesticks", {
+            res = self.http.get_json(url, {
                 "start_ts": int(t.timestamp()), "end_ts": int(u.timestamp()), "period_interval": period_min,
             }, ttl=None if u < now - timedelta(days=1) else self.ttl)
             for c in res.get("candlesticks") or []:

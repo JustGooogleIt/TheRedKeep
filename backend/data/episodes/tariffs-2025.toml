@@ -1,0 +1,156 @@
+# The historical replay's first episode (DESIGN.md section 10, eval E8): the April 2025 tariff shock.
+#
+# Everything here was written before the replay first ran, from the public record of what happened and when. The
+# replay itself finds the markets, reads their archived prices and measures the jumps; nothing below is a number
+# the engine uses as-is:
+#   * `happened` is when an event resolved yes during the episode. The replay resolves it at the first close after
+#     that moment, so an announcement after the 4 p.m. close counts on the next trading day;
+#   * analogs are past days like the event, as in the event library, and all fall before the episode;
+#   * links are proposals that the odds data must confirm, as in a refresh.
+#
+# The events are the questions a reader would have asked in late March 2025 or during the week after April 2. An
+# event no market priced yet is shown as unlisted until one did.
+
+title = "April 2025 tariff shock"
+sub = "From the run-up to the April 2 tariff announcement to the 90-day pause a week later."
+start = 2025-03-31
+end = 2025-04-11
+lookback_days = 180  # odds and factor history behind each evening's jump windows
+
+notes = [
+  { day = 2025-03-31, note = "Stocks recover from an early drop on the last day of the quarter, two days before the tariff announcement." },
+  { day = 2025-04-01, note = "A quiet session while markets wait for the announcement." },
+  { day = 2025-04-02, note = "Stocks close higher. After the close, the US announces a 10% tariff on nearly all imports and far higher rates on about 60 countries." },
+  { day = 2025-04-03, note = "The first session after the announcement: stocks, oil and the dollar fall hard." },
+  { day = 2025-04-04, note = "China answers with a 34% tariff on all US goods, and stocks fall even further than the day before." },
+  { day = 2025-04-07, note = "Stocks whipsaw on a false report of a pause, and the US threatens another 50% on China." },
+  { day = 2025-04-08, note = "An early rally fades as the US confirms tariffs of 104% on China. Long-term yields climb." },
+  { day = 2025-04-09, note = "China raises its tariffs to 84%. At 1:18 p.m. the US pauses the higher rates for 90 days for everyone but China, and stocks have their best day since 2008." },
+  { day = 2025-04-10, note = "The US puts China's tariff at 145% in all, and stocks give back part of the rally." },
+  { day = 2025-04-11, note = "China raises its tariffs to 125% and says it will ignore further increases. The 10-year yield ends its biggest weekly rise since 2001." },
+]
+
+[[event]]
+id = "universal"
+title = "US announces tariffs of 10% or more on most imports"
+short = "Universal tariffs"
+category = "Trade"
+question = "Will the US announce new tariffs of at least 10% on imports from most of its trading partners (a universal or across-the-board reciprocal tariff) by April 30, 2025?"
+resolves = 2025-04-30
+threshold = 10
+threshold_unit = "% tariff"
+direction = "above"
+source = "White House announcement or executive order"
+search = ["reciprocal tariffs", "universal tariff", "tariffs April 2", "Liberation Day tariffs", "Trump tariffs on all countries", "tariff rate"]
+why = "Tariffs on nearly everything raise prices and hit profits, and they invite retaliation."
+happened = 2025-04-02T20:10:00Z  # the Rose Garden announcement, just after the 4 p.m. close
+analogs = [
+  { date = 2018-03-22, days = 1, surprise = 0.7, note = "The US announced tariffs on up to $60 billion of Chinese goods" },
+  { date = 2019-05-06, days = 1, surprise = 0.8, note = "Trump said over the weekend that tariffs on $200 billion of Chinese goods would rise to 25%" },
+  { date = 2019-08-01, days = 1, surprise = 0.9, note = "Trump announced a 10% tariff on the remaining $300 billion of Chinese imports" },
+]
+
+[[event]]
+id = "china-retaliates"
+title = "China retaliates with new tariffs on US goods"
+short = "China retaliates"
+category = "Trade"
+question = "Will China announce new tariffs on imports from the US between April 2 and April 30, 2025?"
+resolves = 2025-04-30
+source = "Announcement by China's State Council Tariff Commission or Ministry of Finance"
+search = ["China retaliates", "China retaliation tariffs", "China tariffs on US goods", "China counter tariffs", "US China trade war"]
+why = "Retaliation turns a tariff shock into a trade war: Chinese and US stocks fall and the yuan weakens."
+happened = 2025-04-04T10:00:00Z  # China's 34% tariff on all US goods, about 6 a.m. New York time
+analogs = [
+  { date = 2018-04-04, days = 1, surprise = 0.7, note = "China announced 25% tariffs on $50 billion of US goods, including soybeans" },
+  { date = 2019-05-13, days = 1, surprise = 0.7, note = "China announced tariffs on $60 billion of US goods" },
+]
+
+[[event]]
+id = "pause"
+title = "US pauses most of the new tariffs"
+short = "Tariff pause"
+category = "Trade"
+question = "Will the US pause, delay or suspend the higher country-specific tariff rates announced on April 2, 2025 for most countries, by April 30, 2025?"
+resolves = 2025-04-30
+source = "White House announcement or executive order"
+search = ["tariff pause", "pause tariffs", "delay tariffs", "suspend reciprocal tariffs", "90-day pause", "Trump tariffs paused"]
+why = "A pause would undo most of the announcement's damage, though tariffs already in force would stay."
+happened = 2025-04-09T17:18:00Z  # the 90-day pause, 1:18 p.m. New York time
+analogs = [
+  { date = 2018-12-03, days = 1, surprise = 0.6, note = "The US and China agreed a 90-day truce at the G20 over the weekend" },
+  { date = 2019-07-01, days = 1, surprise = 0.5, note = "Trump and Xi agreed at the G20 to restart talks and hold off new tariffs" },
+  { date = 2019-10-11, days = 1, surprise = 0.6, note = "Trump announced a first-phase deal with China and suspended a tariff increase" },
+]
+
+[[event]]
+id = "fed-emergency"
+title = "Fed makes an emergency rate cut before its May meeting"
+short = "Emergency Fed cut"
+category = "Fed"
+question = "Will the FOMC cut the federal funds target range at an unscheduled meeting before its May 6-7, 2025 meeting?"
+resolves = 2025-05-06
+source = "FOMC statement"
+search = ["emergency rate cut", "Fed emergency cut", "unscheduled Fed meeting", "Fed cut before May"]
+why = "An emergency cut would signal the Fed sees a crisis: yields fall, and stocks may not rise."
+analogs = [
+  { date = 2020-03-03, days = 1, surprise = 0.9, note = "The Fed cut by half a point between meetings as COVID-19 spread" },
+]
+
+[[event]]
+id = "fed-may-cut"
+title = "Fed cuts rates at its May meeting"
+short = "May Fed cut"
+category = "Fed"
+question = "Will the FOMC lower the federal funds target range at its meeting ending May 7, 2025?"
+resolves = 2025-05-07
+source = "FOMC statement"
+search = ["Fed decision May", "FOMC May 2025", "Fed rate cut May", "Fed interest rates May 2025"]
+why = "A cut lowers yields and the dollar. Tariffs pulled the Fed both ways: weaker growth, higher prices."
+
+[[event]]
+id = "recession"
+title = "US recession in 2025"
+short = "US recession"
+category = "Growth"
+question = "Will the US enter a recession in 2025, as declared by the NBER or shown by two consecutive quarters of negative real GDP growth in the BEA's advance estimates?"
+resolves = 2025-12-31
+source = "NBER or BEA GDP releases"
+search = ["US recession 2025", "recession in 2025", "NBER recession", "negative GDP growth"]
+why = "A recession hits stocks and credit and pulls yields and oil down."
+
+[[link]]
+parent = "universal"
+child = "china-retaliates"
+w = 0.4
+reason = "Tariffs this broad make Chinese retaliation likely."
+
+[[link]]
+parent = "universal"
+child = "recession"
+w = 0.2
+reason = "Broad tariffs raise costs and cut trade, so a recession becomes likelier."
+
+[[link]]
+parent = "universal"
+child = "fed-may-cut"
+w = 0.1
+reason = "Weaker growth from tariffs pushes the Fed toward a cut."
+
+[[link]]
+parent = "china-retaliates"
+child = "recession"
+w = 0.1
+reason = "A trade war deepens the hit to growth."
+
+[[link]]
+parent = "pause"
+child = "recession"
+w = -0.15
+reason = "A pause undoes part of the hit to growth."
+
+[[link]]
+parent = "recession"
+child = "fed-may-cut"
+w = 0.3
+reason = "A recession in view would push the Fed to cut."

@@ -2,9 +2,14 @@
 
 Keyword search is cheap, needs no model and keeps the numbers (thresholds,
 dates) that embeddings blur. Retrieval only proposes candidates; the judge
-decides. Whole outcome groups are kept together, so ladders and mutually
-exclusive outcome sets reach the judge intact, and both venues are
-interleaved so a cross-venue check is possible.
+decides. Outcome groups are kept together, so ladders and mutually exclusive
+outcome sets reach the judge with their rungs side by side, and both venues are
+interleaved so a cross-venue check is possible. The best market of each of the
+top groups gets a slot before any group's other members do: otherwise two or
+three big ladders fill every slot, and a lone market that asks the question
+never reaches the judge (found on the April 2025 replay, where 13 country
+markets and 24 "what will Trump say" markets crowded out "Will Trump announce a
+general tariff on imports on April 2?").
 
 Keywords alone favour contracts that repeat the event's words, such as
 "emergency Fed cuts this year" for a December decision. A contract that closes
@@ -82,7 +87,10 @@ class Retriever:
 
     def candidates(self, spec: EventSpec, k: int = 24, per_group: int = 8, min_rel: float = 0.25,
                    pool: int = 200) -> list[tuple[Market, float]]:
-        """Up to ``k`` markets from the best groups among the top ``pool``, dropping any under ``min_rel`` of the best."""
+        """Up to ``k`` markets from the best groups among the top ``pool``, dropping any under ``min_rel`` of the best.
+
+        The best market of each of the top ``k // 2`` groups goes in first; the slots left go to the other members of
+        the groups in order, up to ``per_group`` from one group. Each group's markets stay together, best group first."""
         s = self.scores(spec)
         floor = min_rel * float(s.max()) if len(s) else 0.0
         top = [i for i in np.argsort(-s)[:pool] if s[i] > 0 and s[i] >= floor]
@@ -100,11 +108,16 @@ class Retriever:
             for q in queues:
                 if q:
                     order.append(q.pop(0))
-        out: list[tuple[Market, float]] = []
+        members = {g: sorted((i for i in self.groups[g] if s[i] >= floor),
+                             key=lambda i: (-s[i], -self.markets[i].volume))[:per_group] for g in order}
+        picked = [members[g][0] for g in order[:max(1, k // 2)]][:k]
+        taken = set(picked)
         for g in order:
-            members = sorted((i for i in self.groups[g] if s[i] >= floor), key=lambda i: (-s[i], -self.markets[i].volume))[:per_group]
-            for i in members:
-                if len(out) >= k:
-                    return out
-                out.append((self.markets[i], float(s[i])))
-        return out
+            for i in members[g]:
+                if len(picked) >= k:
+                    break
+                if i not in taken:
+                    picked.append(i)
+                    taken.add(i)
+        place = {i: (n, j) for n, g in enumerate(order) for j, i in enumerate(members[g])}
+        return [(self.markets[i], float(s[i])) for i in sorted(picked, key=place.__getitem__)]
