@@ -80,7 +80,7 @@ def make_clients(s: Settings, *, claude: bool = True, record: bool = True, fresh
     With ``record``, the data clients also save what they read to the point-in-time store, which is flushed when the
     process exits. With ``fresh``, nothing that can still change comes from the response cache, so every read is
     what the source says now: ``redkeep record`` reads this way. Settled markets and old candles stay cached."""
-    http = Http(cache_dir=s.cache_dir / "http", min_interval=s.request_spacing)
+    http = Http(cache_dir=s.cache_dir / "http", min_interval=s.spacing())
     ttl = {"ttl": 0} if fresh else {}
     store = Store(s.store_dir) if record else None
     if store is not None:

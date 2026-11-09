@@ -8,6 +8,10 @@
   the key doesn't include it the exposure engine falls back to the fund's own
   returns (DESIGN.md section 12).
 
+Massive's free plan covers the daily bars (two years of them, end of day) at
+5 calls a minute, which the HTTP client's spacing keeps to
+(``MASSIVE_CALLS_PER_MINUTE``); holdings are a paid add-on.
+
 The key is sent as a bearer token, never in the URL, so it can't leak into the
 cache or logs.
 """
@@ -32,6 +36,7 @@ class Massive:
     def __init__(self, http: Http, api_key: str | None, *, ttl: float | None = 6 * 3600, store: Store | None = None):
         self.http, self.ttl, self.store = http, ttl, store
         self._headers = {"Authorization": f"Bearer {api_key}"} if api_key else None
+        self._holdings = True  # False once the key turns out not to include holdings: asking again only spends calls
 
     @property
     def available(self) -> bool:
@@ -68,6 +73,8 @@ class Massive:
 
     def constituents(self, etf: str, as_of: date) -> tuple[date, list[dict]] | None:
         """The fund's holdings on the latest date on or before ``as_of``; None if not entitled."""
+        if not self._holdings:
+            return None
         try:
             head = self._get(f"{BASE}/etf-global/v1/constituents", {
                 "composite_ticker": etf, "effective_date.lte": as_of.isoformat(),
@@ -75,6 +82,7 @@ class Massive:
             }, ttl=self.ttl)
         except HttpError as e:
             if e.status in (401, 403):
+                self._holdings = False
                 return None
             raise
         rows = head.get("results") or []

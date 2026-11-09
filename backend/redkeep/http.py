@@ -122,6 +122,8 @@ class Http:
                 continue
             if r.status_code in RETRY_STATUS and attempt < self.max_retries:
                 wait = float(r.headers.get("retry-after") or delay)
+                if r.status_code == 429:  # over a call limit: a paced host frees a call one spacing later
+                    wait = max(wait, self.min_interval.get(urlsplit(url).hostname or "", 0.0))
                 log.warning("%s %s returned %s; retrying in %.0fs", method, url, r.status_code, wait)
                 self._sleep(min(wait, 60.0))
                 delay *= 2
