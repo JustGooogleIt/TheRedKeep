@@ -6,12 +6,23 @@ with ``w_s = 1 / σ_s²``, and run a consistency check,
 ``χ² = Σ (x_s − x̂)² / σ_s²``, over the *market* readings, because the quorum is
 about independent markets agreeing with each other.
 
+A second check sets the market's jump against the other evidence (past events
+and the AI), factor by factor. A market window can't tell an event from other
+news that moved its odds and the markets the same day: good economic news can
+raise the odds of a rate hike and lift stocks together, so a hike seems to lift
+them. Where the two point opposite ways, further apart than their error bars
+allow, the jump is contested. Each factor is tested at ``ALPHA``, corrected for
+the number of factors tested, so ten factors don't make a false alarm ten times
+as likely.
+
 Tiers:
 
 * A, Confirmed: odds from a well-matched, liquid market, and the jump backed by
   two or more precise market readings that agree.
 * B, Contested: market readings of the odds or the jump disagree beyond their
-  error bars. The disagreement is the insight.
+  error bars, or the market's jump points the opposite way from the past events
+  and the AI on some factor, beyond their error bars. The disagreement is the
+  insight.
 * C, Provisional: odds observed, but the jump has fewer than two precise market
   readings, or the match is weak.
 * D, Unpriced: no prediction market fits; odds and jump come from past events
@@ -32,8 +43,9 @@ from typing import Literal, Sequence
 
 import numpy as np
 from scipy.stats import chi2 as chi2_dist
+from scipy.stats import norm
 
-from ..factors import NF
+from ..factors import BY_KEY, KEYS, NF
 
 DeltaKind = Literal["etf", "hl", "opt", "past", "ai"]
 MARKET_DELTA_KINDS = {"etf", "hl", "opt"}
@@ -59,6 +71,17 @@ class DeltaReading:
 
 
 @dataclass
+class Conflict:
+    """A factor on which the market's jump and the other evidence point opposite ways, beyond their error bars."""
+    factor: str  # the factor's key
+    market: float  # the market readings' jump on it, fused, in typical moves
+    other: float  # the past events' and the AI's
+    z: float  # their difference over its standard error
+    market_names: list[str]
+    other_names: list[str]
+
+
+@dataclass
 class FusedDelta:
     delta: np.ndarray
     sigma: np.ndarray
@@ -69,6 +92,7 @@ class FusedDelta:
     p_value: float | None
     agree: bool | None  # over all market readings; None when no two of them share a factor
     n_market_all: int = 0  # market readings of any precision
+    conflict: Conflict | None = None  # the market against the past events and the AI
 
 
 @dataclass
@@ -134,7 +158,40 @@ def fuse_delta(readings: Sequence[DeltaReading]) -> FusedDelta:
     n_market = sum(1 for i in mk if size_error(P[i], mean) <= QUORUM_SE)
     p_value = float(chi2_dist.sf(chi2, dof)) if dof else None
     agree = None if p_value is None else p_value >= ALPHA
-    return FusedDelta(mean, sigma, weights, n_market, chi2, dof, p_value, agree, n_all)
+    return FusedDelta(mean, sigma, weights, n_market, chi2, dof, p_value, agree, n_all, _conflict(readings, P, X))
+
+
+def _conflict(readings: Sequence[DeltaReading], P: np.ndarray, X: np.ndarray) -> Conflict | None:
+    """The factor where the market readings and the other evidence point opposite ways furthest beyond their error
+    bars, if any does: ``|z| > z_crit`` with ``z_crit`` the two-sided ``ALPHA`` point over the factors tested."""
+    mk = [i for i, r in enumerate(readings) if r.market]
+    other = [i for i, r in enumerate(readings) if not r.market]
+    if not mk or not other:
+        return None
+    p1, p2 = P[mk].sum(axis=0), P[other].sum(axis=0)
+    both = (p1 > 0) & (p2 > 0)
+    if not both.any():
+        return None
+    s1, s2 = np.where(both, p1, 1.0), np.where(both, p2, 1.0)
+    m1, m2 = (P[mk] * X[mk]).sum(axis=0) / s1, (P[other] * X[other]).sum(axis=0) / s2
+    z = np.where(both, (m1 - m2) / np.sqrt(1 / s1 + 1 / s2), 0.0)
+    hit = both & (m1 * m2 < 0) & (np.abs(z) > norm.ppf(1 - ALPHA / (2 * both.sum())))
+    if not hit.any():
+        return None
+    f = int(np.argmax(np.where(hit, np.abs(z), 0.0)))
+    return Conflict(KEYS[f], float(m1[f]), float(m2[f]), float(z[f]),
+                    [readings[i].name for i in mk if P[i, f] > 0], [readings[i].name for i in other if P[i, f] > 0])
+
+
+def conflict_reason(c: Conflict) -> str:
+    """'US stocks: the jump windows say +3.6 typical moves and the AI prior -1.0, ...'."""
+    mk = {"Jump windows": "the jump windows", "Hyperliquid windows": "the Hyperliquid windows"}
+    who = mk.get(c.market_names[0], "the market readings") if len(c.market_names) == 1 else "the market readings"
+    other = {("AI prior",): "the AI prior", ("Past events",): "past events"}.get(tuple(c.other_names),
+                                                                               "past events and the AI prior")
+    return (f"{BY_KEY[c.factor].name}: {who} say {c.market:+.1f} typical moves and {other} {c.other:+.1f}, opposite "
+            "ways and further apart than their error bars allow. The same news can move the odds and the markets, "
+            "and a window can't tell them apart.")
 
 
 def size_error(precision: np.ndarray, fused: np.ndarray) -> float:
@@ -175,6 +232,8 @@ def assign_tier(*, odds: FusedOdds, delta: FusedDelta, match_good: bool, liquid:
         return Tier("B", "The prediction markets disagree on the odds by more than their spreads allow.", badges)
     if delta.agree is False:
         return Tier("B", "Market readings of the jump disagree beyond their error bars.", badges)
+    if delta.conflict is not None:
+        return Tier("B", conflict_reason(delta.conflict), badges)
     if match_good and liquid and delta.n_market >= 2 and delta.agree:
         return Tier("A", "Odds from a well-matched, liquid market, and two or more precise market readings of the jump agree.", badges)
     vague = delta.n_market_all - delta.n_market

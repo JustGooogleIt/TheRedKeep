@@ -71,19 +71,27 @@ def _trading_days(levels: dict[str, Series]) -> list[date]:
 
 
 def _typical(f: Factor, opts: list[list[str]], levels: dict[str, Series], window: list[date]) -> float:
-    """One standard deviation of the factor's weekly change over ``window``, non-overlapping, from one proxy: the
-    preferred one if it covers most of the window, else the one that covers the most (the S&P 500 index, for a
-    window that ends soon after SPY's prices begin on Massive's free plan)."""
+    """One standard deviation of the factor's weekly change over ``window``, from one proxy: the preferred one if it
+    covers most of the window, else the one that covers the most (the S&P 500 index, for a window that ends soon
+    after SPY's prices begin on Massive's free plan).
+
+    Weeks don't overlap, and the variance is averaged over the five days a week can start on: two years hold only
+    about a hundred weeks, so one start day can lump a few big days together or split them up, and moved stocks'
+    typical move by a fifth on real data."""
     if not window:
         return float("nan")
     lo, hi = window[0], window[-1]
     cover = [sorted(d for d in set.intersection(*(set(levels[k]) for k in keys)) if lo <= d <= hi) for keys in opts]
     pick = 0 if len(cover[0]) >= COVER * len(window) else max(range(len(opts)), key=lambda j: len(cover[j]))
     keys, ds = opts[pick], cover[pick]
-    weekly = [change(f, _at(levels, keys, ds[t - 5]), _at(levels, keys, ds[t]))
-              for t in range(5, len(ds), 5) if (ds[t] - ds[t - 5]).days <= MAX_WEEK]
-    weekly = [w for w in weekly if np.isfinite(w)]
-    return float(np.std(weekly, ddof=1)) if len(weekly) >= 10 else float("nan")
+    var = []
+    for start in range(5):
+        weekly = [change(f, _at(levels, keys, ds[t - 5]), _at(levels, keys, ds[t]))
+                  for t in range(5 + start, len(ds), 5) if (ds[t] - ds[t - 5]).days <= MAX_WEEK]
+        weekly = [w for w in weekly if np.isfinite(w)]
+        if len(weekly) >= 10:
+            var.append(np.var(weekly, ddof=1))
+    return float(np.sqrt(np.mean(var))) if var else float("nan")
 
 
 @dataclass

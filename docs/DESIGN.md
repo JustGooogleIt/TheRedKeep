@@ -113,7 +113,7 @@ You hold QQQ. Polymarket prices "US tariffs on China of 25% or more by March 31"
 | `p̂_e` | Our calibrated probability, after correcting known biases |
 | `V` | Portfolio value in dollars |
 
-A **typical move** is one standard deviation of the factor's weekly change. Using it as the unit makes factors with different units (yields, prices, the VIX) comparable and addable.
+A **typical move** is one standard deviation of the factor's weekly change over the last two years, with the variance averaged over the five days a week can start on (a hundred weeks are few enough that the start day alone moved stocks' typical move by a fifth). Using it as the unit makes factors with different units (yields, prices, the VIX) comparable and addable.
 
 ### 4.2 What's priced in
 
@@ -170,7 +170,7 @@ Every source is a noisy reading of two hidden quantities per event: the odds `q`
 
 ### 4.6 Fusion and the market quorum
 
-**Version 1** (ship first). For each quantity, a precision-weighted average across sources: `x̂ = Σ w_s x_s / Σ w_s` with `w_s = 1 / σ_s²`. Each source's error `σ_s` is measured in backtests on resolved events ([section 10](#10-how-we-prove-it-works)), by event category, and inflated for weak matches and thin markets. A consistency check, `χ² = Σ (x_s − x̂)² / σ_s²`, flags disagreement larger than the error bars allow.
+**Version 1** (ship first). For each quantity, a precision-weighted average across sources: `x̂ = Σ w_s x_s / Σ w_s` with `w_s = 1 / σ_s²`. Each source's error `σ_s` is measured in backtests on resolved events ([section 10](#10-how-we-prove-it-works)), by event category, and inflated for weak matches and thin markets. A consistency check, `χ² = Σ (x_s − x̂)² / σ_s²`, flags disagreement larger than the error bars allow. A second check sets the market's `δ` against the past events and the AI, factor by factor: a market window can't tell an event from other news that moved its odds and the markets together (good economic news raises the odds of a rate hike and lifts stocks, so a hike seems to lift them), so where the two point opposite ways, further apart than their error bars allow at 5% (corrected for the number of factors tested), the jump is contested.
 
 **Version 2.** A small Bayesian model (PyMC) that estimates `q` and `δ` jointly from all readings and pools information across related events, so all tariff events share a prior. It gives full posterior error bars.
 
@@ -179,7 +179,7 @@ Every source is a noisy reading of two hidden quantities per event: the odds `q`
 | Tier | Rule | Shown as |
 |---|---|---|
 | **A · Confirmed** | `q` from a well-matched, liquid market, and `δ` backed by two or more independent, precise market readings that agree (options, ETF windows, Hyperliquid weekend windows) | Normal |
-| **B · Contested** | Two or more market readings of `q` or `δ` exist but disagree beyond their error bars | Flagged. The disagreement is the insight |
+| **B · Contested** | Two or more market readings of `q` or `δ` exist but disagree beyond their error bars, or the market's `δ` points the opposite way from the past events and the AI on some factor, beyond their error bars | Flagged. The disagreement is the insight |
 | **C · Provisional** | `q` observed, but `δ` has fewer than two precise market readings, or the match is weak | Wider error bars |
 | **D · Unpriced** | No prediction market fits; `q` and `δ` come from past events and the AI only | Labeled as a qualitative risk |
 

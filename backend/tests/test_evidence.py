@@ -153,6 +153,25 @@ def test_fusion_and_tiers():
     assert fuse_odds([OddsReading("Kalshi", 0.40, 0.01, "market"), OddsReading("AI prior", 0.9, 0.01, "ai")]).q == 0.40
 
 
+def test_a_market_jump_that_points_against_the_other_evidence_is_contested():
+    kalshi = fuse_odds([OddsReading("Kalshi", 0.40, 0.01, "market")])
+    eq, one = index("eq"), np.ones(NF)
+
+    def on_stocks(x, sigma, kind="ai", name="AI prior"):
+        return DeltaReading(kind, name, "", np.where(np.arange(NF) == eq, x, 0.2), one * sigma)
+
+    windows_ = on_stocks(3.6, 1.0, "etf", "Jump windows")
+    f = fuse_delta([windows_, on_stocks(-1.0, 0.9)])
+    assert f.conflict.factor == "eq" and f.conflict.z == pytest.approx(4.6 / np.hypot(1.0, 0.9))  # 3.4 > 2.8
+    tier = assign_tier(odds=kalshi, delta=f, match_good=True, liquid=True)
+    assert tier.tier == "B"
+    assert tier.reason.startswith("US stocks: the jump windows say +3.6 typical moves and the AI prior -1.0, opposite ways")
+    # The same side at a different size isn't a contest, nor are opposite sides within the error bars (2.1 < 2.8).
+    assert fuse_delta([windows_, on_stocks(8.2, 0.9)]).conflict is None
+    near = fuse_delta([windows_, on_stocks(-1.0, 2.0)])
+    assert near.conflict is None and assign_tier(odds=kalshi, delta=near, match_good=True, liquid=True).tier == "C"
+
+
 def test_only_precise_market_readings_count_toward_the_quorum():
     jump = np.zeros(NF)
     jump[[index("eq"), index("rates"), index("oil")]] = [-2.0, 1.5, 1.0]
