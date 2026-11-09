@@ -254,6 +254,11 @@ function replayGap(s, ev, d) {
   return ev.listed > d ? 'No market until ' + fmtDate(ev.listed, false) : 'No price at that close';
 }
 
+// A replay jump's error bar, one standard deviation, when the engine's replay carries one.
+const plusMinus = e => (e == null ? '' : ' ± ' + fmtPct(e, 1, false));
+// A jump less than two standard deviations from no move: the engine's convention for a reading it can't act on alone.
+const withinNoise = s => s.ifYesErr != null && Math.abs(s.ifYes) < 2 * s.ifYesErr;
+
 const fmtCorr = v => (v == null ? '–' : (v < 0 ? MINUS : '') + Math.abs(v).toFixed(2));
 const fmtShare = v => (v == null ? '–' : (v < -0.005 ? MINUS : '') + Math.abs(Math.round(v * 100)) + '%');
 
@@ -336,15 +341,16 @@ function ReplayView({ P, tw }) {
       </section>
       <section className="card"><div className="card-head"><div><span className="kicker">At the close of ${fmtDate(R.days[day].d, false)}</span><h3 className="h3" style=${{ marginTop: 6 }}>What the engine saw</h3></div></div>
         <ul className="rp-list">${rows.map(s => { const live = s.status === 'open' && s.dT != null; return html`<li key=${s.id} className=${live ? '' : 'done'}>
-          <span>${s.t}<small>${live ? 'If it happens ' + fmtPct(s.ifYes) + ' · if not ' + fmtPct(s.ifNo) : s.status === 'happened' ? 'Happened ' + fmtDate(s.on, false) : replayGap(s, byId[s.id], R.days[day].d)}</small></span>
+          <span>${s.t}<small>${live ? 'If it happens ' + fmtPct(s.ifYes) + plusMinus(s.ifYesErr) + ' · if not ' + fmtPct(s.ifNo) + plusMinus(s.ifNoErr) + (withinNoise(s) ? ' · within noise' : '') : s.status === 'happened' ? 'Happened ' + fmtDate(s.on, false) : replayGap(s, byId[s.id], R.days[day].d)}</small></span>
           <span className="mono" style=${{ textAlign: 'right' }}>${s.status === 'open' ? fmtOdds(s.q) : ''}</span>
           <span className="cell">${live ? swingUsd(s.swing * V / 100) : ''}${live && html`<small>${swingPct(s.swing)}</small>`}</span></li>`; })}</ul>
+        ${rows.some(s => s.ifYesErr != null) && html`<p className="sub" style=${{ margin: '10px 0 0' }}>± is one standard deviation, from the error bars of the readings behind each jump. “Within noise” marks a jump less than two of them from no move: the data can’t yet tell it from no effect.</p>`}
       </section>
     </div>
     <section className="card"><div className="card-head"><div><span className="kicker">Calls against outcomes</span><h3 className="h3" style=${{ marginTop: 6 }}>Did the engine get it right?</h3></div></div>
       <div className="scroll-x"><table className="calls"><thead><tr><th>Event</th><th>Resolved</th><th>Odds before</th><th>Engine said</th><th>The day</th><th>Verdict</th></tr></thead><tbody>
         ${RC.calls.map(c => { const [k, mk, txt] = verdictOf(c.pred, c.real), ev = byId[c.id]; return html`<tr key=${c.id}><td>${c.t}${engine && ev.from && html`<br /><small>${ev.url ? html`<a href=${ev.url} target="_blank" rel="noopener noreferrer">${ev.from}</a>` : ev.from}${ev.gran && ev.gran.length ? ' · ' + ev.gran.join(' and ') + ' prices' : ''}</small>`}</td><td className="n">${fmtDate(c.date, false)}</td><td className="n">${c.q == null ? '–' : fmtOdds(c.q)}</td>
-          ${c.pred == null ? html`<td><small>${c.why}</small></td>` : html`<td className=${cls('n', tone(c.pred))}>${fmtPct(c.pred)}<br /><small>${fmtUsd(c.pred * V / 100, true)}</small></td>`}
+          ${c.pred == null ? html`<td><small>${c.why}</small></td>` : html`<td className=${cls('n', tone(c.pred))}>${fmtPct(c.pred)}${plusMinus(c.predErr)}<br /><small>${fmtUsd(c.pred * V / 100, true)}</small></td>`}
           <td className=${cls('n', tone(c.real))}>${fmtPct(c.real)}<br /><small>${fmtUsd(c.real * V / 100, true)}</small></td><td style=${{ whiteSpace: 'nowrap' }}><span className=${'mk ' + k}>${mk}</span> ${txt}</td></tr>`; })}
       </tbody></table></div>
       ${summary && html`<p className="note">${summary}</p>`}

@@ -102,7 +102,8 @@ if (livePath) {
     check('replay: the replay screen shows the engine\'s replay', M.replaySource() === 'engine' && R.days.length === M.LIVE.replay.days.length);
     if (R.typical[EQ] == null) check('replay: the engine measured stocks', false, 'no typical move for stocks');
     else {
-      const RC = M.replayCompute({ b: M.FACTORS.map((f, k) => (k === EQ ? f.typical / R.typical[EQ] : 0)) }, true);
+      const arrow = { b: M.FACTORS.map((f, k) => (k === EQ ? f.typical / R.typical[EQ] : 0)) };
+      const RC = M.replayCompute(arrow, true);
       let eGap = 0, n = 0, cGap = 0, m = 0;
       R.check.explained.forEach((row, i) => { if (row[EQ] == null) return; eGap = Math.max(eGap, Math.abs((RC.expl[i] || 0) - row[EQ])); n++; });
       R.check.calls.forEach(c => {
@@ -115,6 +116,18 @@ if (livePath) {
       const real = RC.real.map((v, i) => (R.days[i].f[EQ] == null ? null : v));
       const zGap = Math.max(0, ...real.map((v, i) => (v == null ? 0 : Math.abs(v - R.days[i].f[EQ] / R.typical[EQ]))));
       check('replay: the days\' stock moves are the engine\'s, in its typical moves', zGap < 1e-9, zGap.toExponential(1) + ' largest gap');
+      // Without knock-ons, an open event's error bar on that arrow is the engine's on stocks that evening, times 1 − q.
+      // A snapshot made before the replay carried error bars has none to check.
+      if (R.events.some(e => e.sd)) {
+        const RN = M.replayCompute(arrow, false);
+        let sGap = 0, k = 0;
+        RN.states.forEach((row, i) => row.forEach(s => {
+          const e = R.events.find(z => z.id === s.id), sd = e.sd && e.sd[i + 1];
+          if (s.status !== 'open' || s.dT == null || !sd || sd[EQ] == null) return;
+          sGap = Math.max(sGap, Math.abs(s.ifYesErr - (1 - s.q) * sd[EQ])); k++;
+        }));
+        check('replay: the error bars on stocks are the engine\'s', k > 0 && sGap < 1e-9, k + ' event-days, ' + sGap.toExponential(1) + ' largest gap, in typical moves');
+      }
     }
   }
 

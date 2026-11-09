@@ -304,7 +304,9 @@ function oddsHistory(e, n = 120) {
    (`redkeep replay`) re-estimates each jump every evening (dd: index 0 is the evening before the first day, index
    i + 1 the close of day i), adds the odds at the close before the first day (q0), gives each link the weight the
    data set that evening (w per evening, null when the data didn't confirm it), and has no moves (null) on factors it
-   had no prices for. An event's odds q[i] are at the close of day i, null before a market listed it. */
+   had no prices for. An event's odds q[i] are at the close of day i, null before a market listed it. The engine's
+   also carries each jump's error bars (sd, one standard deviation per factor, null where it had no reading), so the
+   screen can show a jump that is mostly noise as such; the illustrative one has none. */
 function replayCompute(P, knock) {
   const R = REPLAY; const D = R.days.length;
   const real = R.days.map(day => day.f.reduce((s, f, k) => s + (f == null ? 0 : P.b[k] * f / FACTORS[k].typical), 0));
@@ -314,38 +316,50 @@ function replayCompute(P, knock) {
   const qEve = (e, k) => (k === 0 ? (e.q0 == null ? null : e.q0) : done(e, k - 1) || e.q[k - 1] == null ? null : e.q[k - 1]);
   const qAfter = (e, i) => (done(e, i) ? e.out : e.q[i] == null ? null : e.q[i]);  // the close of day i, resolutions included
   const jumpAt = (e, k) => { const d = e.dd ? e.dd[k] : e.d; return d ? dot(bR, d.map(x => (x == null ? 0 : x))) : null; };
+  // The variance of that jump on this portfolio, from the factors' error bars taken as independent. A factor with no
+  // reading adds nothing, as it adds nothing to the jump; null when the replay carries no error bars.
+  const varAt = (e, k) => {
+    const s = e.sd && e.sd[k];
+    return s ? s.reduce((v, x, f) => (x == null || !isFinite(x) ? v : v + (bR[f] * x) ** 2), 0) : null;
+  };
   const linksAt = k => (knock ? (R.links || []).map(l => (Array.isArray(l) ? l : [l.p, l.c, l.w[k]])).filter(l => l[2] != null) : []);
   // At evening k: each event's jump on this portfolio, plus the knock-ons through its links to events still open (4.4),
-  // along every path that doesn't revisit an event (the backend's total_jump does the same).
+  // along every path that doesn't revisit an event (the backend's total_jump does the same). Each comes with its
+  // variance, the knock-ons' scaled by their weights squared.
   const totals = k => {
     const L = linksAt(k);
     const tot = (id, path) => {
-      const e = R.events.find(z => z.id === id); let s = jumpAt(e, k);
+      const e = R.events.find(z => z.id === id); let s = jumpAt(e, k), v = varAt(e, k);
       if (s == null) return null;
       const on = new Set(path).add(id);
       L.forEach(([p, c, w]) => {
         if (p !== id || on.has(c)) return;
         const ce = R.events.find(z => z.id === c), qc = ce ? qEve(ce, k) : null;
         if (qc == null || qc >= 1) return;
-        const t = tot(c, on); if (t != null) s += w * t;
+        const t = tot(c, on);
+        if (t != null) { s += w * t[0]; v = v == null || t[1] == null ? null : v + w * w * t[1]; }
       });
-      return s;
+      return [s, v];
     };
     return id => tot(id, []);
   };
+  const sdOf = t => (t == null || t[1] == null ? null : Math.sqrt(t[1]));
   const states = R.days.map((day, i) => { const tot = totals(i + 1); return R.events.map(e => {
     if (done(e, i)) return { id: e.id, t: e.t, s: e.s, status: 'happened', on: R.days[e.res].d };
     const q = qEve(e, i + 1);
     if (q == null) return { id: e.id, t: e.t, s: e.s, status: 'unlisted' };
-    const dT = tot(e.id);
-    if (dT == null) return { id: e.id, t: e.t, s: e.s, status: 'open', q, dT: null };
-    return { id: e.id, t: e.t, s: e.s, status: 'open', q, dT, ifYes: (1 - q) * dT, ifNo: -q * dT, swing: Math.abs(dT) * Math.sqrt(q * (1 - q)) };
+    const T = tot(e.id);
+    if (T == null) return { id: e.id, t: e.t, s: e.s, status: 'open', q, dT: null };
+    const dT = T[0], sd = sdOf(T);
+    return { id: e.id, t: e.t, s: e.s, status: 'open', q, dT, sd, ifYes: (1 - q) * dT, ifNo: -q * dT,
+      ifYesErr: sd == null ? null : (1 - q) * sd, ifNoErr: sd == null ? null : q * sd, swing: Math.abs(dT) * Math.sqrt(q * (1 - q)) };
   }); });
   const calls = R.events.filter(e => e.res != null).map(e => {
-    const q = qEve(e, e.res), dT = totals(e.res)(e.id);
+    const q = qEve(e, e.res), T = totals(e.res)(e.id), dT = T == null ? null : T[0], sd = sdOf(T);
     const pred = q == null || dT == null ? null : e.out ? (1 - q) * dT : -q * dT;
+    const predErr = pred == null || sd == null ? null : (e.out ? 1 - q : q) * sd;
     const why = q == null ? 'No market priced it the evening before' : dT == null ? 'No reading of its jump yet' : '';
-    return { id: e.id, t: e.t, s: e.s, day: e.res, date: R.days[e.res].d, q, dT, pred, real: real[e.res], why };
+    return { id: e.id, t: e.t, s: e.s, day: e.res, date: R.days[e.res].d, q, dT, pred, predErr, real: real[e.res], why };
   });
   // Every day: each event's own jump that evening times its odds change to the next close (Σ δ · Δq, section 10 of the
   // design). Knock-ons stay out, since the odds of the events they move are in the sum themselves. Null on a day when
