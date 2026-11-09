@@ -381,7 +381,17 @@ def summary(p: Pairs) -> dict:
             "rank_corr": rank_corr(p), "coverage_80": coverage(p)}
 
 
-def study(cases: Sequence[Case]) -> dict:
+def by_material(cases: Sequence[Case], p: Pairs, material: dict[str, bool]) -> dict:
+    """E3 apart for the markets Claude's funnel labels call material and for the rest (added after the first run,
+    which read mostly markets no factor would notice)."""
+    key = np.array([cases[i].key for i in p.case], dtype=object)
+    known = np.array([k in material for k in key], bool)
+    mat = np.array([material.get(k, False) for k in key], bool)
+    return {"labeled": sum(c.key in material for c in cases), "material_markets": sum(material.get(c.key, False) for c in cases),
+            "material": summary(p.take(mat)), "other": summary(p.take(known & ~mat))}
+
+
+def study(cases: Sequence[Case], material: dict[str, bool] | None = None) -> dict:
     p = pairs(cases)
     by_factor = {}
     for k, f in enumerate(FACTORS):
@@ -406,6 +416,7 @@ def study(cases: Sequence[Case]) -> dict:
         "e6": ("Not run: it needs a second source of jump readings on past events. No analogs are picked for "
                "resolved markets, the AI prior knows how they ended, and Hyperliquid's weekend windows reach back "
                "only about 200 days."),
+        **({"e3_by_material": by_material(cases, p, material)} if material else {}),
     }
 
 
@@ -419,16 +430,18 @@ def run(c: Clients, start: date, end: date, *, per_venue: int = PER_VENUE, progr
                   warnings + w, typical=fd.typical)
 
 
-def report(cases: Sequence[Case], sources: dict, warnings: list[str], *, typical=None) -> dict:
+def report(cases: Sequence[Case], sources: dict, warnings: list[str], *, typical=None,
+           material: dict[str, bool] | None = None) -> dict:
     return {
         "kind": "redkeep.jumps", "version": 1, "as_of": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "sources": sources,
         "method": {"surprise": SURPRISE, "done": DONE, "lookback_days": LOOKBACK, "clear": CLEAR, "resolve": RESOLVE,
                    "split": SPLIT, "interval": 0.8},
         "typical": None if typical is None else [None if v is None else float(v) for v in typical],
-        **study(cases),
+        **study(cases, material),
         "warnings": warnings,
         "rows": [asdict(c) for c in cases],
+        **({"material": material} if material else {}),
     }
 
 

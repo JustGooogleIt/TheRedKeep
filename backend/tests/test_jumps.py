@@ -292,3 +292,26 @@ def test_the_jumps_command(world, tmp_path, monkeypatch, capsys):
     assert cli.main(["jumps", "--from", str(saved[-1])]) == 0
     again = json.loads(sorted((tmp_path / "out").glob("jumps-*.json"))[-1].read_text())
     assert again["e3"] == first["e3"] and again["e4"] == first["e4"]
+
+
+def test_e3_apart_for_material_markets(rep, world, tmp_path, monkeypatch, capsys):
+    _, markets = world
+    material = {(f"kalshi:KXSYN-{m['i']}" if m["venue"] == "kalshi" else f"polymarket:pm{m['i']}"): bool(m["delta"])
+                for m in markets[:N]}
+    bm = jumps.study(jumps.cases_from(rep), material)["e3_by_material"]
+    assert bm["labeled"] == N and bm["material_markets"] == N // 2
+    assert bm["material"]["markets"] + bm["other"]["markets"] == N
+    assert bm["material"]["explained_share"] > bm["other"]["explained_share"]
+    # The command labels the markets of a saved run and keeps the labels for the next rerun.
+    s = Settings(cache_dir=tmp_path / "c", out_dir=tmp_path / "out")
+    saved = tmp_path / "jumps.json"
+    saved.write_text(json.dumps(rep, allow_nan=True))
+    monkeypatch.setattr(Settings, "from_env", classmethod(lambda cls: s))
+    monkeypatch.setattr("redkeep.pipeline.make_clients", lambda s, **kw: None)
+    monkeypatch.setattr("redkeep.funnel.run.label_cases", lambda s, c, cases: material)
+    assert cli.main(["jumps", "--from", str(saved), "--label"]) == 0
+    assert "E3 by Claude's funnel label (16 labeled, 8 material" in capsys.readouterr().out
+    again = json.loads((tmp_path / "out" / "jumps-latest.json").read_text())
+    assert again["material"] == material
+    assert cli.main(["jumps", "--from", str(tmp_path / "out" / "jumps-latest.json")]) == 0
+    assert "E3 by Claude's funnel label" in capsys.readouterr().out

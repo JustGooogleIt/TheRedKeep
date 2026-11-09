@@ -1,4 +1,4 @@
-"""Command line: ``redkeep check | refresh | analyze | calibrate | jumps | replay | record | store | app | serve``."""
+"""Command line: ``redkeep check | refresh | analyze | funnel | calibrate | jumps | replay | record | store | app | serve``."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ import sys
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
-from .config import ANTHROPIC_KEY_NAMES, Settings
+from .config import ANTHROPIC_KEY_NAMES, ROOT, Settings
 from .portfolio import parse_holdings, samples
 
 
@@ -214,12 +214,19 @@ def cmd_jumps(s: Settings, args) -> int:
             return 1
         print(f"Read {len(old['rows']):,} markets from {args.from_file}")
         rep = jumps.report(jumps.cases_from(old), {**old["sources"], "rerun_of": str(args.from_file)}, old["warnings"],
-                           typical=old.get("typical"))
+                           typical=old.get("typical"), material=old.get("material"))
     else:
         start = date.fromisoformat(args.since)
         end = date.fromisoformat(args.until) if args.until else datetime.now(timezone.utc).date() - timedelta(days=1)
         print(f"Resolved markets that closed from {start} to {end} (up to {args.markets:,} a venue)")
         rep = jumps.run(make_clients(s, claude=False), start, end, per_venue=args.markets)
+    if args.label:
+        from .funnel.run import label_cases
+
+        cases = jumps.cases_from(rep)
+        print(f"Claude labels the {len(cases)} markets with the funnel's rubric")
+        rep = jumps.report(cases, rep["sources"], rep["warnings"], typical=rep.get("typical"),
+                           material=label_cases(s, make_clients(s), cases))
     print_jumps(rep)
     path = save(finite(rep), s.out_dir, "jumps")
     print(f"\nSaved {path}")
@@ -281,6 +288,111 @@ def print_jumps(rep: dict) -> None:
         print(f"  E5  {name:<7} readings: {x['markets']:>4} markets, explained {_share(x['explained_share']).strip()}, "
               f"signs {x['clear_signs_right']} of {x['clear_moves']}, 80% cover {cover}")
     print(f"  E6  {rep['e6']}")
+    bm = rep.get("e3_by_material")
+    if bm:
+        print(f"\n  E3 by Claude's funnel label ({bm['labeled']} labeled, {bm['material_markets']} material; added after "
+              "the first run):")
+        for name in ("material", "other"):
+            x = bm[name]
+            if x["pairs"]:
+                print(f"      {name:<8} {x['markets']:>3} markets: explained {_share(x['explained_share']).strip()}"
+                      f"{_range(x['explained_range'])}, with no move where unresolved "
+                      f"{_share(x['explained_share_resolved']).strip()}, ceiling {_share(x['explainable']).strip()}; "
+                      f"signs {x['clear_signs_right']} of {x['clear_moves']}")
+
+
+def _shown(path: Path) -> str:
+    """A path as a saved result names it: relative to the backend folder when it is inside it."""
+    try:
+        return str(path.resolve().relative_to(ROOT))
+    except ValueError:
+        return str(path)
+
+
+def cmd_funnel(s: Settings, args) -> int:
+    """The event discovery funnel (DESIGN.md 6.2, milestone M4) and its eval (E0)."""
+    from .funnel import e0, run
+    from .funnel.labels import read_rows
+    from .pipeline import finite, make_clients, save
+
+    path = Path(args.labels) if args.labels else run.LABELS
+    if args.step == "label":
+        rep = run.label(s, make_clients(s), n=args.n, path=path)
+        u = rep["usage"]
+        print(f"\nLabeled {rep['labeled']:,} markets ({rep['material']:,} material), {rep['added']:,} new in {path}; "
+              f"{u['calls']} calls ({u['cached']} from the cache), {u['tokens_in']:,} tokens in and {u['tokens_out']:,} out"
+              + (f"; {rep['missing']} left unlabeled" if rep["missing"] else ""))
+        return 0
+    rows = read_rows(path)
+    if args.step == "e0":
+        if not rows:
+            print(f"No labels in {path}: run `redkeep funnel label` first", file=sys.stderr)
+            return 1
+        rep = {"kind": "redkeep.funnel.e0", "version": 1, "as_of": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+               "labels_file": _shown(path), **e0.study(rows)}
+        print_e0(rep)
+        out = save(finite(rep), s.out_dir, "funnel-e0")
+        sheet = run.check_sheet(e0.split(rows)[1], {x["key"]: x["p"] for x in rep["scores"]},
+                                s.out_dir / f"funnel-check-{out.stem.split('-')[-1]}.csv", n=args.check)
+        print(f"\nSaved {out}, and {sheet} for checking Claude's labels by hand")
+        if args.write:
+            run.E0_FILE.parent.mkdir(parents=True, exist_ok=True)
+            run.E0_FILE.write_text(json.dumps(finite({k: v for k, v in rep.items() if k != "scores"}), indent=1))
+            print(f"Wrote {run.E0_FILE}")
+        return 0
+    rep = run.screen(s, make_clients(s), claude_max=args.claude, path=path)
+    print_funnel(rep)
+    print(f"\nSaved {save(finite(rep), s.out_dir, 'funnel')}")
+    return 0
+
+
+def print_e0(rep: dict) -> None:
+    tr, te, op, th = rep["train"], rep["test"], rep["operating"], rep["thresholds"]
+    print(f"E0: {rep['even_sample']:,} markets of the even sample labeled by Claude; trained on {tr['markets']:,} "
+          f"({tr['groups']:,} groups, {tr['material']:,} material), tested on {te['markets']:,} "
+          f"({te['groups']:,} groups, {te['material']:,} material)")
+    if not te["markets"]:
+        return
+    keep = f"{th['keep']:.2f}" if th["keep"] is not None else "none"
+    print(f"\n  Lines set on the training markets: drop below {th['drop']:.2f} (keeps {rep['targets']['recall']:.0%} "
+          f"of the material ones), keep from {keep} ({rep['targets']['precision']:.0%} material); Claude reads the band")
+    if op["recall"] is not None:
+        print(f"  On the test markets: {op['dropped']:,} dropped, {op['kept']:,} kept, {op['to_claude']:,} sent to Claude. "
+              f"Material markets found: {op['recall']:.0%} ({op['material_dropped']} dropped)"
+              + (f"; precision of those kept {op['precision_kept']:.0%}" if op["precision_kept"] is not None else ""))
+    if rep["average_precision"] is not None:
+        print(f"  Ranking: average precision {rep['average_precision']:.2f}, AUC "
+              + (f"{rep['auc']:.2f}" if rep["auc"] is not None else "n/a"))
+    print("  The screen alone, keeping its top share:  " + "   ".join(
+        f"{t['top']:.0%}: recall {t['recall']:.0%}, precision {t['precision']:.0%}" for t in rep["tops"] if t["recall"] is not None))
+    from .factors import BY_KEY
+
+    mv = rep["moves"]
+    if mv:
+        print("  Rough moves, sign as Claude's where Claude says the factor moves: " + ", ".join(
+            f"{BY_KEY[k].name} {v['sign_right']}/{v['moves']}" for k, v in mv.items()))
+    c = rep["cost_per_1000"]
+    cl, sc = c["claude_every_market"], c["screen"]
+    print(f"  Per 1,000 markets: Claude on every one {cl['tokens_in'] / 1e3:,.0f}k tokens in, {cl['tokens_out'] / 1e3:,.0f}k "
+          f"out, {cl['seconds']:,.0f} s of calls; the screen {sc['seconds']:.2f} s, plus Claude on the band "
+          f"{sc['tokens_in'] / 1e3:,.0f}k in, {sc['tokens_out'] / 1e3:,.0f}k out")
+
+
+def print_funnel(rep: dict) -> None:
+    from .factors import FACTORS
+
+    cat, sc = rep["catalogue"], rep["screen"]
+    print(f"\nFunnel: {cat['listed']:,} markets listed, {cat['after_filters']:,} after the cheap filters. The screen "
+          f"(taught by {rep['labels']:,} of Claude's labels) dropped {sc['dropped']:,} and kept {sc['kept']:,}; "
+          f"Claude's label decided {sc['claude']:,}; {sc['unsure_unchecked']:,} unsure markets weren't checked "
+          f"(Claude read {sc['sent_to_claude']:,} of the {sc['band']:,} in the band"
+          + (f"; {sc['not_labeled']:,} of those came back unlabeled, even when asked again" if sc.get("not_labeled") else "")
+          + ").")
+    mat = [g for g in rep["groups"] if g["material"]]
+    print(f"Material: {rep['material_markets']:,} markets in {len(mat):,} groups. The biggest movers:")
+    for g in mat[:25]:
+        mv = ", ".join(f"{f.key} {v:+d}" for f, v in zip(FACTORS, g["moves"]) if v)
+        print(f"  {g['title'][:60]:<60} {g['venue']:<10} {g['material']:>3} mkts  {mv:<34} {g['reason'][:80]}")
 
 
 def cmd_replay(s: Settings, args) -> int:
@@ -416,6 +528,14 @@ def main(argv: list[str] | None = None) -> int:
     a.add_argument("--snapshot", help="library snapshot (default: the latest)")
     a.add_argument("--horizon", type=float, help="months (default 6)")
     a.add_argument("--what-if", action="append", metavar="EVENT=yes|no")
+    fu = sub.add_parser("funnel", help="Claude's labels, the screen they teach and its eval (milestone M4, eval E0)")
+    fu.add_argument("step", choices=["label", "e0", "screen"],
+                    help="label: Claude labels an even sample; e0: evaluate the screen; screen: screen the catalogue")
+    fu.add_argument("--labels", metavar="FILE", help="labels file (default data/funnel/labels.jsonl)")
+    fu.add_argument("--n", type=int, default=2000, help="label: markets in the sample (default 2000)")
+    fu.add_argument("--claude", type=int, default=400, help="screen: most unsure markets sent to Claude (default 400)")
+    fu.add_argument("--check", type=int, default=50, help="e0: test markets on the sheet for checking by hand (default 50)")
+    fu.add_argument("--write", action="store_true", help="e0: save the result to data/funnel/e0.json")
     k = sub.add_parser("calibrate", help="measure the long-shot bias on resolved markets (eval E2)")
     k.add_argument("--since", default="2025-01-01", help="first close date (YYYY-MM-DD, default 2025-01-01)")
     k.add_argument("--until", help="last close date (default: yesterday)")
@@ -429,6 +549,8 @@ def main(argv: list[str] | None = None) -> int:
     j.add_argument("--markets", type=int, default=600, help="markets to read on each venue (default 600)")
     j.add_argument("--from", dest="from_file", metavar="FILE",
                    help="rerun the study on the markets an earlier run saved (out/jumps-*.json), without fetching")
+    j.add_argument("--label", action="store_true",
+                   help="have Claude label each market with the funnel's rubric, and score material markets apart")
     rp = sub.add_parser("replay", help="replay a past episode on archived prices (eval E8)")
     rp.add_argument("--episode", default="tariffs-2025", help="an episode in data/episodes, or a .toml file")
     rp.add_argument("--write", action="store_true", help="save it to data/replays for the app")
@@ -457,7 +579,7 @@ def main(argv: list[str] | None = None) -> int:
     args = ap.parse_args(argv)
     logging.basicConfig(level=logging.INFO if args.verbose else logging.WARNING, format="%(levelname)s %(name)s: %(message)s")
     s = Settings.from_env()
-    return {"check": cmd_check, "refresh": cmd_refresh, "analyze": cmd_analyze, "calibrate": cmd_calibrate,
+    return {"check": cmd_check, "refresh": cmd_refresh, "analyze": cmd_analyze, "funnel": cmd_funnel, "calibrate": cmd_calibrate,
             "jumps": cmd_jumps, "replay": cmd_replay, "record": cmd_record, "store": cmd_store, "app": cmd_app, "serve": cmd_serve}[args.cmd](s, args)
 
 

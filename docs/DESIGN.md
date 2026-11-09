@@ -276,6 +276,14 @@ The three 3D display axes are published blends of these: **growth** (stocks, cre
 6. **Portfolio-first.** The AI also proposes events from the portfolio's largest exposures and holdings, like "export controls on advanced chips", which may not have obvious markets. These go through matching, and if nothing fits they become tier D.
 7. **Per portfolio,** rank by swing against the arrow and show the top ~100 (configurable).
 
+**In the build (M4).** `redkeep funnel` runs steps 2 and 3 with Claude as the teacher:
+
+- `label` applies the cheap filters to the live catalogue (thin markets, quotes wider than 20 points, odds within a point of 0 or 1) and samples it evenly, at most two markets per group. Claude then labels each market under a fixed rubric: macro or not, and each factor's move, YES world minus NO world, from −2 to +2 in typical weekly moves. A market is material when any factor would move by about half a typical move or more.
+- `e0` measures the screen those labels teach (section 10).
+- `screen` reads the whole catalogue. It drops what the screen is sure doesn't matter, keeps what it is sure does, and sends the band between to Claude. Claude's labels of that band join the training set.
+
+Laya isn't reachable from the build environment yet (its weights come from Hugging Face), and neither is Jev, a paid early-access API. So the screen for now is a words model that learns from the labels: TF-IDF over words and word pairs, a logistic regression for "material" and a ridge regression per factor for the rough moves. It trains in about a second. E0 scores it the same way it will score Laya, so Laya replaces it only where it does better. Grouping near-duplicates across venues (step 4) and portfolio-first proposals (step 6) come next.
+
 **Why.** Costs stay low because the expensive estimation only runs where it can matter, and the screen itself takes milliseconds per market. Coverage is wide because we search market-first and portfolio-first. Ranking is principled because it uses swing.
 
 **Rejected.** AI brainstorming only (ungrounded, and misses what markets are pricing); market-first only (misses unpriced risks); ranking by expected value (always about zero) or by probability alone (ignores size); a large model reading every market (accurate, but slow and costly when thousands of markets are re-screened on every refresh, so Claude teaches and checks instead).
@@ -517,6 +525,33 @@ Ground rules: time-based splits only (fit on the past, test on the future), poin
 | E8 | Historical replay | Would the system have helped on real days? | April 2025 tariffs and the pause; other episodes | Predicted vs. realized portfolio moves; ranking of the events that mattered | AI-only |
 | E9 | "Just ask an AI" | Is the system better than a strong model with no tools? | Same portfolios and dates | E2, E3 and E8 metrics | Claude with no tools |
 
+**How E0 runs.** `redkeep funnel e0` splits Claude's labels of the even sample 70/30 by a hash of each market's group, so a ladder's rungs never sit on both sides. The screen's two lines are set on the training markets alone, from 5-fold predictions with folds by group:
+
+- below the line that keeps 97% of the material markets, the screen drops a market;
+- above the line where 90% of markets are material, it keeps one;
+- Claude reads the band between.
+
+On the test markets, E0 reports:
+
+- the recall of material markets, counting those kept or sent to Claude;
+- the shares dropped, kept and sent on, and the precision of those kept;
+- the ranking's average precision and AUC;
+- recall and precision when the screen alone keeps its top 10 to 50%;
+- how often the screen's rough moves have Claude's sign;
+- cost and speed per 1,000 markets: Claude's tokens and seconds from the labeling calls, against the screen's seconds plus Claude on the band.
+
+It also writes a sheet of 50 test markets for checking Claude's labels by hand. The labeled set is one snapshot of the catalogue, so the split is by group rather than by time; labels from later snapshots give the time split.
+
+**What the first run found.** On November 8, 2026, the venues listed 65,606 open markets: 9,085 on Polymarket and 56,521 on Kalshi outside sports, entertainment and weather. The cheap filters left 3,999, mostly by dropping thin markets. Claude labeled an even sample of 2,000 in 50 calls. Its replies left 6 markets out, so 1,994 have labels; the labeler now asks again for any market a reply leaves out. It called 337 of them material (17%). The screen trained on 1,405 and was tested on the other 589, of which 103 are material:
+
+- It dropped 331 test markets, kept 33 and sent 225 to Claude. That found 99 of the 103 material markets (96%, a point under the 97% its line kept on the training markets), and 32 of the 33 it kept were material.
+- The four it dropped were the weakest material calls, each one step on a single factor: the far left leading France's first round in 2027 (the dollar), two rungs of a ladder on an AI lab's IPO valuation, and NVIDIA staying the world's largest company (chips). The one it kept that Claude calls immaterial is a Fed hold in December 2027.
+- Its ranking is good but not sharp: average precision 0.78, AUC 0.93. Alone, keeping its top 30%, it would find 88% of the material markets, at 51% precision.
+- Where Claude says a factor moves, the screen's rough move has Claude's sign 84% of the time (271 of 321), from 21 of 21 on credit to 9 of 13 on China and trade.
+- Per 1,000 markets, Claude on every market costs 383,000 tokens in, 152,000 out and 20 minutes of calls. The screen takes a tenth of a second, and Claude on its band costs 38% of that.
+
+So a words model taught by 2,000 labels already does the screen's job: it loses only the weakest material markets and cuts Claude's work by three fifths. Laya and Jev have to beat it on the same split. The same day, `redkeep funnel screen` read the whole catalogue. On its first pass, 38 of the 400 unsure markets it sent to Claude came back unlabeled, the fault the labeler now retries. Rerun with the fix and refitted on the new labels, the screen was unsure about only 200 markets, and Claude labeled all of them: 682 markets in 293 groups are material, led by war over Taiwan, oil at $180, NATO's Article 5, a US recession, a new pandemic and surprise Fed hikes. The labels are in `backend/data/funnel/labels.jsonl`, the result in `backend/data/funnel/e0.json`, and `redkeep funnel e0` reruns it without calling Claude. The sheet for checking Claude's labels by hand, `backend/data/funnel/check-2026-11-08.csv`, hasn't been checked yet.
+
 **How E2 runs.** `redkeep calibrate` reads yes/no markets that resolved since January 2025. On Polymarket these are the busiest closed events of each month under the economy, finance, geopolitics, tech and politics tags; on Kalshi, the settled markets of series filed under the matching categories, leaving out daily, hourly and combination series. Sports, crypto, entertainment, weather and thin markets are left out. Markets are sampled evenly by a hash of their ids: at most three from one event, so a 40-rung ladder can't dominate, and a few dozen per series, or per tag and month. Each market is priced 1, 7, 30, 90 and 180 days before its deadline, but only while it was still trading, since the engine only prices open markets; the price is the last daily one, if it is under three days old. Markets are split by the date they closed: each horizon's slope is fitted on the earliest 70% and scored on the rest against raw prices, by Brier score, log loss and a reliability table, overall and by venue and category. The 95% range of the gain comes from resampling whole events, since the outcomes of one event's markets are tied together. A horizon's slope is used only if it lowers the out-of-sample log loss across the whole 95% range of the gain, and the slopes in use are then refitted on every market. The prices behind a run are saved, so it can be rerun and audited without fetching.
 
 **What the first run found.** On November 8, 2026 the study read 1,423 Kalshi and 1,484 Polymarket markets that closed between January 2025 and November 2026 (1,543 events, 6,631 prices). The fitted slopes ran from 1.01 at one day out to 1.33 at 180 days, so long shots did look overpriced, most of all far from the deadline. But no horizon's correction beat raw prices reliably on the later markets: every gain's 95% range includes zero, and at 7 and 30 days the correction did slightly worse. The engine therefore keeps market odds (`p̂ = q`) for now. This supports the assumption that liquid markets are reasonably calibrated ([section 13](#13-assumptions-and-limitations)). Reruns as more markets resolve will show whether the bias firms up.
@@ -535,7 +570,7 @@ E6, the source ablation, waits for a second source on past events: no analogs ar
 - Their error bars are honest. 83% of realized jumps fall inside the 80% intervals (E4), and only 12 of the 378 readings resolve a factor at two standard errors.
 - Setting the unresolved factors to no move raises the share to −21%. For comparison, the factors' day-to-day noise leaves at most +16% for any jump to explain.
 
-The sample explains much of this. The resolved markets with a clear resolution day were mostly cabinet confirmations, a Starship flight, a German party's vote share, AI benchmarks and what Musk would say on an earnings call. No factor notices events like these, so the honest prediction is no move, and a vague reading of a jump only adds error. Two lessons follow. First, the engine should act on a jump only where its readings resolve it, which is what the quorum rule already requires for tier A. Second, the study needs the funnel's material label (M4), so that the events that matter are scored apart. The run is saved in `backend/data/evals/jumps-2026-11-08.json`, and `redkeep jumps --from` reruns it.
+The sample explains much of this. The resolved markets with a clear resolution day were mostly cabinet confirmations, a Starship flight, a German party's vote share, AI benchmarks and what Musk would say on an earnings call. No factor notices events like these, so the honest prediction is no move, and a vague reading of a jump only adds error. Two lessons follow. First, the engine should act on a jump only where its readings resolve it, which is what the quorum rule already requires for tier A. Second, the events that matter should be scored apart. Claude's funnel label (M4) calls 10 of the 54 markets material: tariffs on Canada and Mexico, strikes on and by Iran, the Hormuz blockade, gold, silver and unemployment among them. Their plain share is no better (−184%, 95% range −404% to −49%), since vague readings add error everywhere. But with the unresolved factors set to no move it is −1%, against −26% on the other 44: on markets that can move a factor, the readings that resolve one cost almost nothing, while on the rest a reading that seems to resolve one is noise. Those markets' factors also had more to explain (a ceiling of +30% against +13%). Ten markets can't settle the question. The run is saved, with the labels, in `backend/data/evals/jumps-2026-11-08.json`, and `redkeep jumps --from` reruns it.
 
 **How E8 runs.** `redkeep replay` reruns the engine on a past episode as it stood each evening. An episode file (`backend/data/episodes/tariffs-2025.toml`) lists the trading days, the events with the time each happened, their analogs and the proposed links. The catalogue is the markets listed during the episode: closed and still-open Polymarket events under the episode's tags, and settled Kalshi markets from the venue's archive, each kept only if it was listed by the last day and still trading on the first evening. The judge matches each event as of that first evening, seeing each candidate's price at its first close. An event that happened during the episode is matched only among markets listed before it happened: a later market can't have priced it, and its rules often describe what happened. The odds are the matched markets' archived prices at each 4 p.m. New York close (hourly where the venue serves them; a price more than four days old doesn't count), and an event counts only from the first close a market priced it. Each evening the engine re-estimates every jump from the jump windows of the 180 days up to that close and the event's analogs, fused as in [6.4](#64-evidence), and uses a proposed link only if those days' odds agree (t ≥ 2). Typical moves are fixed as of the first evening. The calls are `(1 − q)·δ_total` from the evening before each event happened, with knock-ons through confirmed links to events still open. Each day's explained move is `Σ δ·Δq`: each event's own jump times its odds change to the next close. Three sources are left out: the AI prior, because the model knows how the episode ended; Hyperliquid's weekend windows, because the perps didn't trade yet; and options, until M6. The AI-only baseline therefore runs forward in time, as E9. The metrics, fixed before the first run:
 
@@ -638,7 +673,7 @@ TheRedKeep/
 │   └── check.js               # checks the prototype's math against the doc, and against the backend's numbers
 ├── backend/                   # built so far: the M3 slice (see its README)
 │   ├── data/                  # events.toml (the event library), portfolios.toml (samples), calibration.json (E2's slopes),
-│   │                          # episodes/ and replays/ (E8's episodes and saved runs)
+│   │                          # episodes/ and replays/ (E8), funnel/ (Claude's labels, E0), evals/ (saved eval runs)
 │   ├── redkeep/
 │   │   ├── data/              # polymarket.py, kalshi.py, fred.py, massive.py, hyperliquid.py; next: options
 │   │   ├── matching/          # retrieve.py, judge.py, ladders.py, decide.py
@@ -647,10 +682,11 @@ TheRedKeep/
 │   │   ├── store.py           # the point-in-time store (DuckDB over Parquet); record.py keeps it current
 │   │   ├── exposure.py        # look-through, regressions and fit
 │   │   ├── pipeline.py        # refresh (the shared library) and analyze (per portfolio)
-│   │   ├── replay.py          # the historical replay (E8)
+│   │   ├── funnel/            # labels.py (Claude's labels), screen.py (the fast screen), e0.py, run.py (M4, E0)
+│   │   ├── replay.py          # the historical replay (E8); jumps.py, jump accuracy (E3 to E5)
 │   │   └── api.py, cli.py     # FastAPI routes and the `redkeep` command
 │   └── tests/
-│   # planned: events/ (the funnel and Laya), graph/ (learned links), hedging/, jobs/ (backtests, scheduled reruns of E2)
+│   # planned: Laya in funnel/, graph/ (learned links), hedging/, jobs/ (backtests, scheduled reruns of E2)
 ├── evals/                     # e0_screening ... e9_baseline, reports/
 └── frontend/                  # Next.js app
 ```
@@ -684,6 +720,8 @@ Build a thin vertical slice first, then widen it.
 **The historical replay (E8)** is built ([section 10](#10-how-we-prove-it-works)): `redkeep replay --write` reruns the engine on April 2025 evening by evening, on archived prices, and saves the run. `redkeep app` passes it to the prototype, whose replay screen then shows the engine's calls, what the events explain each day for the open portfolio, and the scorecard; without a saved run the screen keeps its illustrative episode and says so. It is tested offline on a synthetic episode with planted jumps.
 
 **Jump accuracy (E3 to E5)** is built and has run ([section 10](#10-how-we-prove-it-works)): `redkeep jumps` scores the jump each resolved market's own windows gave the evening before against the factor moves on its resolution day, and saves every reading so the study reruns without fetching. On the first run, the single-market readings were too vague to predict the moves of 54 mostly non-macro markets, though their error bars held. So the next run scores the markets the funnel calls material apart. E6 and the AI-only baseline wait for sources that exist on past events. It is tested offline on synthetic markets with planted jumps.
+
+**The funnel (M4)** is built and has run ([6.2](#62-event-discovery-funnel)): Claude labels an even sample of the live catalogue, a words model learns from the labels, and `redkeep funnel screen` reads every market, sending only the band the screen is unsure about to Claude. E0 scores the screen against Claude's labels on markets it never saw. On the first run it found 96% of the material markets while sending 38% of them to Claude ([section 10](#10-how-we-prove-it-works)). Laya and Jev wait for access. The labels also split the jump study, so the jumps of events that matter are scored apart (`redkeep jumps --label`).
 
 **Point-in-time storage (M1)** is built ([section 11](#11-data-sources)): the data clients record every market list, odds history, candle, close and holdings file they read, so each run adds to the store. `redkeep record` keeps it current between runs, for example hourly. It adds Hyperliquid candles for every trade[XYZ] perp from the last one stored, both venues' catalogues with their quotes, the matched markets' odds and the factor series. Older candles than the API keeps, and past quotes, exist only in the store. The store runs wherever the backend runs, so it records from the day it is first scheduled on a machine that stays up.
 
