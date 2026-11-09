@@ -3,8 +3,12 @@
 * Daily bars: ``GET /v2/aggs/ticker/{t}/range/1/day/{from}/{to}``, split-adjusted,
   results ``[{"t": ms, "c": close, ...}]``, paged by ``next_url``.
 * ETF holdings: ``GET /etf-global/v1/constituents`` (the ETF Global partner
-  dataset), filtered by ``composite_ticker`` and ``effective_date``; ``weight``
-  is a fraction (0.0789 = 7.89%). This dataset is a separate entitlement; when
+  dataset), filtered by ``composite_ticker``, ``effective_date`` (the day the
+  holdings were true) and ``processed_date`` (the day ETF Global had them, which
+  for some issuers is weeks later); ``weight`` is a fraction (0.0789 = 7.89%).
+  It sorts only by ``composite_ticker``, ``constituent_ticker`` or
+  ``processed_date``, so the latest effective date is found by asking for a
+  later one until there is none. This dataset is a separate entitlement; when
   the key doesn't include it the exposure engine falls back to the fund's own
   returns (DESIGN.md section 12).
 
@@ -24,6 +28,8 @@ from ..http import Http, HttpError
 from ..store import Store
 
 BASE = "https://api.massive.com"
+CONSTITUENTS = f"{BASE}/etf-global/v1/constituents"
+DATE_STEPS = 8
 
 
 class MassiveUnavailable(RuntimeError):
@@ -72,30 +78,39 @@ class Massive:
             raise
 
     def constituents(self, etf: str, as_of: date) -> tuple[date, list[dict]] | None:
-        """The fund's holdings on the latest date on or before ``as_of``; None if not entitled."""
+        """The fund's holdings on the latest date on or before ``as_of``, as ETF Global had them by ``as_of``
+        (nothing processed later is used), largest first; None if the key doesn't include holdings."""
         if not self._holdings:
             return None
-        try:
-            head = self._get(f"{BASE}/etf-global/v1/constituents", {
-                "composite_ticker": etf, "effective_date.lte": as_of.isoformat(),
-                "sort": "effective_date.desc", "limit": 1,
-            }, ttl=self.ttl)
-        except HttpError as e:
-            if e.status in (401, 403):
-                self._holdings = False
-                return None
-            raise
-        rows = head.get("results") or []
-        if not rows:
+        known = {"composite_ticker": etf, "effective_date.lte": as_of.isoformat(), "processed_date.lte": as_of.isoformat()}
+        eff: date | None = None
+        processed = ""
+        for _ in range(DATE_STEPS):  # each step finds a later effective date, until one finds none
+            later = {"effective_date.gt": eff.isoformat()} if eff else {}
+            try:
+                head = self._get(CONSTITUENTS, {**known, **later, "sort": "processed_date.desc", "limit": 1}, ttl=self.ttl)
+            except HttpError as e:
+                if e.status in (400, 401, 403):  # not entitled, or a request it refuses: every other fund would cost a call too
+                    self._holdings = False
+                    if e.status == 400:
+                        raise
+                    return None
+                raise
+            rows = head.get("results") or []
+            if not rows:
+                break
+            eff, processed = date.fromisoformat(rows[0]["effective_date"]), rows[0].get("processed_date") or ""
+        if eff is None:
             return None
-        eff = date.fromisoformat(rows[0]["effective_date"])
-        res = self._get(f"{BASE}/etf-global/v1/constituents", {
-            "composite_ticker": etf, "effective_date": eff.isoformat(), "sort": "weight.desc", "limit": 5000,
-        }, ttl=None)
+        params = {"composite_ticker": etf, "effective_date": eff.isoformat(), "sort": "constituent_ticker.asc", "limit": 5000}
+        if processed:  # the latest processing known by as_of: a date processed again would repeat every holding
+            params["processed_date"] = processed
+        res = self._get(CONSTITUENTS, params, ttl=None)
         out = list(res.get("results") or [])
         while res.get("next_url"):
             res = self._get(res["next_url"], ttl=None)
             out.extend(res.get("results") or [])
+        out.sort(key=lambda r: -float(r.get("weight") or 0))
         if self.store is not None:
             self.store.add_holdings(etf, eff, [(r.get("constituent_ticker") or r.get("constituent_name") or "?",
                                                 r.get("constituent_name") or "", float(r.get("weight") or 0))
