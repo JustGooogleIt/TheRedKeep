@@ -46,9 +46,11 @@ def prev(d):
 
 
 def weekly_sd(s, lo, hi):
-    """A typical move by hand: the standard deviation of one series' non-overlapping five-close changes."""
+    """A typical move by hand: one series' non-overlapping five-close changes, the variance averaged over the five
+    days the weeks can start on."""
     ds = sorted(d for d in s if lo <= d <= hi)
-    return np.std([pct(s, ds[t - 5], ds[t]) for t in range(5, len(ds), 5)], ddof=1)
+    var = [np.var([pct(s, ds[t - 5], ds[t]) for t in range(5 + k, len(ds), 5)], ddof=1) for k in range(5)]
+    return np.sqrt(np.mean(var))
 
 
 def test_a_series_that_starts_late_or_ends_early_does_not_cut_the_calendar(fd):
@@ -89,6 +91,19 @@ def test_typical_moves_come_from_one_proxy_that_covers_the_window(fd, lv):
     # A factor with one proxy uses the stretch it has: FXI's seventeen weeks.
     assert typical[index("china")] == pytest.approx(weekly_sd(lv["FXI"], window[0], window[-1]))
     assert np.isfinite(typical).all()
+
+
+def test_the_typical_move_does_not_depend_on_the_day_the_weeks_start(lv):
+    # A 15% drop undone the next day: a week that holds both days nets it out, so one grid of weeks gives a typical
+    # move that swings with the day the weeks start (by 38% here). Averaged over the five start days, it barely moves.
+    days = DAYS[-530:]
+    sp = {d: lv["SP500"][d] for d in days}
+    for d in days[300:]:
+        sp[d] *= 0.85
+    for d in days[301:]:
+        sp[d] /= 0.85
+    typical = [factordata.build({"SP500": {d: v for d, v in sp.items() if d <= days[-1 - k]}}).typical[EQ] for k in range(5)]
+    assert max(typical) / min(typical) < 1.03
 
 
 def test_moves_and_past_events_before_spys_prices_use_the_index(fd, lv):

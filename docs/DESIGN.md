@@ -113,7 +113,7 @@ You hold QQQ. Polymarket prices "US tariffs on China of 25% or more by March 31"
 | `p̂_e` | Our calibrated probability, after correcting known biases |
 | `V` | Portfolio value in dollars |
 
-A **typical move** is one standard deviation of the factor's weekly change. Using it as the unit makes factors with different units (yields, prices, the VIX) comparable and addable.
+A **typical move** is one standard deviation of the factor's weekly change over the last two years, with the variance averaged over the five days a week can start on (a hundred weeks are few enough that the start day alone moved stocks' typical move by a fifth). Using it as the unit makes factors with different units (yields, prices, the VIX) comparable and addable.
 
 ### 4.2 What's priced in
 
