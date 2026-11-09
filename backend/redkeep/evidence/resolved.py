@@ -221,8 +221,10 @@ def _prices(fetch, picked: Sequence[Resolved], name: str, progress: Progress) ->
     return obs, priced, failed
 
 
-def collect_polymarket(pm, start: date, end: date, *, events_per_month: int = 20, min_volume: float = 10_000,
-                       total: int = 1500, progress: Progress = print) -> tuple[list[Obs], dict]:
+def list_polymarket(pm, start: date, end: date, *, events_per_month: int = 20, min_volume: float = 10_000,
+                    keep: Callable[[Resolved], object] = lambda r: True, progress: Progress = print) -> tuple[list[Resolved], int]:
+    """The resolved markets of the busiest closed events of each month under the engine's tags that closed between
+    ``start`` and ``end``, and how many events were read."""
     events: dict[str, dict] = {}
     for a, b in months(start, end):
         for tag, _ in PM_TAGS:
@@ -230,16 +232,25 @@ def collect_polymarket(pm, start: date, end: date, *, events_per_month: int = 20
                 events.setdefault(str(ev.get("id")), ev)
     progress(f"  Polymarket: {len(events)} closed events")
     markets = [r for ev in events.values() for r in from_polymarket(ev)
-               if r.volume >= min_volume and start <= r.closed.date() <= end and open_at(r)]
+               if r.volume >= min_volume and start <= r.closed.date() <= end and keep(r)]
+    return markets, len(events)
+
+
+def collect_polymarket(pm, start: date, end: date, *, events_per_month: int = 20, min_volume: float = 10_000,
+                       total: int = 1500, progress: Progress = print) -> tuple[list[Obs], dict]:
+    markets, n_events = list_polymarket(pm, start, end, events_per_month=events_per_month, min_volume=min_volume,
+                                        keep=open_at, progress=progress)
     picked = sample(markets, total=total)
     progress(f"  Polymarket: {len(markets)} resolved markets with ${min_volume:,.0f}+ volume; reading {len(picked)}")
     obs, priced, failed = _prices(lambda r: pm.daily(r.token), picked, "Polymarket", progress)
-    return obs, {"events": len(events), "markets": len(markets), "sampled": len(picked), "priced": priced,
+    return obs, {"events": n_events, "markets": len(markets), "sampled": len(picked), "priced": priced,
                  "failed": failed, "observations": len(obs)}
 
 
-def collect_kalshi(ks, start: date, end: date, *, min_volume: float = 5_000, total: int = 1500, min_series: int = 200,
-                   progress: Progress = print) -> tuple[list[Obs], dict]:
+def list_kalshi(ks, start: date, end: date, *, min_volume: float = 5_000, total: int = 1500, min_series: int = 200,
+                keep: Callable[[Resolved], object] = lambda r: True, progress: Progress = print) -> tuple[list[Resolved], dict]:
+    """Settled markets of the series in the engine's categories that closed between ``start`` and ``end``. Series
+    are read in a hashed order until a sample of ``total`` is full and at least ``min_series`` have been read."""
     series: dict[str, dict] = {}
     for cat in KS_CATEGORIES:
         for s in ks.series(cat):
@@ -258,7 +269,7 @@ def collect_kalshi(ks, start: date, end: date, *, min_volume: float = 5_000, tot
                 continue
             for m in rows:
                 r = from_kalshi(m, series=t, category=series[t]["category"], archived=archived)
-                if r and r.volume >= min_volume and start <= r.closed.date() <= end and open_at(r):
+                if r and r.volume >= min_volume and start <= r.closed.date() <= end and keep(r):
                     found.setdefault(r.id, r)
         read += 1
         if read % 25 == 0 or read == len(order):
@@ -266,12 +277,19 @@ def collect_kalshi(ks, start: date, end: date, *, min_volume: float = 5_000, tot
             progress(f"  Kalshi: settled markets of {read} of {len(order)} series, {len(found)} kept")
             if full and read >= min_series:
                 break
-    picked = sample(list(found.values()), total=total)
-    progress(f"  Kalshi: {len(found)} settled markets with {min_volume:,.0f}+ contracts traded in {read} series; "
-             f"reading {len(picked)}")
+    return list(found.values()), {"series": len(series), "series_read": read}
+
+
+def collect_kalshi(ks, start: date, end: date, *, min_volume: float = 5_000, total: int = 1500, min_series: int = 200,
+                   progress: Progress = print) -> tuple[list[Obs], dict]:
+    found, st = list_kalshi(ks, start, end, min_volume=min_volume, total=total, min_series=min_series, keep=open_at,
+                            progress=progress)
+    picked = sample(found, total=total)
+    progress(f"  Kalshi: {len(found)} settled markets with {min_volume:,.0f}+ contracts traded in {st['series_read']} "
+             f"series; reading {len(picked)}")
     obs, priced, failed = _prices(lambda r: ks.daily(r.series, r.id, *window(r), archived=r.archived), picked, "Kalshi", progress)
-    return obs, {"series": len(series), "series_read": read, "markets": len(found), "sampled": len(picked),
-                 "priced": priced, "failed": failed, "observations": len(obs)}
+    return obs, {**st, "markets": len(found), "sampled": len(picked), "priced": priced, "failed": failed,
+                 "observations": len(obs)}
 
 
 def collect(pm, ks, start: date, end: date, *, total: int = 1500, progress: Progress = print) -> tuple[list[Obs], dict, list[str]]:
