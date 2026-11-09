@@ -88,11 +88,10 @@ def jump_windows(odds: dict[str, dict[date, float]], fd: FactorData, *, move: fl
     skip = skip or {}
     left = {i for i in rows if any(dates[i] in days for days in skip.values())}
     for f in range(NF):
-        r = np.array([i for i in rows if dates[i] not in skip.get(f, ())], dtype=int)
+        # This factor's windows: the days it has a move (a series can start late or end early), less any skipped.
+        r = np.array([i for i in rows if np.isfinite(Z[i, f]) and dates[i] not in skip.get(f, ())], dtype=int)
         y = Z[r, f]
-        if not np.isfinite(y).all():
-            continue
-        # Events with enough sharp moves among this factor's windows: all of ``cols`` unless some were skipped.
+        # Events with enough sharp moves among this factor's windows: all of ``cols`` unless some were left out.
         cf = [j for j in cols if sharp[r, j].sum() >= min_moves]
         if not cf or len(r) < len(cf) + 2:
             continue

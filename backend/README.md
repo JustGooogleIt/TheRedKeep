@@ -30,7 +30,7 @@ Set these in the environment. They are read at start-up and never written to dis
 | Variable | Needed for | Without it |
 |---|---|---|
 | `REDKEEP_ANTHROPIC_API_KEY` or `ANTHROPIC_API_KEY` | `refresh`: Claude judges every candidate market and writes the AI prior. The first name wins; use it where an agent host keeps `ANTHROPIC_API_KEY` for itself (a Claude Code cloud session did) | `refresh` stops with a message |
-| `MASSIVE_API_KEY` | Prices for exposures and the China, chips and gold factors, which Massive's free plan covers (two years of end-of-day prices); ETF holdings for look-through, a paid add-on (without them, a fund's exposures come from its own returns) | `refresh` runs on the seven FRED factors with a warning; `analyze` stops with a message |
+| `MASSIVE_API_KEY` | Prices for exposures and the China, chips and gold factors, which Massive's free plan covers (two years of end-of-day prices; before them, stocks come from FRED's S&P 500 index); ETF holdings for look-through, a paid add-on (without them, a fund's exposures come from its own returns) | `refresh` runs on the seven FRED factors with a warning; `analyze` stops with a message |
 | `MASSIVE_CALLS_PER_MINUTE` | Optional: Massive's call limit. Calls are spaced to fit it, so a first run on the free plan waits about 13 seconds between calls, and the response cache spares later runs. Set `0` on a paid plan, which has no limit | 5, the free plan's limit |
 | `REDKEEP_MODEL` | Optional: the Claude model to use | The newest Opus model the key can call |
 | `REDKEEP_EFFORT` | Optional: `low`, `medium` (default) or `high` | |

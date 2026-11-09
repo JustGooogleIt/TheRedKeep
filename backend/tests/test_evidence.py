@@ -1,5 +1,6 @@
 """Exposures, jump windows, past events, the AI prior and fusion, on synthetic data."""
 
+from dataclasses import replace
 from datetime import date, datetime, timezone
 from types import SimpleNamespace
 
@@ -84,6 +85,21 @@ def test_days_left_to_the_weekend_perps_drop_out_of_that_factor_only():
     assert base.readings["a"].sigma[0] < a.sigma[0] < np.inf  # three windows left: a wider error bar
     assert abs(a.delta[0] - true["a"][0]) < 4 * a.sigma[0] + 0.1
     assert np.isinf(b.sigma[0])  # two sharp moves left on this factor, below the three a reading needs
+
+
+def test_a_factor_missing_some_days_keeps_its_reading_from_the_rest():
+    hist, fd, true = window_world()
+    base = windows.jump_windows(hist, fd, move=0.05)
+    g = index("gold")
+    X = fd.X.copy()
+    X[:100, g] = np.nan  # gold's prices start on day 100: a's last three sharp days and b's last three count
+    wf = windows.jump_windows(hist, replace(fd, X=X), move=0.05)
+    assert wf.windows == base.windows
+    others = np.arange(NF) != g
+    for e in hist:
+        r, r0 = wf.readings[e], base.readings[e]
+        assert np.array_equal(r.delta[others], r0.delta[others]) and np.array_equal(r.sigma[others], r0.sigma[others])
+        assert np.isfinite(r.sigma[g]) and abs(r.delta[g] - true[e][g]) < 4 * r.sigma[g] + 0.1
 
 
 def test_odds_read_at_the_new_york_close():

@@ -612,7 +612,7 @@ So the markets earn their place on odds, which is why the AI never sets a probab
 
 | Source | Used for | Access | Notes |
 |---|---|---|---|
-| Massive | Stock and ETF prices, current and historical ETF holdings, option chains | API key from Castle (pending); a free key for now | The free plan gives two years of end-of-day prices for stocks, ETFs and options at 5 calls a minute, which the client paces to. ETF holdings are a paid add-on, and its options come without implied volatility or open interest. Fallback: a fund's own returns, and issuers' holdings files |
+| Massive | Stock and ETF prices, current and historical ETF holdings, option chains | API key from Castle (pending); a free key for now | The free plan gives two years of end-of-day prices for stocks, ETFs and options at 5 calls a minute, which the client paces to. Before those two years, stocks come from FRED's S&P 500 index, and the China, chips and gold factors are missing. ETF holdings are a paid add-on, and its options come without implied volatility or open interest. Fallback: a fund's own returns, and issuers' holdings files |
 | Polymarket | Market list, prices, price history, resolutions | Public APIs | |
 | Kalshi | Market list, prices, price history, resolutions | Public API | CFTC-regulated venue |
 | Hyperliquid (trade[XYZ] markets) | Weekend and holiday prices for stocks, oil, chips and gold | Public API, read-only | Keeps only the latest 5,000 candles, so `redkeep record` stores them from day one; Tardis or 0xArchive for older history ([6.4](#64-evidence)) |
