@@ -42,14 +42,10 @@ function analyzePortfolio(holdings) {
   // Extras: added only when the portfolio's exposure to them is material.
   const extras = EXTRAS.filter(e => Math.abs(xRaw[e.k] || 0) >= 0.15).map(e => ({ ...e, v: xRaw[e.k] }));
   const added = new Set(extras.map(e => e.k));
-  let fw = 0, f0 = 0, f1 = 0;
-  rows.forEach(r => {
-    const t = TICKERS[r.t]; if (t.r2 == null) return;
-    fw += r.w; f0 += r.w * t.r2;
-    const useX = t.x && Object.keys(t.x).some(k => added.has(k));
-    f1 += r.w * (useX ? (t.r2x ?? t.r2) : t.r2);
-  });
-  const fitCore = fw ? f0 / fw : null, fit = fw ? f1 / fw : null;
+  // The fit: the engine's own measurement when it analyzed this exact portfolio, otherwise an estimate.
+  const measured = MEASURED_FIT[holdingsKey(rows)];
+  const fitMeasured = measured != null;
+  const fitCore = fitMeasured ? null : fitEstimate(rows, null), fit = fitMeasured ? measured : fitEstimate(rows, added);
   // Look-through: replace each fund with what it holds.
   const lt = new Map();
   const add = (key, name, w, via, kind) => {
@@ -64,11 +60,39 @@ function analyzePortfolio(holdings) {
       let covered = 0;
       t.h.forEach(([k, p]) => { add(k, NAMES[k] || (TICKERS[k] && TICKERS[k].n) || k, r.w * p / 100, r.t, 'stock'); covered += p; });
       add('rest:' + r.t, 'Other ' + r.t + ' holdings', r.w * (100 - covered) / 100, r.t, 'rest');
-    } else add('line:' + r.t, t.line || t.n, r.w, r.t, 'line');
+    } else if (t.line) add('line:' + r.t, t.line, r.w, r.t, 'line');
+    else add('line:' + r.t, t.n, r.w, r.t, 'fund');  // a fund whose holdings this data doesn't have: held whole
   });
   const look = [...lt.values()].sort((a, c) => c.w - a.w);
   const stockW = {}; look.forEach(o => { if (o.kind === 'stock') stockW[o.key] = o.w; });
-  return { rows, V, b, xRaw, extras, added, fit, fitCore, look, stockW, nUnderlying: look.filter(o => o.kind === 'stock').length };
+  return { rows, V, b, xRaw, extras, added, fit, fitCore, fitMeasured, look, stockW, nUnderlying: look.filter(o => o.kind === 'stock').length };
+}
+
+/* A portfolio's out-of-sample fit, estimated from each holding's own (r2, or r2x with the extras it uses). Factor-driven
+   moves add up across holdings, while each holding's own moves partly cancel, so a mix usually fits better than its
+   holdings do on average. This treats the factors, and the holdings' own moves, as uncorrelated; a holding the factors
+   don't explain at all (cash) adds nothing either way. One holding alone gets its own fit back. */
+function fitEstimate(rows, added) {
+  const bp = new Array(NF).fill(0), xp = {};
+  let own = 0, n = 0;
+  rows.forEach(r => {
+    const t = TICKERS[r.t];
+    const ext = added && t.x ? Object.keys(t.x).filter(k => added.has(k)) : [];
+    const r2 = ext.length ? (t.r2x ?? t.r2) : t.r2;
+    let sys = 0;  // the holding's factor-driven variance, in typical moves
+    for (let k = 0; k < NF; k++) { bp[k] += r.w * t.b[k]; sys += t.b[k] ** 2; }
+    ext.forEach(k => { xp[k] = (xp[k] || 0) + r.w * t.x[k]; sys += t.x[k] ** 2; });
+    if (r2 == null) return;
+    n++;
+    if (r2 > 0) own += r.w ** 2 * sys * (1 - Math.min(r2, 1)) / Math.max(r2, 0.01);
+  });
+  const sp = bp.reduce((s, v) => s + v * v, 0) + Object.values(xp).reduce((s, v) => s + v * v, 0);
+  return n && sp + own > 0 ? sp / (sp + own) : null;
+}
+
+/* Holdings as the engine received them, so a portfolio it analyzed finds its measured fit (dataset.js). */
+function holdingsKey(rows) {
+  return rows.filter(r => TICKERS[r.t] && r.a > 0).map(r => r.t + ':' + r.u + ':' + +r.a).sort().join(',');
 }
 
 /* ---------- 4.1 Impact: the dot product, plus extras and the direct channel ---------- */

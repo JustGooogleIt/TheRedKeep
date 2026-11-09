@@ -40,5 +40,5 @@ holdings = [["VTI", 300000, "usd"], ["VEA", 150000, "usd"], ["VWO", 50000, "usd"
 id = "tech"
 name = "Tech-heavy"
 who = "Example"
-note = "Shows look-through: NVIDIA is held directly and inside QQQ and SMH."
+note = "Holds NVIDIA three ways: directly, and inside QQQ and SMH."
 holdings = [["QQQ", 600, "shares"], ["NVDA", 1200, "shares"], ["MSFT", 300, "shares"], ["SMH", 250, "shares"], ["TLT", 1000, "shares"], ["GLD", 150, "shares"]]

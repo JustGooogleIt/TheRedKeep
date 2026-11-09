@@ -10,7 +10,7 @@ const src = f => fs.readFileSync(path.join(__dirname, 'src', f), 'utf8');
 const livePath = process.argv[2];
 const M = vm.runInNewContext(
   (livePath ? fs.readFileSync(livePath, 'utf8') : '') + '\n' + src('data.js') + '\n' + src('model.js') + '\n' + src('dataset.js') +
-  '\n;({ SAMPLES, FACTORS, analyzePortfolio, buildState, simulate, replayCompute, applyDataset, HAS_LIVE, LIVE_PORTFOLIOS,' +
+  '\n;({ SAMPLES, FACTORS, TICKERS, analyzePortfolio, buildState, simulate, replayCompute, applyDataset, HAS_LIVE, LIVE_PORTFOLIOS,' +
   ' REPLAY, replaySource: () => REPLAY_SOURCE, LIVE: typeof RK_LIVE === "undefined" ? null : RK_LIVE })',
   { console },
 );
@@ -65,6 +65,18 @@ identities('');
 function analyze(id) { return M.analyzePortfolio(holdings(M.SAMPLES.find(s => s.id === id))); }
 const perUnit = P => P.b.map((v, k) => v / M.FACTORS[k].typical);  // exposure per 1% or 1 bp of each factor
 
+// The fit the page estimates for a mix it has no measurement of (model.js fitEstimate).
+function fits(label) {
+  const t = Object.keys(M.TICKERS).find(k => M.TICKERS[k].r2 > 0 && !M.TICKERS[k].x);
+  const one = M.analyzePortfolio([{ id: 'one', t, u: 'usd', a: 123457 }]);  // an amount no sample holds
+  check(label + 'one holding alone gets its own fit back', !one.fitMeasured && near(one.fit, M.TICKERS[t].r2, 1e-12), t + ' ' + one.fit.toFixed(4));
+  for (const s of M.SAMPLES) {
+    const P = analyze(s.id);
+    check(label + s.id + ': the fit is a share between 0 and 1', P.fit == null || (P.fit >= 0 && P.fit <= 1), P.fit == null ? 'none' : P.fit.toFixed(3));
+  }
+}
+fits('');
+
 if (livePath) {
   check('live.js holds a backend snapshot', M.HAS_LIVE);
   const engineReplay = !!(M.LIVE.replay && Array.isArray(M.LIVE.replay.days) && M.LIVE.replay.days.length);
@@ -109,6 +121,7 @@ if (livePath) {
   // The engine's own portfolios: the app's model must reproduce the engine's numbers for each.
   for (const r of M.LIVE.results) {
     const P = analyze(r.sample);
+    if (r.fit != null) check(r.sample + ': the fit is the one the engine measured', P.fitMeasured && P.fit === r.fit, (P.fit * 100).toFixed(1) + '% vs ' + (r.fit * 100).toFixed(1) + '%');
     check(r.sample + ': value matches the engine', Math.abs(P.V - r.value) <= 1e-6 * Math.max(1, r.value), P.V.toFixed(2) + ' vs ' + r.value.toFixed(2));
     const bGap = Math.max(...P.b.map((v, k) => Math.abs(v - r.b[k])));
     check(r.sample + ': the exposure arrow matches the engine', bGap < 1e-4, bGap.toExponential(1) + ' largest gap');
@@ -120,6 +133,15 @@ if (livePath) {
     }
     check(r.sample + ': every event\'s moves match the engine', gap < 1e-4, gap.toExponential(1) + ' largest gap, in % points');
   }
+}
+
+if (livePath && M.LIVE_PORTFOLIOS && M.LIVE.results.length) {
+  // A portfolio the engine didn't analyze, such as a sample with one amount changed, gets the estimate instead.
+  const s = M.SAMPLES.find(x => x.id === M.LIVE.results[0].sample);
+  const h = holdings(s); h[0] = { ...h[0], a: h[0].a * 1.5 };
+  const P = M.analyzePortfolio(h);
+  check(s.id + ' with one amount changed: the fit is estimated, not the engine\'s', !P.fitMeasured && P.fit != null, P.fit == null ? 'none' : P.fit.toFixed(3));
+  fits('snapshot · ');
 }
 
 console.log(failures ? '\n' + failures + ' check(s) failed' : '\nall checks passed');

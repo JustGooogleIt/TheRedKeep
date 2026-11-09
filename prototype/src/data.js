@@ -110,7 +110,7 @@ const TICKERS = {
 
 /* Sample portfolios. Famous ones use their published weights on $1M. */
 const SAMPLES = [
-  { id: 'tech', name: 'Tech-heavy', who: 'Example', note: 'Shows look-through: NVIDIA is held directly and inside QQQ and SMH.',
+  { id: 'tech', name: 'Tech-heavy', who: 'Example', note: 'Holds NVIDIA three ways: directly, and inside QQQ and SMH.',
     h: [['QQQ', 'sh', 600], ['NVDA', 'sh', 1200], ['MSFT', 'sh', 300], ['SMH', 'sh', 250], ['TLT', 'sh', 1000], ['GLD', 'sh', 150]] },
   { id: 'qqq', name: 'QQQ · $1M', who: 'Design doc example', note: 'Reproduces the worked example in DESIGN.md section 3.',
     h: [['QQQ', 'usd', 1000000]] },

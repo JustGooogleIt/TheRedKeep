@@ -26,6 +26,7 @@ let EXPOSURES = 'demo';  // where the portfolios, prices and exposures come from
 let UNMEASURED = [];     // factors the snapshot has no price data on, so no typical move of their own
 let WEEKENDS = null;     // the snapshot's Hyperliquid weekend windows, when it ran them
 let PERP_FACTORS = [];   // keys of the factors those windows measured
+let MEASURED_FIT = {};   // the engine's out-of-sample fit for each portfolio it analyzed, by holdingsKey (model.js)
 
 function refill(target, src) {
   if (Array.isArray(target)) { target.length = 0; src.forEach(x => target.push(x)); return; }
@@ -50,6 +51,11 @@ function applyDataset(id) {
   refill(TICKERS, LP ? LP.tickers : L ? rescaled(DEMO.tickers) : DEMO.tickers);
   refill(NAMES, LP ? { ...DEMO.names, ...LP.names } : DEMO.names);
   refill(SAMPLES, LP ? LP.samples : DEMO.samples);
+  MEASURED_FIT = {};
+  if (LP) (LP.results || []).forEach(r => {
+    const s = LP.samples.find(x => x.id === r.sample);
+    if (s && r.fit != null) MEASURED_FIT[holdingsKey(s.h.map(([t, u, a]) => ({ t, u, a })))] = r.fit;
+  });
   refill(EVENTS, L ? L.events : DEMO.events);
   refill(LINKS, L ? L.links : DEMO.links);
   refill(REPLAY, L && LIVE_REPLAY ? LIVE_REPLAY : DEMO.replay);
