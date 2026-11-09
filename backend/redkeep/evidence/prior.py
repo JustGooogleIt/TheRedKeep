@@ -9,7 +9,7 @@ typical moves per factor and half the estimated move, added in quadrature (a
 big estimated move is uncertain in size, not only in sign); for the
 probability, one unit of log-odds. The prior's probability is only used when
 no market fits: the AI never produces a final number when market evidence
-exists.
+exists, and it is held inside any range related markets imply.
 
 Like the judge, each call is logged and cached by its exact request. Eval E9 asks the same prior about resolved
 markets, by their titles (``ask``), to score Claude with no tools against the engine.
@@ -140,6 +140,20 @@ def delta_reading(p: Prior) -> DeltaReading:
                         sigma=np.sqrt(TAU_DELTA**2 + (TAU_SHARE * delta) ** 2))
 
 
-def odds_reading(p: Prior) -> OddsReading:
+def odds_reading(p: Prior, *, lo: float | None = None, hi: float | None = None) -> OddsReading:
+    """The prior's odds. ``lo`` and ``hi`` are the range related markets imply when it is too wide to price the
+    event ("nothing fits"): it still rules out odds outside it, so the prior is held inside it. A range whose
+    ends contradict each other says nothing and is ignored."""
     q = min(max(p.probability, 0.001), 0.999)
-    return OddsReading("AI prior", q, max(0.02, TAU_LOGIT * q * (1 - q)), "ai", p.probability_reasoning)
+    detail = p.probability_reasoning
+    a, b = 0.0 if lo is None else lo, 1.0 if hi is None else hi
+    if a <= b and not a <= q <= b:
+        held = min(max(q, a), b)
+        where = f"below the {_pct(a)} floor" if q < a else f"above the {_pct(b)} ceiling"
+        detail = f"Claude said {_pct(q)}, {where} that related markets set, so it is held at {_pct(held)}. {detail}"
+        q = min(max(held, 0.001), 0.999)
+    return OddsReading("AI prior", q, max(0.02, TAU_LOGIT * q * (1 - q)), "ai", detail)
+
+
+def _pct(q: float) -> str:
+    return f"{q * 100:.0f}%" if q >= 0.01 else f"{q * 100:.1f}%"
