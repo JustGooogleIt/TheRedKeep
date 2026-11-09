@@ -146,7 +146,7 @@ def estimate(
     V = sum(values.values())
 
     lines: list[Line] = []
-    preds_tr, preds = [], []
+    preds = []
     for t, v in values.items():
         y = returns_on(closes[t], fd.dates)
         a, b, r2_oos, n, ok = fit_line(y, fd)

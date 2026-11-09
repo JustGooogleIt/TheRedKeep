@@ -66,6 +66,7 @@ uv run redkeep analyze --sample allweather  # needs MASSIVE_API_KEY for prices a
 
 ## Docs
 
+- [Write-up](docs/WRITEUP.md): what was built, what the evals found on live data, what that changes, and a ten-minute demo.
 - [System design](docs/DESIGN.md): the math, every stage with its rejected alternatives, evals, edge cases, decisions and checked references.
 - [Backend](backend/README.md): setup, keys, commands, and what the slice does and doesn't do yet.
 - [Research: Hyperliquid's non-crypto perps](docs/research/hyperliquid-noncrypto-perps.md): which markets are usable for weekend jump windows, and how to measure them.
@@ -73,4 +74,4 @@ uv run redkeep analyze --sample allweather  # needs MASSIVE_API_KEY for prices a
 
 ## Status
 
-Design doc v0.3, the playable prototype, and the engine's vertical slice (M3 in the [build plan](docs/DESIGN.md#15-build-plan)), tested offline. Next: its first run on live data, then options data (M6) for a second market reading of each jump.
+Design doc v0.3, the playable prototype, and the engine, which runs on live data. Its evals run on live data too, and the [write-up](docs/WRITEUP.md) says what they found. Next: options data (M6) and exposures from Massive, once its key arrives.

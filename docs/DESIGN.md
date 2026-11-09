@@ -687,7 +687,7 @@ TheRedKeep/
 │   ├── src/                   # data.js, model.js, dataset.js, ui-*.js, styles.css (and live.js from the backend)
 │   ├── build.py               # writes index.html
 │   └── check.js               # checks the prototype's math against the doc, and against the backend's numbers
-├── backend/                   # built so far: the M3 slice (see its README)
+├── backend/                   # the engine, its data clients, the funnel and the evals (see its README)
 │   ├── data/                  # events.toml (the event library), portfolios.toml (samples), calibration.json (E2's slopes),
 │   │                          # episodes/ and replays/ (E8), funnel/ (Claude's labels, E0), evals/ (saved eval runs)
 │   ├── redkeep/
@@ -704,8 +704,8 @@ TheRedKeep/
 │   │   └── api.py, cli.py     # FastAPI routes and the `redkeep` command
 │   └── tests/
 │   # planned: Laya in funnel/, graph/ (learned links), hedging/, jobs/ (backtests, scheduled reruns of E2)
-├── evals/                     # e0_screening ... e9_baseline, reports/
-└── frontend/                  # Next.js app
+├── evals/                     # planned: one harness for E0 to E9; today each eval is a `redkeep` command
+└── frontend/                  # planned: the Next.js app
 ```
 
 ---

@@ -1,6 +1,6 @@
 """Exposures, jump windows, past events, the AI prior and fusion, on synthetic data."""
 
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, timezone
 from types import SimpleNamespace
 
 import numpy as np

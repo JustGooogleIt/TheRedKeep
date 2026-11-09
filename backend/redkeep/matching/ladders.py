@@ -73,7 +73,6 @@ def estimate(points: Sequence[LadderPoint], x_star: float, *, increasing: bool, 
         return None
     fit = pav([p.q for p in pts], [1 / max(p.sigma, 1e-3) ** 2 for p in pts], increasing)
     fitted = [(p.x, f) for p, f in zip(pts, fit)]
-    legs = [p.key for p in pts]
     xs = [p.x for p in pts]
     for p, f in zip(pts, fit):
         if abs(p.x - x_star) < 1e-9:

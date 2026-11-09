@@ -30,8 +30,7 @@ from .data.kalshi import Kalshi
 from .data.massive import Massive
 from .data.polymarket import Polymarket
 from .engine import coherence
-from .engine.fusion import (DeltaReading, FusedDelta, FusedOdds, OddsReading, Tier, assign_tier, fuse_delta,
-                            fuse_odds)
+from .engine.fusion import DeltaReading, OddsReading, Tier, assign_tier, fuse_delta, fuse_odds
 from .engine.impact import EngineEvent, Link, build_state
 from .engine.simulate import simulate
 from .events import EventSpec, Library, load_library
