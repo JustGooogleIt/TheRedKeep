@@ -278,10 +278,11 @@ function PortfolioCard({ holdings, P, sampleId, onPick, onEdit }) {
   </section>`;
 }
 
-const ltTicker = o => (o.kind === 'stock' ? o.key : o.kind === 'line' ? o.key.slice(5) : '');
+const ltTicker = o => (o.kind === 'stock' ? o.key : o.kind === 'line' || o.kind === 'fund' ? o.key.slice(5) : '');
 const ltName = o => (o.kind === 'rest' ? 'Rest of ' + o.key.slice(5) + (TICKERS[o.key.slice(5)].rest ? ' · ' + TICKERS[o.key.slice(5)].rest : '') : o.name);
 function ltVia(o) {
-  if (o.kind === 'line') return 'Held as one line: nothing to look through';
+  if (o.kind === 'line') return 'Held as one line: no companies to look through';
+  if (o.kind === 'fund') return 'Held whole: no holdings data for this fund';
   if (o.kind === 'rest') return 'Smaller holdings, grouped';
   if (o.via.length === 1 && o.via[0][0] === 'direct') return 'Held directly';
   return o.via.map(([s, w]) => (s === 'direct' ? 'direct ' : 'via ' + s + ' ') + (w * 100).toFixed(1) + '%').join(' · ');
@@ -292,10 +293,16 @@ function LookThrough({ P }) {
   const items = P.look.filter(o => o.w >= 0.0005);
   const shown = all ? items : items.slice(0, 8);
   const mx = items.length ? items[0].w : 1;
-  const lines = items.filter(o => o.kind === 'line').length;
+  const n = kind => P.look.filter(o => o.kind === kind).length, lines = n('line'), funds = n('fund'), tails = n('rest');
+  const plural = (k, one, many) => k + ' ' + (k === 1 ? one : many);
+  const parts = [plural(P.nUnderlying, 'named company', 'named companies'), lines && plural(lines, 'other line', 'other lines'),
+    funds && plural(funds, 'fund', 'funds') + ' held whole', tails && 'each fund’s long tail'].filter(Boolean);
+  const sub = plural(P.rows.length, 'holding becomes', 'holdings become') + ' ' + listAnd(parts) + '.' +
+    (tails ? ' A company held through several funds is added up.' : '') +
+    (funds ? ' There is no holdings data for ' + (funds === 1 ? 'that fund' : 'those funds') + ' here, so ' + (funds === 1 ? 'it is' : 'each is') + ' measured from its own prices.' : '');
   return html`<section className="card" aria-labelledby="lt-h">
     <div className="card-head"><div><span className="kicker">Step 1 · Look through<${DemoPill} /></span><h3 className="h3" id="lt-h" style=${{ marginTop: 6 }}>What you actually own</h3>
-      <p className="sub">${P.rows.length} holding${P.rows.length === 1 ? ' becomes' : 's become'} ${P.nUnderlying} named companies${lines ? ', ' + lines + ' other line' + (lines === 1 ? '' : 's') : ''} and each fund’s long tail. A company held through several funds is added up.</p></div></div>
+      <p className="sub">${sub}</p></div></div>
     <ul className="lt-list">${shown.map(o => html`<li key=${o.key}>
       <div className="lt-top"><span className="tk">${ltTicker(o)}</span><span className="lt-name">${ltName(o)}</span>${o.kind === 'stock' && o.w >= 0.05 && html`<span className="pill pill-acc" title="At 5% or more, the engine also tracks this company’s own event risk">Own line</span>`}<span className="lt-w mono">${(o.w * 100).toFixed(1)}%</span></div>
       <div className="bar"><i style=${{ width: (o.w / mx * 100).toFixed(1) + '%' }}></i></div>
@@ -322,9 +329,18 @@ function Exposure({ P }) {
       <span className="exp-name">${r.name}${r.extra && html` <span className="pill pill-acc">added</span>`}</span>
       <span className="exp-bar"><i className=${r.v < 0 ? 'neg' : ''} style=${{ left: (r.v < 0 ? 50 - w : 50) + '%', width: (Math.abs(r.v) >= 0.005 ? Math.max(w, 0.8) : 0) + '%' }}></i></span>
       <span className=${cls('exp-v mono', Math.abs(r.v) < 0.005 && 'faint')}>${fmtPct(r.v, 2)}</span></div>`; })}</div>
-    ${P.fit != null && html`<div className="fit"><span className="fit-v">${Math.round(P.fit * 100)}%</span><p>of daily moves these factors explain, tested out of sample.${P.extras.length ? ' Adding ' + P.extras.map(e => e.name.toLowerCase()).join(' and ') + ' lifted it from ' + Math.round(P.fitCore * 100) + '%.' : ' No extra factors needed.'}</p></div>`}
+    ${P.fit != null && html`<div className="fit"><span className="fit-v">${P.fitMeasured ? '' : '≈'}${Math.round(P.fit * 100)}%</span><p>${fitNote(P)}</p></div>`}
     ${note.length > 0 && html`<p className="exp-note">${note.join(' ')}</p>`}
   </section>`;
+}
+
+// The engine measures a portfolio's fit on its own daily prices; for any other mix the page estimates it (model.js).
+function fitNote(P) {
+  if (P.fitMeasured) return 'of this portfolio’s daily moves these factors explain, measured by the engine on its last six months of prices, out of sample.';
+  const extra = P.extras.length && P.fitCore != null
+    ? ' Adding ' + P.extras.map(e => e.name.toLowerCase()).join(' and ') + ' lifts it from ' + Math.round(P.fitCore * 100) + '%.' : '';
+  return 'of daily moves these factors should explain, estimated from each holding’s own out-of-sample fit. A mix fits better than its holdings do on average, since their own moves partly cancel.' +
+    extra + (EXPOSURES === 'live' ? ' The engine measures the whole portfolio when it analyzes it.' : '');
 }
 
 // A backend snapshot without portfolio analyses brings events only: the portfolio side stays illustrative.

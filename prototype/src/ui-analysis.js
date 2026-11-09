@@ -7,8 +7,8 @@ function Pipeline({ P, S, sim, tw }) {
   const matched = inH.filter(e => e.m).length;
   const nT = t => inH.filter(e => e.tier === t).length;
   const steps = [
-    ['Look through', html`<b>${P.rows.length}</b> holding${P.rows.length === 1 ? '' : 's'} → <b>${P.nUnderlying}</b> companies`, 'Funds are replaced by what they hold, so overlaps add up.'],
-    ['Exposure', html`<b>${NF + P.extras.length}</b> factors · fit <b>${P.fit == null ? '–' : Math.round(P.fit * 100) + '%'}</b>`, 'Ten core factors, plus extras pulled in only when this portfolio needs them.'],
+    ['Look through', html`<b>${P.rows.length}</b> holding${P.rows.length === 1 ? '' : 's'} → <b>${P.nUnderlying}</b> companies`, 'Funds are replaced by what they hold, so overlaps add up.' + (P.look.some(o => o.kind === 'fund') ? ' A fund with no holdings data here stays whole.' : '')],
+    ['Exposure', html`<b>${NF + P.extras.length}</b> factors · fit <b>${P.fit == null ? '–' : (P.fitMeasured ? '' : '≈') + Math.round(P.fit * 100) + '%'}</b>`, 'Ten core factors, plus extras pulled in only when this portfolio needs them. ' + (P.fitMeasured ? 'The fit is the engine’s, measured on this portfolio.' : 'The fit is estimated from each holding’s own.')],
     ['Discover', html`<b>${inH.length}</b> events in ${tw.horizon} months`, 'Events that resolve inside your horizon. The real library keeps about 250, tagged from thousands of markets by Laya.'],
     ['Match', html`<b>${matched}</b> matched · <b>${inH.length - matched}</b> unpriced`, 'Each event is matched to a prediction market with the same resolution rule, or marked unpriced.'],
     ['Evidence', html`<b>${nT('A')}</b> confirmed · <b>${nT('B')}</b> contested`, evidenceNote()],
