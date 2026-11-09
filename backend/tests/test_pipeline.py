@@ -372,6 +372,7 @@ def test_the_app_shows_the_engines_replay(keyless, tmp_path):
     assert [e["id"] for e in R["events"]] == ["universal", "china", "recession", "pause"]
     assert R["missing"] == ["china", "chips", "gold"] and R["sources"]["eq"] == "FRED SP500"
     assert len(R["events"][0]["dd"]) == 11 and R["links"][0]["w"][call["day"]] is not None
+    assert all(e["sd"] == r["sd"] for e, r in zip(R["events"], rep["events"]))  # each jump's error bars, for the screen
     assert build(snap, [])["replay"] is None
 
     node = shutil.which("node")
@@ -382,7 +383,7 @@ def test_the_app_shows_the_engines_replay(keyless, tmp_path):
     out = subprocess.run([node, str(CHECK_JS), str(live)], capture_output=True, text=True, timeout=120)
     assert out.returncode == 0, out.stdout + out.stderr
     assert "the April 2025 replay is unchanged" not in out.stdout
-    assert out.stdout.count("ok    replay: ") == 4
+    assert out.stdout.count("ok    replay: ") == 5
 
 
 

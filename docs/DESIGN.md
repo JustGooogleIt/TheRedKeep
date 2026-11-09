@@ -579,7 +579,7 @@ The sample explains much of this. The resolved markets with a clear resolution d
 - the share of the daily factor moves (in typical moves) that the events explain, `1 − Σ(real − explained)² / Σ real²`, with the correlation, and the sign on days that moved a typical move or more;
 - the first evening's ranking of the open events by swing on stocks, beside the moves that followed.
 
-The app's replay screen shows the saved run for whatever portfolio is open, and `check.js` confirms that its numbers are the engine's on stocks. A test reruns a synthetic episode with every price after one day reshuffled and checks that no evening up to that day changes.
+The app's replay screen shows the saved run for whatever portfolio is open, and `check.js` confirms that its numbers are the engine's on stocks. Each evening's jumps carry their error bars, so the screen gives every "if it happens" with one standard deviation (the factors' errors taken as independent) and marks a jump less than two of them from no move as within noise: the quorum's test of whether a reading can tell a jump from no jump ([4.6](#46-fusion-and-the-market-quorum)). A test reruns a synthetic episode with every price after one day reshuffled and checks that no evening up to that day changes.
 
 **What the first run found.** On November 8, 2026 the replay found 2,159 Polymarket and 143 Kalshi markets listed during the episode, and FRED data for 7 of the 10 factors.
 
@@ -587,6 +587,16 @@ The app's replay screen shows the saved run for whatever portfolio is open, and 
 - No market priced the universal tariffs or China's retaliation the evening before. One market could have priced the April 2 announcement: Polymarket's general-tariff market, at 50% on April 1. It reached the judge only once candidates were limited to markets listed before an event happened, and the judge then called it an overlap, not a match: it counted only an April 2 announcement and set no 10% minimum. By the rules of [6.3](#63-matching-events-to-markets) such a market is shown but not used.
 - So the scorecard has one call. The pause was at 31% the evening before; the call was +1.2% for stocks, and they rose 9.5%. Its signs were right on all 6 factors with a reading.
 - Over the ten days, the events times their odds changes explain 28% of the daily factor moves' sum of squares (70 day-factors, correlation 0.57), 35% for stocks, with the right sign on 22 of 30 big moves. The misses are April 3 and 4, the announcement and China's answer, which no matched market priced.
+
+**With all ten factors.** On November 9, 2026, with Massive's prices for SPY, FXI, SMH and GLD (stocks fall back to the S&P 500 index before Massive's two years), the same three events matched. The pause call was +1.2% for stocks against a 10.5% rise in SPY, again right on all 6 factors with a reading. The events explain 25% of the daily factor moves (100 day-factors, correlation 0.53), 36% for stocks, with the right sign on 24 of 38 big moves.
+
+**A prior centered on no move, tried after the fact and left out.** On that run the recession's first jump came from the jump windows alone, on seven days of sharp odds moves, and pointed the wrong way for stocks, +2.5 ± 3.8 typical moves: +5% ± 5% for the Tech-heavy sample if it happened. A prior centered on no move could stand in for the AI prior the replay leaves out, with τ = 0.7 typical moves: the root mean square of the jumps Claude's funnel labels give the 434 material markets, counting each label step as a typical move; each evening's fused jump `δ` with error `σ` would become `δ·τ²/(τ² + σ²)`. The idea came after seeing the run, so it was scored on the saved run before anything changed:
+
+- the recession's first jump falls to +0.1 typical moves, but so do its later, well-measured ones: −13.7 ± 5.6 on stocks by April 9 becomes −0.2;
+- the pause call halves, to +0.6% for stocks; signs never change, since the prior only scales each jump;
+- the events explain 5% of the daily factor moves instead of 25% (correlation 0.50), with the right sign on 28 of 38 big moves.
+
+April 2025 moved further than the engine's jumps even without the prior, so pulling them toward zero lost more signal than noise. The replay keeps its jumps as measured and shows their error bars instead.
 
 **How E9 runs.** `redkeep baseline` asks whether the engine beats just asking Claude. The baseline is the engine's own AI prior ([section 8](#8-where-the-ai-is-used-and-where-it-isnt)): one structured call with the question, a date and the factors' typical moves, and no data, search or prices. A model knows how the events in its training data turned out, so E9 scores only markets that resolved after it: from August 1, 2026, a margin after the training data of the model the engine uses (`--after` moves it for another model). Two parts, with metrics fixed before the first run:
 

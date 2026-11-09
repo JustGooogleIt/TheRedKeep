@@ -186,9 +186,9 @@ def _slug(s: str) -> str:
 
 
 def replay_shape(rep: dict) -> dict:
-    """A replay from ``redkeep replay`` in the shape of the prototype's ``REPLAY``: per-evening jumps (``dd``), odds at
-    the close before the first day (``q0``) and per-evening link weights, beside what the app shows about its
-    sources. The app recomputes the calls and the explained moves for whatever portfolio is open; ``check.js``
+    """A replay from ``redkeep replay`` in the shape of the prototype's ``REPLAY``: per-evening jumps (``dd``) and their
+    error bars (``sd``, null on a factor with no reading), odds at the close before the first day (``q0``) and
+    per-evening link weights, beside what the app shows about its sources. The app recomputes the calls and the explained moves for whatever portfolio is open; ``check.js``
     confirms they match the engine's on the stock factor."""
     if rep.get("kind") != "redkeep.replay":
         raise ValueError("not a replay")
@@ -199,7 +199,7 @@ def replay_shape(rep: dict) -> dict:
         "days": [{"d": d["d"], "f": d["f"], "note": d["note"]} for d in days],
         "events": [{
             "id": e["id"], "t": e["t"], "s": e["s"], "res": e["res"], "out": e["out"], "q0": e["q0"], "q": e["q"],
-            "dd": e["d"], "listed": e["listed"], "from": e["odds"]["from"], "gran": e["odds"]["granularity"],
+            "dd": e["d"], "sd": e["sd"], "listed": e["listed"], "from": e["odds"]["from"], "gran": e["odds"]["granularity"],
             "url": next((m["url"] for m in e["match"]["used"]), None), "match": e["match"]["kind"],
             "readings": e["readings"],
         } for e in rep["events"]],
