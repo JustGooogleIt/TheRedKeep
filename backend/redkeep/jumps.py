@@ -34,11 +34,12 @@ The metrics, over every (market, factor) with a reading and a factor move that d
 * **E5, quorum value.** E3 and E4 for precise readings (an error bar on the jump's size of at most half of it, the
   rule for counting toward the quorum) against vague ones. Tiers proper need a second market reading, which past
   markets don't have yet.
-* **E6, source ablation,** waits for a second source on past events: no analogs are picked for them, the AI prior
-  knows how they ended, and Hyperliquid's weekend windows reach back only about 200 days.
+* **E6, source ablation,** needs a second source on past events: no analogs are picked for them, and Hyperliquid's
+  weekend windows reach back only about 200 days. The AI prior knows how most of them ended, but not those that
+  resolved after its training data; E9 (``baseline.py``) scores the market's reading, the prior's and their fusion
+  on those.
 
-The AI-only baseline the design names for E3 can't run on past markets for the same reason; it runs forward in
-time instead (E9).
+The AI-only baseline the design names for E3 runs there too, as E9.
 """
 
 from __future__ import annotations
@@ -351,11 +352,15 @@ def by_day_ranges(p: Pairs, stat: Callable[[Pairs], float | None], *, n: int = B
     return [float(np.percentile(vals, 2.5)), float(np.percentile(vals, 97.5))] if vals else None
 
 
+SCALES = (0.05, 50.0)  # the range fit_scale searches; at its floor, the day's noise alone covers the target
+
+
 def fit_scale(p: Pairs, target: float = 0.8) -> float | None:
-    """The scale on ``σ`` that puts ``target`` of the realized jumps inside the 80% interval."""
+    """The scale on ``σ`` that puts ``target`` of the realized jumps inside the 80% interval. ``SCALES[0]`` means
+    any width would do: around the predictions, the realized jumps' own noise already covers ``target``."""
     if len(p.z) < 20:
         return None
-    lo, hi = 0.05, 50.0
+    lo, hi = SCALES
     if (coverage(p, hi) or 0) < target:
         return None  # the realized jumps' own noise leaves too many outside, whatever the error bars
     if (coverage(p, lo) or 0) >= target:
@@ -413,9 +418,10 @@ def study(cases: Sequence[Case], material: dict[str, bool] | None = None) -> dic
                          "later_pairs": int(len(late.z)), "later_coverage": coverage(late),
                          "later_coverage_scaled": coverage(late, k) if k else None}},
         "e5": {"precise": summary(p.take(p.precise)), "vague": summary(p.take(~p.precise))},
-        "e6": ("Not run: it needs a second source of jump readings on past events. No analogs are picked for "
-               "resolved markets, the AI prior knows how they ended, and Hyperliquid's weekend windows reach back "
-               "only about 200 days."),
+        "e6": ("Not run here: it needs a second source of jump readings on past events. No analogs are picked for "
+               "resolved markets, and Hyperliquid's weekend windows reach back only about 200 days. The AI prior "
+               "knows how most of them ended; `redkeep baseline` (E9) scores it beside the market's reading on those "
+               "that resolved after its training data."),
         **({"e3_by_material": by_material(cases, p, material)} if material else {}),
     }
 

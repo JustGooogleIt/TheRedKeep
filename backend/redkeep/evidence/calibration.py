@@ -62,6 +62,8 @@ class Obs:
     h: int  # days before the deadline
     q: float  # price of yes then
     y: int  # 1 if it resolved yes
+    title: str = ""  # the market's question, for asking Claude the same thing (E9)
+    deadline: date | None = None  # so the price was read on ``deadline − h``
 
 
 @dataclass(frozen=True)
@@ -225,12 +227,15 @@ def write_obs(obs: Sequence[Obs], path: Path) -> None:
     """The observations behind a study, one JSON line each, so it can be rerun without fetching (``--from``)."""
     with gzip.open(path, "wt", encoding="utf-8") as f:
         for o in obs:
-            f.write(json.dumps({**asdict(o), "closed": o.closed.isoformat()}) + "\n")
+            f.write(json.dumps({**asdict(o), "closed": o.closed.isoformat(),
+                                "deadline": o.deadline.isoformat() if o.deadline else None}) + "\n")
 
 
 def read_obs(path: Path) -> list[Obs]:
     with gzip.open(path, "rt", encoding="utf-8") as f:
-        return [Obs(**{**d, "closed": date.fromisoformat(d["closed"])}) for d in map(json.loads, f) if d]
+        return [Obs(**{**d, "closed": date.fromisoformat(d["closed"]),
+                       "deadline": date.fromisoformat(d["deadline"]) if d.get("deadline") else None})
+                for d in map(json.loads, f) if d]
 
 
 def to_json(report: dict, fitted: str) -> dict:

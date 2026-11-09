@@ -135,7 +135,8 @@ def test_polymarket_resolved_markets(fx):
     # 1 day before: the price stamped that midnight. 7 days: the last price, 2.5 days old. 30 and 90: nothing yet.
     # 180: not listed yet.
     assert [(x.h, x.q) for x in o] == [(1, 0.01), (7, 0.035)]
-    assert o[0] == cal.Obs("polymarket", "polymarket:530001", "polymarket:910001", "Economics", date(2025, 6, 18), 1, 0.01, 0)
+    assert o[0] == cal.Obs("polymarket", "polymarket:530001", "polymarket:910001", "Economics", date(2025, 6, 18), 1, 0.01, 0,
+                           m.title, date(2025, 6, 18))
 
 
 def test_polymarket_reads_closed_events_by_tag_and_month(fx):
