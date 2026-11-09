@@ -11,9 +11,11 @@ and the AI), factor by factor. A market window can't tell an event from other
 news that moved its odds and the markets the same day: good economic news can
 raise the odds of a rate hike and lift stocks together, so a hike seems to lift
 them. Where the two point opposite ways, further apart than their error bars
-allow, the jump is contested. Each factor is tested at ``ALPHA``, corrected for
-the number of factors tested, so ten factors don't make a false alarm ten times
-as likely.
+allow, the jump is contested, and on those factors it rests on the other
+evidence alone. The market's reading is the one with a known bias there, and on
+resolved markets (E3) daily windows called the sign no better than chance. Each
+factor is tested at ``ALPHA``, corrected for the number of factors tested, so
+ten factors don't make a false alarm ten times as likely.
 
 Tiers:
 
@@ -79,6 +81,7 @@ class Conflict:
     z: float  # their difference over its standard error
     market_names: list[str]
     other_names: list[str]
+    factors: list[str] = field(default_factory=list)  # every contested factor, furthest apart first
 
 
 @dataclass
@@ -137,14 +140,18 @@ def fuse_delta(readings: Sequence[DeltaReading]) -> FusedDelta:
     finite = np.isfinite(S) & (S > 0)
     P = np.zeros_like(S)
     P[finite] = 1.0 / S[finite] ** 2
-    tot = P.sum(axis=0)
+    mk = [i for i, r in enumerate(readings) if r.market]
+    conflict = _conflict(readings, P, X)
+    W = P.copy()  # the precision each reading gets in the average: none for the market on a contested factor
+    if conflict:
+        W[np.ix_(mk, [KEYS.index(k) for k in conflict.factors])] = 0.0
+    tot = W.sum(axis=0)
     safe = np.where(tot > 0, tot, 1.0)
-    mean = np.where(tot > 0, (P * X).sum(axis=0) / safe, 0.0)
+    mean = np.where(tot > 0, (W * X).sum(axis=0) / safe, 0.0)
     sigma = np.where(tot > 0, 1.0 / np.sqrt(safe), np.inf)
-    weights = {r.name: np.where(tot > 0, P[i] / safe, 0.0) for i, r in enumerate(readings)}
+    weights = {r.name: np.where(tot > 0, W[i] / safe, 0.0) for i, r in enumerate(readings)}
 
     # Consistency among market readings only, factor by factor. Every market reading takes part, vague or not.
-    mk = [i for i, r in enumerate(readings) if r.market]
     chi2, dof = 0.0, 0
     for f in range(NF):
         rows = [i for i in mk if P[i, f] > 0]
@@ -158,12 +165,13 @@ def fuse_delta(readings: Sequence[DeltaReading]) -> FusedDelta:
     n_market = sum(1 for i in mk if size_error(P[i], mean) <= QUORUM_SE)
     p_value = float(chi2_dist.sf(chi2, dof)) if dof else None
     agree = None if p_value is None else p_value >= ALPHA
-    return FusedDelta(mean, sigma, weights, n_market, chi2, dof, p_value, agree, n_all, _conflict(readings, P, X))
+    return FusedDelta(mean, sigma, weights, n_market, chi2, dof, p_value, agree, n_all, conflict)
 
 
 def _conflict(readings: Sequence[DeltaReading], P: np.ndarray, X: np.ndarray) -> Conflict | None:
-    """The factor where the market readings and the other evidence point opposite ways furthest beyond their error
-    bars, if any does: ``|z| > z_crit`` with ``z_crit`` the two-sided ``ALPHA`` point over the factors tested."""
+    """The factors where the market readings and the other evidence point opposite ways beyond their error bars, if
+    any: ``|z| > z_crit`` with ``z_crit`` the two-sided ``ALPHA`` point over the factors tested. The furthest apart
+    is the one named."""
     mk = [i for i, r in enumerate(readings) if r.market]
     other = [i for i, r in enumerate(readings) if not r.market]
     if not mk or not other:
@@ -178,9 +186,11 @@ def _conflict(readings: Sequence[DeltaReading], P: np.ndarray, X: np.ndarray) ->
     hit = both & (m1 * m2 < 0) & (np.abs(z) > norm.ppf(1 - ALPHA / (2 * both.sum())))
     if not hit.any():
         return None
-    f = int(np.argmax(np.where(hit, np.abs(z), 0.0)))
+    order = [int(f) for f in np.argsort(-np.abs(z)) if hit[f]]
+    f = order[0]
     return Conflict(KEYS[f], float(m1[f]), float(m2[f]), float(z[f]),
-                    [readings[i].name for i in mk if P[i, f] > 0], [readings[i].name for i in other if P[i, f] > 0])
+                    [readings[i].name for i in mk if P[i, f] > 0], [readings[i].name for i in other if P[i, f] > 0],
+                    [KEYS[k] for k in order])
 
 
 def conflict_reason(c: Conflict) -> str:
@@ -189,9 +199,11 @@ def conflict_reason(c: Conflict) -> str:
     who = mk.get(c.market_names[0], "the market readings") if len(c.market_names) == 1 else "the market readings"
     other = {("AI prior",): "the AI prior", ("Past events",): "past events"}.get(tuple(c.other_names),
                                                                                "past events and the AI prior")
+    names = [BY_KEY[k].name for k in c.factors or [c.factor]]
+    where = names[0] if len(names) == 1 else ", ".join(names[:-1]) + " and " + names[-1]
     return (f"{BY_KEY[c.factor].name}: {who} say {c.market:+.1f} typical moves and {other} {c.other:+.1f}, opposite "
             "ways and further apart than their error bars allow. The same news can move the odds and the markets, "
-            "and a window can't tell them apart.")
+            f"and a window can't tell them apart, so on {where} the jump rests on {other} alone.")
 
 
 def size_error(precision: np.ndarray, fused: np.ndarray) -> float:
