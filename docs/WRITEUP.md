@@ -101,7 +101,7 @@ In order of what they would improve most:
 
 1. **The question (1 minute).** The QQQ example above: the jump, what's priced in, the swing.
 2. **A portfolio (2 minutes).** Open [red-keep.vercel.app](https://red-keep.vercel.app), or [`prototype/index.html`](../prototype/index.html) from a clone. Scroll the dragon story, then pick All Weather. Events are ranked by swing. Open Hormuz: two market readings that agree make it tier A. Open the December Fed hike: its readings disagree, so it is contested (tier B). Open Tech-heavy's holdings: NVIDIA held directly and inside QQQ and SMH, looked through to ETF Global's files. Open an event that nothing fits, with the near-misses and why they were rejected.
-3. **The replay (2 minutes).** Step through April 2025 one evening at a time: the pause call, what the events explain each day, and the two days no matched market priced, and why.
+3. **The replay (2 minutes).** Step through April 2025 one evening at a time: the pause call, what the events explain each day, and the two days no matched market priced, and why. Then pick QQQ and scroll to the portfolio as it stood on March 28, 2025: its exposures, fitted before the crash, explain 98% of its daily moves during it.
 4. **The evals (3 minutes).** E0 (the screen keeps 96% of what matters), E2 (market odds stand), E3 (honest error bars, vague point estimates, and the material split), E8 (a quarter of the moves explained, and exposures that held through April 2025) and E9 (the markets beat Claude on odds; on jumps the engine ties it, and a single reading alone does far worse).
 5. **What's next (2 minutes).** Options for the quorum's second reading (the paid Massive key already has the chains), and a prior that knows today's news.
 

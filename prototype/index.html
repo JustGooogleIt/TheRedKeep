@@ -2757,10 +2757,10 @@ function DragonScene({ tw, rootRef: outerRef }) {
 
 // The worked example in DESIGN.md section 3, with its illustrative numbers: $1M of QQQ, tariffs on China at 40%.
 const M_EXAMPLE = { V: 1e6, direct: -6.0, knock: -2.5, q: 0.4 };
-// Results of the saved eval runs of Nov 8, 2026 (WRITEUP.md, "What the evals found"): E9's odds, E4's
-// coverage over E3's 54 resolved markets, and E0's screen. Update them when those evals rerun. The replay's
-// numbers are not here: they come with the snapshot (REPLAY.metrics).
-const M_EVALS = { brierMarket: 0.110, brierAI: 0.191, oddsMarkets: 250, covered: 0.83, jumpMarkets: 54, screenFinds: 0.96, screenSends: 0.38 };
+// Results of the saved eval runs (WRITEUP.md, "What the evals found"): E9's odds and E0's screen from Nov 8,
+// 2026, and E4's coverage over E3's 55 resolved markets from the ten-factor rerun of Nov 10. Update them when
+// those evals rerun. The replay's numbers are not here: they come with the snapshot (REPLAY.metrics).
+const M_EVALS = { brierMarket: 0.110, brierAI: 0.191, oddsMarkets: 250, covered: 0.84, jumpMarkets: 55, screenFinds: 0.96, screenSends: 0.38 };
 
 function MethodExample({ P, top, onOpen }) {
   const { V, direct, knock, q } = M_EXAMPLE, dT = direct + knock;
@@ -2790,7 +2790,7 @@ function MethodSteps({ tw }) {
   const markets = listed >= 1000 ? 'Polymarket and Kalshi list about ' + (Math.round(listed / 1000) * 1000).toLocaleString('en-US') + ' markets.'
     : 'Polymarket and Kalshi list tens of thousands of markets.';
   const steps = [
-    ['Look through', 'What you actually own', html`<p>Each fund is replaced by the companies it holds, and a company held several ways is added up, so a stock you own directly and through a fund shows as one line. A fund with no holdings data stays whole and is measured from its own prices.</p>`],
+    ['Look through', 'What you actually own', html`<p>Each fund is replaced by the companies it holds, and a company held several ways is added up, so a stock you own directly and through a fund shows as one line. A fund with no holdings data, or one that holds bonds, gold or futures rather than companies, stays whole and is measured from its own prices.</p>`],
     ['Exposure', 'Which way it leans', html`<p>The engine measures how each holding has moved with ten market factors, each tracked by a real price:</p>
       <div className="m-chips">${FACTORS.map(f => html`<span key=${f.k} className="m-chip">${f.name}<small>${f.proxy}</small></span>`)}</div>
       <p>Weighted by the holdings, that gives the portfolio’s arrow: how much it gains or loses when each factor makes a typical move, one standard deviation of its weekly change. Other factors join only when a portfolio needs them, and the fit is the share of its daily moves the factors explain, on prices the model didn’t see.</p>`],
@@ -2820,7 +2820,7 @@ function MethodTests({ goTab }) {
         <div className="tile-s">Brier score, lower is better, on ${M_EVALS.oddsMarkets} markets that resolved after Claude’s training data. The markets won, so a market sets the odds wherever one fits.</div></div>
       ${ex && ex.explained_share != null
         ? html`<button className="tile m-tile" onClick=${() => goTab('replay')}><span className="label">Replay · April 2025</span><div className="tile-v">${fmtShare(ex.explained_share)}</div>
-            <div className="tile-s">of the daily factor moves came from the events’ jumps times their odds changes, rerunning the engine evening by evening on archived prices. Right sign on ${ex.big_days_right} of ${ex.big_days} big days.</div></button>`
+            <div className="tile-s">of the daily factor moves came from the events’ jumps times their odds changes, rerunning the engine evening by evening on archived prices. Right sign on ${ex.big_days_right} of ${ex.big_days} big moves.</div></button>`
         : html`<button className="tile m-tile" onClick=${() => goTab('replay')}><span className="label">Replay · April 2025</span><div className="tile-v small">Day by day</div>
             <div className="tile-s">The engine replays the April 2025 tariff shock one evening at a time, seeing only the odds known at each close.</div></button>`}
       <div className="tile m-tile"><span className="label">Error bars · resolved markets</span><div className="tile-v">${pct0(M_EVALS.covered)}</div>
@@ -3154,7 +3154,28 @@ function ReplayScore() {
   </section>`;
 }
 
-function ReplayView({ P, tw }) {
+// E8's own metric: a sample portfolio rebuilt as it stood at the close before the episode, with exposures fitted only
+// on the two years before and ETF holdings as known then, scored on its realized daily moves (DESIGN.md section 10).
+function ReplayThen({ sampleId }) {
+  const R = REPLAY, all = R.portfolios || {}, p = sampleId ? all[sampleId] : null;
+  if (!Object.keys(all).length) return null;
+  const base = fmtDate(R.base), m = p && p.metrics, byId = Object.fromEntries(R.events.map(e => [e.id, e]));
+  const share = v => (v != null && v > 0.99 && v < 1 ? '>99%' : fmtShare(v));
+  const call = p ? (p.calls || []).find(c => c.pred != null && c.real != null) : null;
+  const held = m && m.factors.explained_share != null && m.factors.explained_share >= 0.9;
+  return html`<section className="card" aria-labelledby="rp-then-h"><div className="card-head"><div><span className="kicker">The sample portfolios, as they stood then</span><h3 className="h3" id="rp-then-h" style=${{ marginTop: 6 }}>${p ? 'This portfolio, rebuilt as of ' + base : 'Scored as they stood on ' + base}</h3>
+      <p className="sub">The chart above uses today’s exposures. Here a sample portfolio is rebuilt as it stood at the close of ${base}: holdings valued at that close, exposures fitted only on the two years of prices before it, and ETF holdings as they were known then. Nothing from the episode reaches it.</p></div></div>
+    ${p ? html`<div className="tiles">
+        <div className="tile"><span className="label">Factors explain</span><div className="tile-v">${share(m.factors.explained_share)}</div><div className="tile-s">of its daily moves: its exposures times each day’s actual factor moves${held ? ', so the exposures held through the crash and the rebound' : ''}</div></div>
+        <div className="tile"><span className="label">Events explain</span><div className="tile-v">${share(m.events.explained_share)}</div><div className="tile-s">of its daily moves, from each event’s jump times that day’s odds change${m.events.corr == null ? '' : ' · correlation ' + fmtCorr(m.events.corr)}</div></div>
+        <div className="tile"><span className="label">Right sign</span><div className="tile-v">${m.events.right_sign} of ${m.events.days_moved}</div><div className="tile-s">days the events’ move pointed the way the portfolio went</div></div>
+        ${call && html`<div className="tile"><span className="label">${(byId[call.event] || { s: call.event }).s}</span><div className="tile-v small">${fmtPct(call.pred)} <small>vs</small> ${fmtPct(call.real)}</div><div className="tile-s">expected the evening before, at ${fmtOdds(call.q)} odds, against the day: ${fmtUsd(call.pred * p.value / 100, true)} against ${fmtUsd(call.real * p.value / 100, true)} on ${fmtUsd(p.value)}</div></div>`}
+      </div>`
+      : html`<p className="note">Pick one of the sample portfolios to see its score. A portfolio you build or edit has no holdings from then to rebuild.</p>`}
+  </section>`;
+}
+
+function ReplayView({ P, tw, sampleId }) {
   const R = REPLAY, D = R.days.length, V = P.V, engine = REPLAY_SOURCE === 'engine';
   const RC = useMemo(() => replayCompute(P, tw.knock), [P, tw.knock]);
   const [day, setDay] = useState(0); const [play, setPlay] = useState(false);
@@ -3212,10 +3233,11 @@ function ReplayView({ P, tw }) {
       </tbody></table></div>
       ${summary && html`<p className="note">${summary}</p>`}
     </section>
+    ${engine && html`<${ReplayThen} sampleId=${sampleId} />`}
     ${engine && html`<${ReplayScore} />`}
     <section className="card" aria-labelledby="rp-how-h"><div className="card-head"><div><span className="kicker">Method</span><h3 className="h3" id="rp-how-h" style=${{ marginTop: 6 }}>How this replay was made</h3></div></div>
       ${engine ? html`<${Frag}>
-          <p className="rp-how">Factor moves are daily closes from ${replaySources(R.sources)}. The odds are archived Polymarket and Kalshi prices at each 4 p.m. New York close, from markets the same judge as a refresh matched to each event, as of the evening before the first day. Each evening’s jumps come only from data up to that close: market windows over the previous ${R.lookback || 180} days, fused with each event’s historical analogs. This portfolio’s exposures are today’s, not April 2025’s. Run ${fmtStamp(R.asOf)}.</p>
+          <p className="rp-how">Factor moves are daily closes from ${replaySources(R.sources)}. The odds are archived Polymarket and Kalshi prices at each 4 p.m. New York close, from markets the same judge as a refresh matched to each event, as of the evening before the first day. Each evening’s jumps come only from data up to that close: market windows over the previous ${R.lookback || 180} days, fused with each event’s historical analogs. ${R.portfolios && Object.keys(R.portfolios).length ? 'The chart uses this portfolio’s exposures today, not April 2025’s; the card above scores the sample portfolios as they stood then.' : 'This portfolio’s exposures are today’s, not April 2025’s.'} Run ${fmtStamp(R.asOf)}.</p>
           ${(R.leftOut || []).length > 0 && html`<span className="label rp-how-l">Left out</span><ul className="rp-how-list">${R.leftOut.map(x => html`<li key=${x}>${x}</li>`)}</ul>`}
           ${(R.warnings || []).length > 0 && html`<span className="label rp-how-l">Gaps in the data</span><ul className="rp-how-list">${R.warnings.map(w => html`<li key=${w}>${w}</li>`)}</ul>`}
         <//>`
@@ -3425,7 +3447,7 @@ function App({ ds, setDs }) {
         <main className="main" id="main">
           ${P.V <= 0 ? html`<${EmptyState} onPick=${loadSample} />`
             : tab === 'analysis' ? html`<${AnalysisView} P=${P} S=${S} sim=${sim} shown=${shown} beyond=${beyond} tw=${tw} setTw=${setTw} hover=${hover} setHover=${setHover} sel=${sel} onOpen=${openEv} whatIf=${whatIf} setWhatIf=${setWhatIf} live=${live} setLive=${setLive} feed=${feed} ripple=${ripple} hasLive=${hasLive} resetLive=${resetLive} />`
-            : html`<${ReplayView} P=${P} tw=${tw} />`}
+            : html`<${ReplayView} P=${P} tw=${tw} sampleId=${sampleId} />`}
         </main>
       </div>`}
     </div>
