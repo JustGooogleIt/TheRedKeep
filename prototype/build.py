@@ -32,7 +32,7 @@ if args.live and not live.exists():
 css = (src / 'styles.css').read_text()
 citadel = 'data:image/webp;base64,' + base64.b64encode((here / 'citadel.webp').read_bytes()).decode()
 parts = [live] if live.exists() else []
-parts += [src / f for f in ['data.js', 'model.js', 'dataset.js', 'ui-core.js', 'ui-analysis.js', 'ui-dragon.js', 'ui-rest.js']]
+parts += [src / f for f in ['data.js', 'model.js', 'dataset.js', 'ui-core.js', 'ui-analysis.js', 'ui-dragon.js', 'ui-method.js', 'ui-rest.js']]
 js = f'const RK_CITADEL = "{citadel}";\n' + '\n'.join(f.read_text() for f in parts)
 assert '</script' not in js.lower() and '</style' not in css.lower()
 

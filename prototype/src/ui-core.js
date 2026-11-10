@@ -140,7 +140,7 @@ function Nav({ tab, goTab, live, setLive, openTweaks, solid }) {
   const T = (k, long, short) => html`<button role="tab" aria-selected=${tab === k} className=${cls('tab', tab === k && 'on')} onClick=${() => goTab(k)}><span className="t-long">${long}</span><span className="t-short">${short}</span></button>`;
   return html`<header className=${cls('nav', solid && 'scrolled')}><div className="nav-in">
     <a className="brand" href="#" aria-label="The Red Keep, back to top" onClick=${e => { e.preventDefault(); window.scrollTo({ top: 0, behavior: REDUCED ? 'auto' : 'smooth' }); }}><${KeepMark} size=${20} /><span className="brand-name">The Red Keep</span></a>
-    <div className="tabs" role="tablist" aria-label="Views">${T('analysis', 'Live analysis', 'Analysis')}${T('replay', 'Historical replay', 'Replay')}</div>
+    <div className="tabs" role="tablist" aria-label="Views">${T('analysis', 'Live analysis', 'Analysis')}${T('replay', 'Historical replay', 'Replay')}${T('method', 'Methodology', 'Method')}</div>
     <div className="nav-right">
       <button className=${cls('nav-live', live && 'on')} onClick=${() => setLive(!live)} aria-pressed=${live} title="Simulated odds changes, priced through your portfolio as they happen"><i className="dot-live"></i>${live ? 'Live odds on' : 'Simulate live odds'}</button>
       <button className="btn btn-light btn-sm" onClick=${openTweaks}>Tweaks</button>
@@ -167,10 +167,12 @@ function Hero({ tw, goTab, heroRef }) {
 const INTRO = {
   analysis: ['What could move ', 'your portfolio', 'Start from a famous portfolio or build your own. Everything recomputes as you edit: what you actually own, which way it leans, the events ahead and thousands of simulated futures.'],
   replay: ['Check the engine ', 'against history', 'Replay the April 2025 tariff shock one trading day at a time. Each evening the engine sees only the odds known at that close, and you can change the portfolio while it plays.'],
+  method: ['How the engine ', 'works', 'From a portfolio to the events that could move it, in seven steps: the same seven as the strip on the analysis tab. Every number on this site comes out of one of them.'],
 };
-function Intro({ tab }) {
+function Intro({ tab, goTab }) {
   const [a, b, sub] = INTRO[tab] || INTRO.analysis;
-  return html`<header className="intro"><h2 className="heading-xl">${a}<span className="accent">${b}</span></h2><p className="intro-sub">${sub}</p></header>`;
+  return html`<header className="intro"><h2 className="heading-xl">${a}<span className="accent">${b}</span></h2><p className="intro-sub">${sub}</p>
+    ${tab !== 'method' && html`<button className="link intro-link" onClick=${() => goTab('method')}>How the engine works</button>`}</header>`;
 }
 
 /* ---------- portfolio panel ---------- */
