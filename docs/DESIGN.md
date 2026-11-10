@@ -270,7 +270,7 @@ The three 3D display axes are published blends of these: **growth** (stocks, cre
 
 1. Pull all active Polymarket and Kalshi markets.
 2. Cheap filters drop sports, entertainment and celebrity categories, markets below a volume and liquidity floor, and spreads too wide to be informative.
-3. Fast screening with Laya, a small open-source decision model fine-tuned on Claude's labels ([section 8](#8-where-the-ai-is-used-and-where-it-isnt)), cached per market: is this macro or geopolitical; which factors would it move; rough direction and size per factor on a −2 to +2 scale. Markets Laya is unsure about go to Claude, which also writes a one-line reason for each market kept.
+3. Fast screening with a small model taught by Claude's labels ([section 8](#8-where-the-ai-is-used-and-where-it-isnt)), cached per market: is this macro or geopolitical; which factors would it move; rough direction and size per factor on a −2 to +2 scale. Markets the screen is unsure about go to Claude, which also writes a one-line reason for each market kept. The design's screen is Laya, a small open-source decision model fine-tuned on those labels; until its weights can be fetched, a words model stands in (below).
 4. Group near-duplicates (the same question on two venues, or a ladder of thresholds or dates) into one event.
 5. Keep events whose rough vector is material for at least one factor. These ~250 get the full evidence treatment on schedule.
 6. **Portfolio-first.** The AI also proposes events from the portfolio's largest exposures and holdings, like "export controls on advanced chips", which may not have obvious markets. These go through matching, and if nothing fits they become tier D.
@@ -427,7 +427,7 @@ A live view of the portfolio and its hedges as markets move, with alerts when an
 | Task | Model | Output | Guardrail |
 |---|---|---|---|
 | Funnel labels (teacher) | Stronger Claude model | Relevance and rough factor vector for a few thousand sample markets, with reasons | A hand-checked sample; versioned like code |
-| Funnel screening | Laya, fine-tuned on those labels | Relevance and rough factor vector for every live market | Only a filter, never a final number; unsure cases go to Claude; measured in E0 |
+| Funnel screening | A words model taught by those labels today; Laya, fine-tuned on them, is the planned upgrade | Relevance and rough factor vector for every live market | Only a filter, never a final number; unsure cases go to Claude; measured in E0 |
 | Portfolio-first brainstorm | Stronger Claude model | Candidate events | Must be matched, or labeled tier D |
 | Match judging | Stronger | Relationship, match score, quoted rule text | Measured on the labeled set (E1) |
 | Analog selection | Stronger | Past dates with reasons | The event study computes the numbers |
@@ -442,6 +442,7 @@ Rules: the AI never produces a final number when market evidence exists. Calls u
 - **Laya** (Convai Innovations, September 2026) is open source under Apache 2.0: about 421M parameters, built on ModernBERT-large, with a median response time of about 33 ms. Out of the box it is close to guessing, so it has to be fine-tuned, which is what the loop below does.
 - **Jev** (TypeSafe AI, September 2026) is the closed alternative: a paid API, in early access at about $0.042 per million input tokens. Laya's maker says Laya is about 7.8× faster than Jev, but that is the maker's own benchmark. Jev is our baseline: if fine-tuned Laya can't match Jev on E0 ([section 10](#10-how-we-prove-it-works)), we use Jev.
 - **The loop.** Claude labels a few thousand markets with the funnel rubric; we fine-tune Laya on those labels; Laya screens every live market; markets it is unsure about, plus a random sample of the rest, go to Claude, and any disagreements become new training labels.
+- **Today.** Laya's weights come from Hugging Face, which the build environment can't reach yet, and Jev needs a paid early-access key. So a words model taught by the same labels does the screening step ([6.2](#62-event-discovery-funnel)). On E0 it kept 96% of the material markets while sending 38% to Claude. That is the bar: Laya or Jev replaces it only where it does better.
 
 ---
 
@@ -650,7 +651,7 @@ So the markets earn their place on odds, which is why the AI never sets a probab
 | Hyperliquid (trade[XYZ] markets) | Weekend and holiday prices for stocks, oil, chips and gold | Public API, read-only | Keeps only the latest 5,000 candles, so `redkeep record` stores them from day one; Tardis or 0xArchive for older history ([6.4](#64-evidence)) |
 | FRED | Yields, breakevens, credit spreads, VIX (daily) | Public | Factor proxies and long history |
 | Claude API | AI steps | Personal key | |
-| Laya | Funnel screening | Open weights on Hugging Face (Apache 2.0) | Fine-tuned on Claude's labels; Jev is the fallback ([section 8](#8-where-the-ai-is-used-and-where-it-isnt)) |
+| Laya (planned) | Funnel screening | Open weights on Hugging Face (Apache 2.0), not reachable from the build environment yet | To be fine-tuned on Claude's labels, with Jev as the alternative; until then a words model taught by the same labels screens ([section 8](#8-where-the-ai-is-used-and-where-it-isnt)) |
 
 **Point-in-time storage.** Every evaluation in [section 10](#10-how-we-prove-it-works) and the replay screen depend on one rule: a run as of a past date may only use what was knowable then. So every price the engine reads is stored with two clocks: the time it is about (an odds point's hour, a candle's open, a close's day, a holdings file's date) and the time we first saw it. A rerecorded value adds nothing, and a revised one (a FRED restatement, or an hour's candle that was still open when first read) is stored as a new version beside the old one. A query as of date T then answers one of two questions:
 
@@ -704,7 +705,7 @@ The store is DuckDB over append-only Parquet segments, one per write, so a recor
 The stack below is the target for the full product. What runs today is the backend slice (Python 3.12 with NumPy, SciPy, httpx, DuckDB, FastAPI and the Anthropic SDK, [`backend/pyproject.toml`](../backend/pyproject.toml)) and the no-build prototype.
 
 - **Backend:** Python 3.12 and FastAPI; pandas, NumPy and SciPy; statsmodels for regressions; scikit-learn for the graphical lasso and isotonic regression; PyMC for fusion v2; DuckDB for market data and point-in-time snapshots; a scheduler for the shared jobs.
-- **AI:** the Anthropic Python SDK, with a stronger Claude model for funnel labels, matching, analogs and explanations, and for the markets Laya is unsure about. Structured outputs and prompt caching. Laya runs with Hugging Face Transformers on CPU.
+- **AI:** the Anthropic Python SDK, with a stronger Claude model for funnel labels, matching, analogs and explanations, and for the markets the screen is unsure about. Structured outputs and prompt caching. The screen today is a words model in NumPy and SciPy; Laya would run with Hugging Face Transformers on CPU.
 - **Frontend:** Next.js with TypeScript and Tailwind; react-three-fiber for the 3D map; Recharts or visx for 2D charts; websockets for live updates.
 - **Prototype:** a single-page React app with no build step (React and htm from a CDN, hand-drawn SVG charts, a small 3D projection and a canvas scroll scene). `prototype/build.py` stitches the sources into one HTML file, and `prototype/check.js` checks its math against sections 3 and 4. It is the visual spec for the full app.
 - **Tooling:** pytest, an `evals/` harness that writes reports to `evals/reports/`, and Makefile targets for common tasks.
@@ -754,7 +755,7 @@ Build a thin vertical slice first, then widen it.
 | M1 | Data layer | Prices, current and historical ETF holdings, Polymarket and Kalshi markets and histories, Hyperliquid candles (recorded from day one, since the API keeps only recent ones) and FRED, all stored point-in-time |
 | M2 | Exposure engine | Arrows and fit scores for the sample portfolios (E7) |
 | M3 | Vertical slice | One portfolio, about 10 events: matching, odds, jump windows, impacts and a basic list UI, end to end |
-| M4 | Funnel and matcher at scale | Claude's labels in; Laya fine-tuned and compared with Jev (E0); matching set built; E1 passing |
+| M4 | Funnel and matcher at scale | Claude's labels in; a screen taught by them and scored by E0 (a words model now; Laya fine-tuned and compared with Jev next); matching set built; E1 passing |
 | M5 | Evidence, fusion v1 and tiers | Calibration (E2) and jump accuracy (E3 to E6) |
 | M6 | Options from Massive | Event-day variance from the term structure and the two-world fit, on SPY, QQQ, TLT, USO, GLD, FXI and SMH chains |
 | M7 | Event graph and simulator | Coherence checks and the outcome distribution |
@@ -786,7 +787,7 @@ Build a thin vertical slice first, then widen it.
 
 | Question | Decision |
 |---|---|
-| Which model screens the funnel? | Laya, fine-tuned on Claude's labels, with Jev as the baseline and fallback ([section 8](#8-where-the-ai-is-used-and-where-it-isnt)) |
+| Which model screens the funnel? | For now, a words model taught by Claude's labels, which kept 96% of the material markets on E0. Laya, fine-tuned on the same labels once its weights can be fetched, is the planned upgrade, with Jev as the alternative; either replaces the words model only where it does better on E0 ([section 8](#8-where-the-ai-is-used-and-where-it-isnt)) |
 | When are related prices incoherent? | When they break a rule of probability by more than their quotes allow: the half-spreads of the prices involved, plus a point. Contradicted odds make the event tier B, and a link's weight is capped at what today's odds allow ([6.6](#66-event-graph)) |
 | What does the Massive key cover? | Since November 10, 2026, a paid plan: daily prices back to 2003 with no call limit, ETF Global's holdings, and option chains with implied volatility, greeks and open interest (`redkeep check` reports what a key includes). The free key before it gave two years of end-of-day prices at 5 calls a minute, without holdings or implied volatility |
 | Which Hyperliquid perps are usable? | Stocks, oil, chips (NVIDIA) and, weakly, gold, on weekends and holidays only ([6.4](#64-evidence)) |
@@ -800,7 +801,7 @@ Build a thin vertical slice first, then widen it.
 
 - Build options (M6) on Massive's chains, which now carry implied volatility and open interest directly, so event-day variance needs no volatility fit of our own.
 - Confirm Hyperliquid coin names and live depth on a live run. The engine looks for both `xyz:CL` and `xyz:WTIOIL`, and `redkeep check` lists what the `meta` endpoint returns, with each perp's maximum leverage, which sets its discovery-bound step.
-- Does fine-tuned Laya match Jev on E0?
+- Does fine-tuned Laya beat the words model, and Jev, on E0?
 - Can we get CME futures data for weeknight windows?
 
 ---
