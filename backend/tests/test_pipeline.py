@@ -100,8 +100,9 @@ class FakeMassive:
     def constituents(self, etf, as_of):
         if etf != "QQQ":
             return None
-        return date(2026, 11, 5), [{"constituent_ticker": "NVDA", "constituent_name": "NVIDIA", "weight": 0.09},
-                                   {"constituent_ticker": "MSFT", "constituent_name": "Microsoft", "weight": 0.08}]
+        stock = {"asset_class": "Equity", "security_type": "Common Stock"}
+        return date(2026, 11, 5), [{"constituent_ticker": "NVDA", "constituent_name": "NVIDIA", "weight": 0.09, **stock},
+                                   {"constituent_ticker": "MSFT", "constituent_name": "Microsoft", "weight": 0.08, **stock}]
 
 
 class FakeJudge:
@@ -220,6 +221,34 @@ def test_refresh_builds_a_complete_library(snap):
     assert fed["odds"]["p_hat"] == pytest.approx(calibration.Calibration(SLOPES).p_hat(fed["odds"]["q"], days))
     assert abs(fed["odds"]["p_hat"] - 0.5) > abs(fed["odds"]["q"] - 0.5)
     assert taiwan["odds"]["p_hat"] == taiwan["odds"]["q"] and rec["odds"]["p_hat"] == rec["odds"]["q"]
+
+
+class BondFileMassive(FakeMassive):
+    """QQQ's file lists companies; the bond fund's lists Treasuries and cash, as ETF Global lists TLT's."""
+
+    def constituents(self, etf, as_of):
+        if etf != "TLT":
+            return super().constituents(etf, as_of)
+        bond = {"asset_class": "Fixed Income", "security_type": "US GOVERNMENT"}
+        return date(2026, 11, 5), [{"constituent_ticker": "T 4.75 05/15/55", "constituent_name": "US TREASURY", "weight": 0.6, **bond},
+                                   {"constituent_ticker": "T 4.5 11/15/54", "constituent_name": "US TREASURY", "weight": 0.39, **bond},
+                                   {"constituent_ticker": "XTSLA", "constituent_name": "BLK CSH FND TREASURY SL AGENCY",
+                                    "weight": 0.01, "asset_class": "Equity", "security_type": "Open-End Fund"}]
+
+
+def test_only_companies_are_looked_through(world, snap, tmp_path):
+    fd = factordata.build(LEVELS)
+    tlt = fund_closes(fd, np.array([0, -1.9, 0, 0, 0, 0, 0.1, 0, 0, 0]), seed=8)
+    w = replace(world, massive=BondFileMassive({**world.massive.extra, "TLT": tlt}))
+    a = analyze(Settings(cache_dir=tmp_path), w, snap, [("QQQ", 600_000, "usd"), ("TLT", 400_000, "usd")], name="Mix", today=TODAY)
+    lines = {ln["ticker"]: ln for ln in a["portfolio"]["lines"]}
+    assert lines["QQQ"]["companies"] is True and lines["QQQ"]["holdings"]
+    assert lines["TLT"]["companies"] is False and lines["TLT"]["holdings"] is None and lines["TLT"]["n_holdings"] == 3
+    kinds = {o["key"]: o["kind"] for o in a["portfolio"]["look"]}
+    assert kinds["line:TLT"] == "line" and "T 4.75 05/15/55" not in kinds and kinds["NVDA"] == "stock"
+    app = build(snap, [a])
+    assert app["tickers"]["TLT"]["line"] == "TLT" and "h" not in app["tickers"]["TLT"]
+    assert app["tickers"]["QQQ"]["h"] and "line" not in app["tickers"]["QQQ"]
 
 
 def test_analysis_ranks_events_for_a_portfolio(world, snap, tmp_path):

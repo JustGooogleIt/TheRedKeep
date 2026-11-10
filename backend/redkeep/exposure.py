@@ -9,10 +9,12 @@ the portfolio's arrow is the value-weighted sum.
 Look-through: funds are expanded into their largest holdings using ETF
 Global's constituents (via Massive), so overlaps show up (NVIDIA held directly
 and inside QQQ) and concentration is visible. The rest of each fund stays as
-one "other holdings" line. When the key doesn't include holdings data, the fund
-is shown as one line (DESIGN.md section 12). In this slice a fund's exposure
-comes from the fund's own returns; per-constituent regressions are the next
-step and give the same arrow for an unchanged fund.
+one "other holdings" line. Only companies are looked through: a fund whose file
+is mostly bonds, cash, futures or bullion (TLT, BIL, DBC, GLD) stays one line,
+and so does a fund when the key doesn't include holdings data (DESIGN.md
+section 12). In this slice a fund's exposure comes from the fund's own returns;
+per-constituent regressions are the next step and give the same arrow for an
+unchanged fund.
 
 Fit score: the share of the portfolio's daily movement the factors explain
 over the last six months, using coefficients fitted only on the earlier data.
@@ -32,6 +34,10 @@ from .factors import NF
 from .http import HttpError
 
 log = logging.getLogger(__name__)
+
+COMPANY_CLASSES = {"equity", "real estate"}  # ETF Global's asset classes for a company's shares (REITs included)
+NOT_COMPANIES = {"open-end fund", "etp"}  # a fund or note held inside a fund, which isn't a company
+COMPANIES_MIN = 0.5  # a fund is looked through when companies make up at least this share of what its file lists
 
 HALF_LIFE = 126  # trading days
 RIDGE = 1.0
@@ -56,6 +62,7 @@ class Line:
     price: float | None = None  # last close, which values a holding given in shares
     price_date: date | None = None
     n_holdings: int = 0  # the fund's full count of holdings, of which ``holdings`` are the largest
+    companies: bool | None = None  # whether its holdings file is mostly companies; None without a file
 
 
 @dataclass
@@ -68,6 +75,12 @@ class PortfolioExposure:
     typical: np.ndarray
     as_of: date
     notes: list[str] = field(default_factory=list)
+
+
+def is_company(row: dict) -> bool:
+    """Whether a row of a fund's holdings file is a company's shares, not a bond, cash, a future or another fund."""
+    return ((row.get("asset_class") or "").strip().lower() in COMPANY_CLASSES
+            and (row.get("security_type") or "").strip().lower() not in NOT_COMPANIES)
 
 
 def weights_for(n: int, half_life: float = HALF_LIFE) -> np.ndarray:
@@ -164,14 +177,18 @@ def estimate(
             log.warning("holdings for %s unavailable: %s", t, e)
         if got:
             eff, rows = got
+            firms = [r for r in rows if is_company(r)]
+            line.holdings_date, line.n_holdings = eff, len(rows)
+            listed = sum(max(0.0, float(r.get("weight") or 0)) for r in rows)
+            line.companies = listed > 0 and sum(max(0.0, float(r.get("weight") or 0)) for r in firms) >= COMPANIES_MIN * listed
             top, covered = [], 0.0
-            for r in sorted(rows, key=lambda r: -(r.get("weight") or 0)):
+            for r in sorted(firms if line.companies else [], key=lambda r: -(r.get("weight") or 0)):
                 w = float(r.get("weight") or 0)
                 if w <= 0 or len(top) >= top_n or covered >= cover:
                     break
                 top.append((r.get("constituent_ticker") or r.get("constituent_name") or "?", r.get("constituent_name") or "", w))
                 covered += w
-            line.holdings, line.holdings_date, line.n_holdings = top, eff, len(rows)
+            line.holdings = top or None
         lines.append(line)
         preds.append((line, y))
 

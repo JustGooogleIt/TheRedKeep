@@ -8,10 +8,10 @@
 
 // The worked example in DESIGN.md section 3, with its illustrative numbers: $1M of QQQ, tariffs on China at 40%.
 const M_EXAMPLE = { V: 1e6, direct: -6.0, knock: -2.5, q: 0.4 };
-// Results of the saved eval runs of Nov 8, 2026 (WRITEUP.md, "What the evals found"): E9's odds, E4's
-// coverage over E3's 54 resolved markets, and E0's screen. Update them when those evals rerun. The replay's
-// numbers are not here: they come with the snapshot (REPLAY.metrics).
-const M_EVALS = { brierMarket: 0.110, brierAI: 0.191, oddsMarkets: 250, covered: 0.83, jumpMarkets: 54, screenFinds: 0.96, screenSends: 0.38 };
+// Results of the saved eval runs (WRITEUP.md, "What the evals found"): E9's odds and E0's screen from Nov 8,
+// 2026, and E4's coverage over E3's 55 resolved markets from the ten-factor rerun of Nov 10. Update them when
+// those evals rerun. The replay's numbers are not here: they come with the snapshot (REPLAY.metrics).
+const M_EVALS = { brierMarket: 0.110, brierAI: 0.191, oddsMarkets: 250, covered: 0.84, jumpMarkets: 55, screenFinds: 0.96, screenSends: 0.38 };
 
 function MethodExample({ P, top, onOpen }) {
   const { V, direct, knock, q } = M_EXAMPLE, dT = direct + knock;
@@ -41,7 +41,7 @@ function MethodSteps({ tw }) {
   const markets = listed >= 1000 ? 'Polymarket and Kalshi list about ' + (Math.round(listed / 1000) * 1000).toLocaleString('en-US') + ' markets.'
     : 'Polymarket and Kalshi list tens of thousands of markets.';
   const steps = [
-    ['Look through', 'What you actually own', html`<p>Each fund is replaced by the companies it holds, and a company held several ways is added up, so a stock you own directly and through a fund shows as one line. A fund with no holdings data stays whole and is measured from its own prices.</p>`],
+    ['Look through', 'What you actually own', html`<p>Each fund is replaced by the companies it holds, and a company held several ways is added up, so a stock you own directly and through a fund shows as one line. A fund with no holdings data, or one that holds bonds, gold or futures rather than companies, stays whole and is measured from its own prices.</p>`],
     ['Exposure', 'Which way it leans', html`<p>The engine measures how each holding has moved with ten market factors, each tracked by a real price:</p>
       <div className="m-chips">${FACTORS.map(f => html`<span key=${f.k} className="m-chip">${f.name}<small>${f.proxy}</small></span>`)}</div>
       <p>Weighted by the holdings, that gives the portfolio’s arrow: how much it gains or loses when each factor makes a typical move, one standard deviation of its weekly change. Other factors join only when a portfolio needs them, and the fit is the share of its daily moves the factors explain, on prices the model didn’t see.</p>`],
@@ -71,7 +71,7 @@ function MethodTests({ goTab }) {
         <div className="tile-s">Brier score, lower is better, on ${M_EVALS.oddsMarkets} markets that resolved after Claude’s training data. The markets won, so a market sets the odds wherever one fits.</div></div>
       ${ex && ex.explained_share != null
         ? html`<button className="tile m-tile" onClick=${() => goTab('replay')}><span className="label">Replay · April 2025</span><div className="tile-v">${fmtShare(ex.explained_share)}</div>
-            <div className="tile-s">of the daily factor moves came from the events’ jumps times their odds changes, rerunning the engine evening by evening on archived prices. Right sign on ${ex.big_days_right} of ${ex.big_days} big days.</div></button>`
+            <div className="tile-s">of the daily factor moves came from the events’ jumps times their odds changes, rerunning the engine evening by evening on archived prices. Right sign on ${ex.big_days_right} of ${ex.big_days} big moves.</div></button>`
         : html`<button className="tile m-tile" onClick=${() => goTab('replay')}><span className="label">Replay · April 2025</span><div className="tile-v small">Day by day</div>
             <div className="tile-s">The engine replays the April 2025 tariff shock one evening at a time, seeing only the odds known at each close.</div></button>`}
       <div className="tile m-tile"><span className="label">Error bars · resolved markets</span><div className="tile-v">${pct0(M_EVALS.covered)}</div>

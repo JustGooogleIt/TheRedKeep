@@ -30,6 +30,7 @@ from ..store import Store
 BASE = "https://api.massive.com"
 CONSTITUENTS = f"{BASE}/etf-global/v1/constituents"
 DATE_STEPS = 8
+MAX_PAGES = 100  # 5,000 holdings or 50,000 bars a page: far more than any fund or price history needs
 
 
 class MassiveUnavailable(RuntimeError):
@@ -53,20 +54,32 @@ class Massive:
             raise MassiveUnavailable("MASSIVE_API_KEY is not set")
         return self.http.get_json(url, params, headers=self._headers, ttl=ttl)
 
+    def _pages(self, first: dict, ttl=None):
+        """``first`` and every page after it, by ``next_url``. A page that comes round again stops it with an error:
+        reading on would repeat the same rows without end."""
+        res, seen = first, set()
+        while True:
+            yield res
+            nxt = res.get("next_url")
+            if not nxt:
+                return
+            if nxt in seen or len(seen) >= MAX_PAGES:
+                raise HttpError(nxt, 0, "Massive's pages came round again (or ran past the most expected); stopped "
+                                        "rather than read the same rows again")
+            seen.add(nxt)
+            res = self._get(nxt, ttl=ttl)
+
     def closes(self, ticker: str, start: date, end: date) -> dict[date, float]:
         ttl = None if end < date.today() - timedelta(days=7) else self.ttl
         res = self._get(f"{BASE}/v2/aggs/ticker/{ticker}/range/1/day/{start.isoformat()}/{end.isoformat()}",
                         {"adjusted": "true", "sort": "asc", "limit": 50000}, ttl=ttl)
         out: dict[date, float] = {}
-        while True:
-            for bar in res.get("results") or []:
+        for page in self._pages(res, ttl):
+            for bar in page.get("results") or []:
                 out[datetime.fromtimestamp(bar["t"] / 1000, timezone.utc).date()] = float(bar["c"])
-            nxt = res.get("next_url")
-            if not nxt:
-                if self.store is not None:
-                    self.store.add_closes("massive", ticker, out)
-                return out
-            res = self._get(nxt, ttl=ttl)
+        if self.store is not None:
+            self.store.add_closes("massive", ticker, out)
+        return out
 
     def details(self, ticker: str) -> dict:
         """Name and security type ("CS" for a common stock, "ETF", ...) from the reference data."""
@@ -105,11 +118,7 @@ class Massive:
         params = {"composite_ticker": etf, "effective_date": eff.isoformat(), "sort": "constituent_ticker.asc", "limit": 5000}
         if processed:  # the latest processing known by as_of: a date processed again would repeat every holding
             params["processed_date"] = processed
-        res = self._get(CONSTITUENTS, params, ttl=None)
-        out = list(res.get("results") or [])
-        while res.get("next_url"):
-            res = self._get(res["next_url"], ttl=None)
-            out.extend(res.get("results") or [])
+        out = [r for page in self._pages(self._get(CONSTITUENTS, params, ttl=None)) for r in page.get("results") or []]
         out.sort(key=lambda r: -float(r.get("weight") or 0))
         if self.store is not None:
             self.store.add_holdings(etf, eff, [(r.get("constituent_ticker") or r.get("constituent_name") or "?",

@@ -37,6 +37,16 @@ The metrics are fixed here, before any run (``metrics``):
 * the ranking: at the first evening, the events by swing on stocks, ``|δ_stocks| · √(q (1 − q))``, beside the
   stock move on the day each one resolved.
 
+With Massive's prices, the sample portfolios are scored too (E8's portfolio metric, ``portfolio_moves``). Each is
+taken as it stood at the first evening: its holdings valued at that close, and its arrow ``b`` (% per typical move)
+fitted by the exposure engine on the two years of prices up to it, with ETF holdings as ETF Global had them by then.
+Each day then has the portfolio's own move (its buy-and-hold return from the previous close), the events' move
+``b · Σ_e δ_e Δq_e``, and the factors' move ``b · z``, the arrow times the day's actual factor moves: all the events
+could explain through the factors, since the rest is the portfolio's own noise. The metrics, fixed before the first
+run: the share of the portfolio's daily moves that the events explain, as above, with the correlation and the days
+of the right sign; the same share for the factors' move, the ceiling; and each call, ``(1 − q) · b · δ_total``,
+against the portfolio's move that day.
+
 The AI-only baseline the design names for E8 can't be run on a past episode for the same reason the prior is left
 out; it runs prospectively instead, on events that resolve after the model's training (E9).
 """
@@ -56,8 +66,9 @@ from zoneinfo import ZoneInfo
 
 import numpy as np
 
-from . import factordata
+from . import exposure, factordata
 from .config import DATA_DIR, Settings
+from .data.massive import MassiveUnavailable
 from .engine.fusion import DeltaReading, FusedDelta, fuse_delta
 from .events import EventSpec, LinkSpec, parse_event, parse_links
 from .evidence import analogs, windows
@@ -70,6 +81,7 @@ from .markets import Market, dedupe, from_kalshi_market, from_polymarket_event, 
 from .matching.decide import Candidate, Decision, decide
 from .matching.retrieve import BM25, Retriever, tokenize
 from .pipeline import Clients, _market_json, check_link, finite, history_legs
+from .portfolio import Sample, samples
 
 log = logging.getLogger(__name__)
 Progress = Callable[[str], None]
@@ -456,7 +468,12 @@ def run(s: Settings, c: Clients, ep: Episode, *, progress: Progress = print) -> 
     past = {e.spec.id: analogs.analog_reading(e.spec, fd) for e in ep.events}
     evenings = [evening(T, ep, odds, fd, past, s) for T in [base] + days]
     progress(f"Evenings: {len(evenings)}, from {base} to {days[-1]}")
-    return finite(assemble(ep, s, c, base, days, fd, typical, matched, odds, sources, evenings, warnings, cat.counts))
+    rep = assemble(ep, s, c, base, days, fd, typical, matched, odds, sources, evenings, warnings, cat.counts)
+    rep["portfolios"], more = portfolio_moves(s, c, fd, rep)
+    rep["warnings"] += more
+    if rep["portfolios"]:
+        progress(f"Portfolios: {len(rep['portfolios'])}, as they stood at the close of {base}")
+    return finite(rep)
 
 
 # -- comparing calls with what happened ----------------------------------------------------------------
@@ -600,10 +617,88 @@ def assemble(ep: Episode, s: Settings, c: Clients, base: date, days: list[date],
         "left_out": [
             "The AI prior: the model knows how the episode ended, so its estimates would carry hindsight.",
             "Hyperliquid's weekend windows: its stock, oil and gold perps didn't trade yet.",
-            "Options: event-day volatility and the two-world fit wait for Massive's option chains (M6).",
+            "Options: event-day volatility and the two-world fit aren't built yet (M6).",
         ],
         "warnings": warnings,
     }
+
+
+# -- the sample portfolios (E8's portfolio metric) ---------------------------------------------------------------
+
+
+def _share(y: np.ndarray, x: np.ndarray) -> float | None:
+    """``1 − Σ(y − x)² / Σ y²``: the share of the moves ``y`` that ``x`` accounts for."""
+    ss = float(y @ y)
+    return 1 - float(((y - x) ** 2).sum()) / ss if ss else None
+
+
+def _close_on_or_before(closes: dict[date, float], d: date) -> float | None:
+    ds = sorted(x for x in closes if x <= d)
+    return closes[ds[-1]] if ds and (d - ds[-1]).days <= 5 else None
+
+
+def portfolio_moves(s: Settings, c: Clients, fd: FactorData, rep: dict, *,
+                    picks: dict[str, Sample] | None = None) -> tuple[list[dict], list[str]]:
+    """Each sample portfolio as it stood at the first evening, scored on the episode's days (see the module's
+    docstring). ``rep`` is the assembled replay, before its numbers are made JSON-safe."""
+    if not getattr(c.massive, "available", False):
+        return [], ["No Massive key, so the replay scores the factors and not the sample portfolios."]
+    base = date.fromisoformat(rep["base"])
+    days = [date.fromisoformat(x["d"]) for x in rep["days"]]
+    prev = [base] + days[:-1]
+    expl = np.nan_to_num(np.array([x["explained"] for x in rep["days"]], float))
+    real_z = np.nan_to_num(np.array([x["z"] for x in rep["days"]], float))
+    fdw = window(fd, base, int(365 * s.exposure_years) + 30)  # what `analyze` would have fitted on that evening
+    out, warns = [], []
+    for p in (picks or samples()).values():
+        try:
+            px = exposure.estimate(p.holdings, fdw, c.massive, as_of=base)
+            path = {ln.ticker: c.massive.closes(ln.ticker, base - timedelta(days=10), days[-1]) for ln in px.lines}
+        except (ValueError, HttpError, MassiveUnavailable) as e:
+            warns.append(f"{p.name}: no portfolio moves ({e})")
+            continue
+        def value(d: date) -> float:
+            """The buy-and-hold value at the close of ``d``: each line's shares at the first evening, at that day's price."""
+            total = 0.0
+            for ln in px.lines:
+                price = ln.price if d == base else _close_on_or_before(path[ln.ticker], d)
+                if not ln.price or price is None:
+                    return float("nan")
+                total += ln.value / ln.price * price
+            return total
+
+        v = {d: value(d) for d in [base] + days}
+        real = np.array([(v[d] / v[a] - 1) * 100 for d, a in zip(days, prev)])
+        ev_move, f_move = expl @ px.b, real_z @ px.b
+        ok = np.isfinite(real)
+        y, e, f = real[ok], ev_move[ok], f_move[ok]
+        moved = ok & (ev_move != 0)
+        calls = []
+        for cl in rep["calls"]:
+            pred = cl["pred"] or []
+            if all(x is None for x in pred):
+                continue
+            pp = float(sum(px.b[k] * x for k, x in enumerate(pred) if x is not None))
+            r = real[cl["day"]]
+            calls.append({"event": cl["event"], "date": cl["date"], "q": cl["q"], "pred": pp,
+                          "real": float(r) if np.isfinite(r) else None,
+                          "usd": {"pred": px.value * pp / 100, "real": px.value * r / 100 if np.isfinite(r) else None}})
+        funds = {ln.ticker: ln.holdings_date.isoformat() for ln in px.lines if ln.holdings_date}
+        out.append({
+            "id": p.id, "name": p.name, "who": p.who, "value": px.value, "b": px.b, "fit": px.fit,
+            "lines": [{"ticker": ln.ticker, "weight": ln.weight, "r2_oos": ln.r2_oos, "n_obs": ln.n_obs} for ln in px.lines],
+            "holdings_as_of": funds,
+            "days": [{"d": d.isoformat(), "real": real[i], "events": ev_move[i], "factors": f_move[i]}
+                     for i, d in enumerate(days)],
+            "calls": calls,
+            "metrics": {
+                "days": int(ok.sum()),
+                "events": {"explained_share": _share(y, e), "corr": _corr(e, y), "days_moved": int(moved.sum()),
+                           "right_sign": int((np.sign(real[moved]) == np.sign(ev_move[moved])).sum())},
+                "factors": {"explained_share": _share(y, f), "corr": _corr(f, y)},
+            },
+        })
+    return out, warns
 
 
 # -- files -----------------------------------------------------------------------------------------------

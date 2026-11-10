@@ -299,7 +299,28 @@ function ReplayScore() {
   </section>`;
 }
 
-function ReplayView({ P, tw }) {
+// E8's own metric: a sample portfolio rebuilt as it stood at the close before the episode, with exposures fitted only
+// on the two years before and ETF holdings as known then, scored on its realized daily moves (DESIGN.md section 10).
+function ReplayThen({ sampleId }) {
+  const R = REPLAY, all = R.portfolios || {}, p = sampleId ? all[sampleId] : null;
+  if (!Object.keys(all).length) return null;
+  const base = fmtDate(R.base), m = p && p.metrics, byId = Object.fromEntries(R.events.map(e => [e.id, e]));
+  const share = v => (v != null && v > 0.99 && v < 1 ? '>99%' : fmtShare(v));
+  const call = p ? (p.calls || []).find(c => c.pred != null && c.real != null) : null;
+  const held = m && m.factors.explained_share != null && m.factors.explained_share >= 0.9;
+  return html`<section className="card" aria-labelledby="rp-then-h"><div className="card-head"><div><span className="kicker">The sample portfolios, as they stood then</span><h3 className="h3" id="rp-then-h" style=${{ marginTop: 6 }}>${p ? 'This portfolio, rebuilt as of ' + base : 'Scored as they stood on ' + base}</h3>
+      <p className="sub">The chart above uses today’s exposures. Here a sample portfolio is rebuilt as it stood at the close of ${base}: holdings valued at that close, exposures fitted only on the two years of prices before it, and ETF holdings as they were known then. Nothing from the episode reaches it.</p></div></div>
+    ${p ? html`<div className="tiles">
+        <div className="tile"><span className="label">Factors explain</span><div className="tile-v">${share(m.factors.explained_share)}</div><div className="tile-s">of its daily moves: its exposures times each day’s actual factor moves${held ? ', so the exposures held through the crash and the rebound' : ''}</div></div>
+        <div className="tile"><span className="label">Events explain</span><div className="tile-v">${share(m.events.explained_share)}</div><div className="tile-s">of its daily moves, from each event’s jump times that day’s odds change${m.events.corr == null ? '' : ' · correlation ' + fmtCorr(m.events.corr)}</div></div>
+        <div className="tile"><span className="label">Right sign</span><div className="tile-v">${m.events.right_sign} of ${m.events.days_moved}</div><div className="tile-s">days the events’ move pointed the way the portfolio went</div></div>
+        ${call && html`<div className="tile"><span className="label">${(byId[call.event] || { s: call.event }).s}</span><div className="tile-v small">${fmtPct(call.pred)} <small>vs</small> ${fmtPct(call.real)}</div><div className="tile-s">expected the evening before, at ${fmtOdds(call.q)} odds, against the day: ${fmtUsd(call.pred * p.value / 100, true)} against ${fmtUsd(call.real * p.value / 100, true)} on ${fmtUsd(p.value)}</div></div>`}
+      </div>`
+      : html`<p className="note">Pick one of the sample portfolios to see its score. A portfolio you build or edit has no holdings from then to rebuild.</p>`}
+  </section>`;
+}
+
+function ReplayView({ P, tw, sampleId }) {
   const R = REPLAY, D = R.days.length, V = P.V, engine = REPLAY_SOURCE === 'engine';
   const RC = useMemo(() => replayCompute(P, tw.knock), [P, tw.knock]);
   const [day, setDay] = useState(0); const [play, setPlay] = useState(false);
@@ -357,10 +378,11 @@ function ReplayView({ P, tw }) {
       </tbody></table></div>
       ${summary && html`<p className="note">${summary}</p>`}
     </section>
+    ${engine && html`<${ReplayThen} sampleId=${sampleId} />`}
     ${engine && html`<${ReplayScore} />`}
     <section className="card" aria-labelledby="rp-how-h"><div className="card-head"><div><span className="kicker">Method</span><h3 className="h3" id="rp-how-h" style=${{ marginTop: 6 }}>How this replay was made</h3></div></div>
       ${engine ? html`<${Frag}>
-          <p className="rp-how">Factor moves are daily closes from ${replaySources(R.sources)}. The odds are archived Polymarket and Kalshi prices at each 4 p.m. New York close, from markets the same judge as a refresh matched to each event, as of the evening before the first day. Each evening’s jumps come only from data up to that close: market windows over the previous ${R.lookback || 180} days, fused with each event’s historical analogs. This portfolio’s exposures are today’s, not April 2025’s. Run ${fmtStamp(R.asOf)}.</p>
+          <p className="rp-how">Factor moves are daily closes from ${replaySources(R.sources)}. The odds are archived Polymarket and Kalshi prices at each 4 p.m. New York close, from markets the same judge as a refresh matched to each event, as of the evening before the first day. Each evening’s jumps come only from data up to that close: market windows over the previous ${R.lookback || 180} days, fused with each event’s historical analogs. ${R.portfolios && Object.keys(R.portfolios).length ? 'The chart uses this portfolio’s exposures today, not April 2025’s; the card above scores the sample portfolios as they stood then.' : 'This portfolio’s exposures are today’s, not April 2025’s.'} Run ${fmtStamp(R.asOf)}.</p>
           ${(R.leftOut || []).length > 0 && html`<span className="label rp-how-l">Left out</span><ul className="rp-how-list">${R.leftOut.map(x => html`<li key=${x}>${x}</li>`)}</ul>`}
           ${(R.warnings || []).length > 0 && html`<span className="label rp-how-l">Gaps in the data</span><ul className="rp-how-list">${R.warnings.map(w => html`<li key=${w}>${w}</li>`)}</ul>`}
         <//>`
@@ -570,7 +592,7 @@ function App({ ds, setDs }) {
         <main className="main" id="main">
           ${P.V <= 0 ? html`<${EmptyState} onPick=${loadSample} />`
             : tab === 'analysis' ? html`<${AnalysisView} P=${P} S=${S} sim=${sim} shown=${shown} beyond=${beyond} tw=${tw} setTw=${setTw} hover=${hover} setHover=${setHover} sel=${sel} onOpen=${openEv} whatIf=${whatIf} setWhatIf=${setWhatIf} live=${live} setLive=${setLive} feed=${feed} ripple=${ripple} hasLive=${hasLive} resetLive=${resetLive} />`
-            : html`<${ReplayView} P=${P} tw=${tw} />`}
+            : html`<${ReplayView} P=${P} tw=${tw} sampleId=${sampleId} />`}
         </main>
       </div>`}
     </div>

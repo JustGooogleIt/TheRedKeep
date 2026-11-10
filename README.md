@@ -32,9 +32,9 @@ Events are ranked by that two-way **swing**, not by how scary the headline sound
 ## How it works
 
 1. **See what you really own.** Look through ETFs to the stocks inside, then measure how the portfolio responds to ten macro factors (stocks, rates, inflation, the dollar, oil, credit, fear, China, chips, gold).
-2. **Find the events that matter.** Screen every live Polymarket and Kalshi market with Laya, a small open-source model taught by Claude, and keep the ~100 that could swing this portfolio the most.
+2. **Find the events that matter.** Screen every live Polymarket and Kalshi market with a small model taught by Claude's labels (a words model today; Laya, an open-source decision model, is the planned upgrade), and keep the ~100 that could swing this portfolio the most.
 3. **Match events to markets.** Check each market's wording, threshold and deadline against the event, and say so when nothing fits.
-4. **Let markets check each other.** Odds and impacts come from prediction markets, options, ETF prices in market hours and Hyperliquid's perps on weekends and holidays. A number is "confirmed" only when at least two independent markets agree, and disagreement is shown, not averaged away.
+4. **Let markets check each other.** Odds and impacts come from prediction markets, ETF prices in market hours and Hyperliquid's perps on weekends and holidays, with options next (M6). A number is "confirmed" only when at least two independent markets agree, and disagreement is shown, not averaged away.
 5. **Show it and prove it.** A portfolio builder, a 3D risk map, live analysis and a historical replay, backed by evals against a "just ask an AI" baseline.
 
 ![Architecture](docs/diagrams/architecture.svg)
@@ -43,7 +43,7 @@ Events are ranked by that two-way **swing**, not by how scary the headline sound
 
 ![The prototype's live analysis for the tech-heavy sample portfolio](docs/assets/prototype.png)
 
-A playable prototype on illustrative data. Under the hero image, a short story about the engine lights up word by word over a dragon drawn in crimson numbers, and its fire grows as you scroll. Start from a famous portfolio (Ray Dalio's All Weather, Warren Buffett's 90/10, Harry Browne's Permanent Portfolio, a Yale-style mix) or build your own, see the events that could move it, open any event to see its evidence and a hedge size, and replay the April 2025 tariff shock one day at a time. The Methodology tab explains the engine in a few minutes of plain reading.
+A playable prototype, built with the engine's latest live snapshot: real odds, measured exposures with ETF look-through, and the April 2025 replay as the engine ran it. Under the hero image, a short story about the engine lights up word by word over a dragon drawn in crimson numbers, and its fire grows as you scroll. Start from a famous portfolio (Ray Dalio's All Weather, Warren Buffett's 90/10, Harry Browne's Permanent Portfolio, a Yale-style mix) or build your own, see the events that could move it, open any event to see its evidence and a hedge size, and replay the April 2025 tariff shock one day at a time. The Methodology tab explains the engine in a few minutes of plain reading.
 
 - **Open it.** It's live at [red-keep.vercel.app](https://red-keep.vercel.app), rebuilt from `main` on every merge ([`prototype/vercel.json`](prototype/vercel.json)). The page is static and holds no keys.
 - **Run it.** Clone the repo and open [`prototype/index.html`](prototype/index.html) in a browser. It loads React and fonts from public CDNs, so there is nothing to install.
@@ -61,6 +61,7 @@ cd backend
 uv sync && uv run pytest                  # offline tests: no keys, no network
 uv run redkeep refresh                    # builds the event library from live markets (needs an Anthropic key)
 uv run redkeep analyze --sample allweather  # needs MASSIVE_API_KEY for prices and holdings
+uv run redkeep analyze --holdings "VTI:300000, TLT:400000, NVDA:120sh"   # any portfolio, in dollars or shares
 ```
 
 `redkeep app` turns a snapshot, and any analyses, into data for the prototype, and `node prototype/check.js` then confirms the prototype's model gives the engine's numbers. Without analyses (so without the Massive key), the prototype shows the snapshot's events against its own illustrative portfolios, and says so.
@@ -75,4 +76,4 @@ uv run redkeep analyze --sample allweather  # needs MASSIVE_API_KEY for prices a
 
 ## Status
 
-Design doc v0.3, the playable prototype, and the engine, which runs on live data. Its evals run on live data too, and the [write-up](docs/WRITEUP.md) says what they found. Next: options data (M6) and exposures from Massive, once its key arrives.
+Design doc v0.3, the playable prototype, and the engine, which runs on live data. Its evals run on live data too, and the [write-up](docs/WRITEUP.md) says what they found. Exposures run on Massive's paid key, with look-through to ETF Global's holdings, and the April 2025 replay scores each sample portfolio as it stood the evening before. Next: options (M6), whose chains the same key includes.

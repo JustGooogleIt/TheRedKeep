@@ -476,7 +476,7 @@ def analyze(s: Settings, c: Clients, snap: dict, holdings: list[tuple[str, float
             "holdings": [[t, a, u] for t, a, u in holdings],
             "lines": [{"ticker": l.ticker, "name": l.name, "kind": l.kind, "value": l.value, "weight": l.weight, "b": l.b * scale,
                        "r2_oos": l.r2_oos, "n_obs": l.n_obs, "price": l.price, "price_date": l.price_date,
-                       "holdings": l.holdings, "n_holdings": l.n_holdings, "holdings_date": l.holdings_date,
+                       "holdings": l.holdings, "n_holdings": l.n_holdings, "holdings_date": l.holdings_date, "companies": l.companies,
                        "note": l.note} for l in px.lines],
             "sources": fd.sources, "notes": px.notes,
         },
