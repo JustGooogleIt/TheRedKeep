@@ -9,13 +9,20 @@ function Pipeline({ P, S, sim, tw }) {
   const steps = [
     ['Look through', html`<b>${P.rows.length}</b> holding${P.rows.length === 1 ? '' : 's'} → <b>${P.nUnderlying}</b> companies`, 'Funds are replaced by what they hold, so overlaps add up.' + (P.look.some(o => o.kind === 'fund') ? ' A fund with no holdings data here stays whole.' : '')],
     ['Exposure', html`<b>${NF + P.extras.length}</b> factors · fit <b>${P.fit == null ? '–' : (P.fitMeasured ? '' : '≈') + Math.round(P.fit * 100) + '%'}</b>`, 'Ten core factors, plus extras pulled in only when this portfolio needs them. ' + (P.fitMeasured ? 'The fit is the engine’s, measured on this portfolio.' : 'The fit is estimated from each holding’s own.')],
-    ['Discover', html`<b>${inH.length}</b> events in ${tw.horizon} months`, 'Events that resolve inside your horizon. The real library keeps about 250, tagged from thousands of markets by Laya.'],
+    ['Discover', html`<b>${inH.length}</b> events in ${tw.horizon} months`, discoverNote()],
     ['Match', html`<b>${matched}</b> matched · <b>${inH.length - matched}</b> unpriced`, 'Each event is matched to a prediction market with the same resolution rule, or marked unpriced.'],
     ['Evidence', html`<b>${nT('A')}</b> confirmed · <b>${nT('B')}</b> contested`, evidenceNote()],
     ['Graph', tw.knock ? html`<b>${S.links.length}</b> knock-on links` : html`Knock-ons <b>off</b>`, 'Some events make others likelier. Their effects are added along the links.'],
     ['Simulate', html`<b>${sim.n.toLocaleString('en-US')}</b> runs · ${Math.max(1, Math.round(sim.ms || 0))} ms`, 'Joint scenarios over the event graph, at market odds.'],
   ];
   return html`<ol className="pipe" aria-label="How the engine works">${steps.map(([t, v, tip], i) => html`<li key=${t} className="pipe-step" title=${tip}><span className="label"><span className="pipe-n">${String(i + 1).padStart(2, '0')}</span>${t}</span><span className="pipe-v">${v}</span></li>`)}</ol>`;
+}
+
+/* How the events are found: the design, or what this snapshot holds. A words model taught by Claude's labels is the
+   screen today; Laya, the design's screen, is the planned upgrade (DESIGN.md 6.2). */
+function discoverNote() {
+  if (DATASET !== 'live') return 'Events that resolve inside your horizon. The real library keeps about 250, screened from thousands of markets by a small model taught by Claude’s labels.';
+  return 'Events that resolve inside your horizon. This snapshot holds ' + EVENTS.length + ' hand-picked events. A small model taught by Claude’s labels screens every live market for the ones that matter, and turning its finds into events comes next.';
 }
 
 /* What measures the jumps: the illustrative design, or what this snapshot actually ran. */
