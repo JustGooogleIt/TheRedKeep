@@ -60,6 +60,15 @@ def test_an_unpaced_host_still_backs_off_from_one_second():
     assert slept == [1.0]
 
 
+def test_a_call_limit_gets_more_patience_than_a_failing_server():
+    slept: list[float] = []
+    http = _http([429] * 6 + [200], {}, slept)
+    assert http.get_json("https://example.com/x") == {"results": []}
+    assert slept == [1.0, 2.0, 4.0, 8.0, 16.0, 32.0]
+    with pytest.raises(HttpError):
+        _http([503] * 5 + [200], {}, []).get_json("https://example.com/y")
+
+
 def test_a_key_without_holdings_is_asked_about_them_once():
     calls: list[str] = []
 
@@ -133,3 +142,51 @@ def test_a_request_massive_refuses_is_reported_and_not_sent_again():
         m.constituents("QQQ", date(2026, 11, 6))
     assert m.constituents("SPY", date(2026, 11, 6)) is None
     assert calls == ["/etf-global/v1/constituents"]  # every fund would be refused the same way
+
+
+def test_a_next_page_url_keeps_its_own_query():
+    got: list[str | None] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        got.append(request.url.params.get("cursor"))
+        return httpx.Response(200, json={})
+
+    Http(transport=httpx.MockTransport(handler), sleep=lambda s: None).get_json("https://api.massive.com/x?cursor=abc")
+    assert got == ["abc"]  # an empty params dict once stripped it, so the first page came back forever
+
+
+def test_holdings_over_several_pages_are_read_page_by_page():
+    held = [{"composite_ticker": "VWO", "constituent_ticker": f"T{i:02d}", "constituent_name": f"T{i:02d}",
+             "weight": 0.001 * (i + 1), "effective_date": "2026-10-30", "processed_date": "2026-11-02"} for i in range(12)]
+    cursors: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        q = request.url.params
+        if "cursor" in q:
+            cursors.append(q["cursor"])
+            i = int(q["cursor"])
+        elif q.get("composite_ticker") != "VWO":  # what a lost cursor asks for: every fund's holdings
+            return httpx.Response(400, json={"status": "ERROR", "error": "no fund named"})
+        elif q.get("limit") == "1":  # the steps to the latest effective date
+            return httpx.Response(200, json={"status": "OK", "results": [] if "effective_date.gt" in q else held[:1]})
+        else:
+            i = 0
+        body = {"status": "OK", "results": held[i:i + 5]}
+        if i + 5 < len(held):  # the server pages at five here, whatever the limit asked for
+            body["next_url"] = f"https://api.massive.com/etf-global/v1/constituents?cursor={i + 5}"
+        return httpx.Response(200, json=body)
+
+    m = Massive(Http(transport=httpx.MockTransport(handler), sleep=lambda s: None), "key", ttl=None)
+    eff, rows = m.constituents("VWO", date(2026, 11, 6))
+    assert eff == date(2026, 10, 30) and len(rows) == 12 and cursors == ["5", "10"]
+    assert [r["constituent_ticker"] for r in rows[:2]] == ["T11", "T10"]  # largest first
+
+
+def test_pages_that_come_round_again_stop_with_an_error():
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json={"results": [{"t": 1767225600000, "c": 1.0}],
+                                         "next_url": "https://api.massive.com/v2/aggs/next?cursor=same"})
+
+    m = Massive(Http(transport=httpx.MockTransport(handler), sleep=lambda s: None), "key", ttl=None)
+    with pytest.raises(HttpError, match="came round again"):
+        m.closes("SPY", date(2026, 1, 1), date(2026, 1, 31))

@@ -129,6 +129,15 @@ if (livePath) {
         check('replay: the error bars on stocks are the engine\'s', k > 0 && sGap < 1e-9, k + ' event-days, ' + sGap.toExponential(1) + ' largest gap, in typical moves');
       }
     }
+    // E8's portfolio metric: on each sample's arrow as it stood the evening before the episode, the app's explained
+    // moves are the ones the engine scored that portfolio on.
+    for (const [id, p] of Object.entries(M.LIVE.replay.portfolios || {})) {
+      const arrow = { b: M.FACTORS.map((f, k) => (R.typical[k] == null ? 0 : p.b[k] * f.typical / R.typical[k])) };
+      const RC = M.replayCompute(arrow, true);
+      const pGap = Math.max(0, ...p.days.map((d, i) => Math.abs((RC.expl[i] || 0) - d[1])));
+      check('replay: ' + id + '\'s explained moves, on its arrow of ' + R.base + ', are the engine\'s', p.days.length === R.days.length && pGap < 1e-9,
+        pGap.toExponential(1) + ' largest gap, in % points');
+    }
   }
 
   // The engine's own portfolios: the app's model must reproduce the engine's numbers for each.

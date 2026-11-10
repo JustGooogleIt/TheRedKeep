@@ -25,6 +25,7 @@ log = logging.getLogger(__name__)
 
 USER_AGENT = "TheRedKeep/0.1 (research prototype; read-only)"
 RETRY_STATUS = {408, 409, 425, 429, 500, 502, 503, 504}
+RATE_LIMIT_EXTRA = 2  # more tries for a 429 than for other errors: waits of 16 and 32 seconds on top of 1 to 8
 
 
 class HttpError(RuntimeError):
@@ -109,18 +110,24 @@ class Http:
         if hit is not None:
             return hit
         delay = 1.0
-        for attempt in range(self.max_retries + 1):
+        # A call limit can stay shut for longer than a busy server: Kalshi's answered 429 for over 15 seconds while
+        # two studies read it at once, so 429s get a few more tries, the last after about a minute.
+        tries = self.max_retries + RATE_LIMIT_EXTRA
+        for attempt in range(tries + 1):
             self._pace(url)
             try:
-                r = self.client.request(method, url, params=params, json=json_body, headers=headers)
+                # No params means None, not {}: httpx replaces a URL's own query with the params it is given, so an
+                # empty dict would strip the cursor from a next-page URL and fetch the first page again, forever.
+                r = self.client.request(method, url, params=params or None, json=json_body, headers=headers)
             except httpx.TransportError as e:
-                if attempt == self.max_retries:
+                if attempt >= self.max_retries:
                     raise
                 log.warning("%s %s failed (%s); retrying in %.0fs", method, url, e, delay)
                 self._sleep(delay)
                 delay *= 2
                 continue
-            if r.status_code in RETRY_STATUS and attempt < self.max_retries:
+            limit = self.max_retries if r.status_code != 429 else tries
+            if r.status_code in RETRY_STATUS and attempt < limit:
                 wait = float(r.headers.get("retry-after") or delay)
                 if r.status_code == 429:  # over a call limit: a paced host frees a call one spacing later
                     wait = max(wait, self.min_interval.get(urlsplit(url).hostname or "", 0.0))

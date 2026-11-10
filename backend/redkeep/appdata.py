@@ -209,6 +209,13 @@ def replay_shape(rep: dict) -> dict:
         "metrics": rep["metrics"], "leftOut": rep["left_out"], "warnings": rep["warnings"],
         "missing": [f["key"] for f in rep["factors"] if not f["typical"]],
         "sources": {f["key"]: f["source"] for f in rep["factors"] if f["source"]},
+        # E8's portfolio metric: each sample portfolio as it stood the evening before the episode, by sample id.
+        # Each day is [its own move, the events' move, the factors' move], in % of the portfolio.
+        "portfolios": {p["id"]: {
+            "value": p["value"], "fit": p["fit"], "b": p["b"], "metrics": p["metrics"],
+            "days": [[d["real"], d["events"], d["factors"]] for d in p["days"]],
+            "calls": [{k: c[k] for k in ("event", "date", "q", "pred", "real")} for c in p["calls"]],
+        } for p in rep.get("portfolios") or []},
     }
 
 
@@ -238,6 +245,8 @@ def build(snap: dict, analyses: list[dict], replay: dict | None = None) -> dict:
                 more = (ln.get("n_holdings") or 0) - len(hold)
                 t["rest"] = f"{more} more" if more > 0 else ""
                 t["asOf"] = ln.get("holdings_date")
+            elif ln.get("companies") is False:  # its file is bonds, cash, futures or bullion: one line, as the app shows a bond fund
+                t["line"] = ln["name"] or ln["ticker"]
             tickers[ln["ticker"]] = t
         sm = meta.get(a.get("sample") or "")
         sid = sm.id if sm else _slug(p["name"])

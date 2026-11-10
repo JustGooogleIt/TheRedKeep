@@ -548,6 +548,25 @@ def print_replay(rep: dict) -> None:
     print(f"\nE8: calls had the right sign on {cl['factor_signs_right']} of {cl['factor_signs']} factor moves. "
           f"Explained moves account for {share} of the moves' sum of squares over {ex['cells']} day-factors "
           f"(correlation {corr}), with the right sign on {ex['big_days_right']} of {ex['big_days']} big moves.")
+    if rep.get("portfolios"):
+        print(f"\nThe sample portfolios as they stood at the close of {rep['base']}: the share of their daily moves the "
+              "events explain, and the factors' share (the ceiling)")
+        print(f"  {'':<22} {'events':>7} {'corr':>5} {'sign':>6}  {'factors':>7}   calls: expected / the day")
+        for p in rep["portfolios"]:
+            m = p["metrics"]
+            ev, fa = m["events"], m["factors"]
+            calls = "; ".join(f"{names.get(c['event'], c['event'])} {c['pred']:+.1f}% / "
+                              + ("n/a" if c["real"] is None else f"{c['real']:+.1f}%") for c in p["calls"])
+            print(f"  {p['name']:<22} {_pc(ev['explained_share']):>7} {_num(ev['corr']):>5} "
+                  f"{ev['right_sign']:>2}/{ev['days_moved']:<3}  {_pc(fa['explained_share']):>7}   {calls}")
+
+
+def _pc(x) -> str:
+    return "n/a" if x is None else f"{x * 100:.0f}%"
+
+
+def _num(x) -> str:
+    return "n/a" if x is None else f"{x:.2f}"
 
 
 def eq_i(rep: dict) -> int:

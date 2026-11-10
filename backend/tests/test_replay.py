@@ -429,3 +429,74 @@ def episode_path(tmp_path):
     p = tmp_path / "synthetic.toml"
     p.write_text(EPISODE)
     return p
+
+
+class FundMassive:
+    """Massive serving the closes of made-up funds, without their holdings."""
+    available = True
+
+    def __init__(self, closes):
+        self.px = closes
+
+    def closes(self, ticker, start, end):
+        return {d: v for d, v in self.px[ticker].items() if start <= d <= end}
+
+    def details(self, ticker):
+        return {"name": ticker, "type": "ETF"}
+
+    def constituents(self, ticker, as_of):
+        return None
+
+
+def fund_scores(rep, closes):
+    """The replay's portfolio scores for one fund holding $1M of ``closes``."""
+    from redkeep.portfolio import Sample
+
+    levels, _ = build_world()
+    fd = factordata.build({k: v for k, v in levels.items() if k in PROXY.values()})
+    fd = replace(fd, typical=np.array([np.nan if t is None else t for t in rep["typical"]], float))
+    c = Clients(None, None, None, FundMassive({"FND": closes}), None, None)
+    picks = {"f": Sample("f", "Fund", "", "", [("FND", 1_000_000.0, "usd")])}
+    ports, warns = replay.portfolio_moves(Settings(), c, fd, rep, picks=picks)
+    assert not warns
+    return fd, ports[0]
+
+
+def fund(fd, b_true, noise=0.05, seed=2):
+    from .synth import fund_closes
+
+    return fund_closes(fd, b_true, noise=noise, seed=seed)
+
+
+def test_portfolios_are_scored_with_exposures_from_before_the_episode(rep):
+    b_true = np.zeros(10)
+    b_true[index("eq")], b_true[index("rates")] = 0.9, -0.4
+    levels, _ = build_world()
+    fd0 = factordata.build({k: v for k, v in levels.items() if k in PROXY.values()})
+    fd0 = replace(fd0, typical=np.array([np.nan if t is None else t for t in rep["typical"]], float))
+    closes = fund(fd0, b_true)
+    fd, p = fund_scores(rep, closes)
+    assert p["b"][index("eq")] == pytest.approx(0.9, abs=0.05)
+    assert p["b"][index("rates")] == pytest.approx(-0.4, abs=0.05)
+    b = np.asarray(p["b"])
+    for day, d in zip(p["days"], rep["days"]):
+        assert day["events"] == pytest.approx(float(np.nan_to_num(np.array(d["explained"], float)) @ b))
+    # The fund's moves are its arrow times the factor moves, plus a little noise: the factors account for nearly all.
+    assert p["metrics"]["factors"]["explained_share"] > 0.9
+    assert p["metrics"]["days"] == len(rep["days"])
+    made = [c for c in rep["calls"] if any(x is not None for x in c["pred"])]
+    assert made and [c["event"] for c in p["calls"]] == [c["event"] for c in made]
+    for mine, call in zip(p["calls"], made):
+        assert mine["pred"] == pytest.approx(sum(b[k] * x for k, x in enumerate(call["pred"]) if x is not None))
+        assert mine["real"] == pytest.approx(p["days"][call["day"]]["real"])
+        assert mine["usd"]["pred"] == pytest.approx(1_000_000.0 * mine["pred"] / 100, rel=1e-3)
+    # Nothing after the first evening reaches the arrow: rewrite every later price and it stays put.
+    later = {d: (v if d <= BASE else v * (1 + 0.3 * np.sin(d.toordinal()))) for d, v in closes.items()}
+    _, q = fund_scores(rep, later)
+    assert np.allclose(q["b"], p["b"])
+    assert q["days"][0]["real"] != pytest.approx(p["days"][0]["real"])
+
+
+def test_without_massive_the_replay_scores_factors_only(rep):
+    assert rep["portfolios"] == []
+    assert any("not the sample portfolios" in w for w in rep["warnings"])
