@@ -44,7 +44,7 @@
   --f-body: "Geist", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --f-mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   --r1: 4px; --r2: 8px; --r3: 10px;
-  --gap: 16px; --pad: 20px;
+  --gap: 20px; --pad: 24px;
   --nav-h: 64px;
 }
 @media (prefers-color-scheme: dark) {
@@ -106,7 +106,7 @@ a { color: var(--accent); }
 .display { font-family: var(--f-display); font-weight: 400; letter-spacing: -.015em; text-wrap: balance; }
 .h2 { font-family: var(--f-display); font-weight: 400; font-size: 25px; line-height: 1.18; margin: 0; letter-spacing: -.01em; text-wrap: balance; }
 .h3 { font-family: var(--f-display); font-weight: 400; font-size: 20px; line-height: 1.25; margin: 0; letter-spacing: -.01em; text-wrap: balance; }
-.sub { color: var(--ink-3); font-size: 13px; line-height: 1.5; margin: 4px 0 0; max-width: 68ch; }
+.sub { color: var(--ink-2); font-size: 13.5px; line-height: 1.6; margin: 8px 0 0; max-width: 68ch; }
 .neg { color: var(--loss); }
 .pos { color: var(--gain); }
 .faint { color: var(--ink-3); opacity: .7; }
@@ -168,6 +168,10 @@ a { color: var(--accent); }
 .nav-live { display: inline-flex; align-items: center; gap: 8px; font: 500 14px/1 var(--f-mono); letter-spacing: -.02em; color: inherit; background: none; border: 0; padding: 9px 12px; border-radius: var(--r1); cursor: pointer; opacity: .85; white-space: nowrap; }
 .nav-live:hover, .nav-live.on { opacity: 1; }
 .nav:not(.scrolled) .nav-live.on > .dot-live { background: var(--accent-hi); }
+/* Three tabs and the live-odds switch fit in full down to about 960px. Below that the tabs take their
+   short names, and below 820px the switch leaves the nav (the overnight card keeps its own). */
+@media (max-width: 960px) { .t-long { display: none; } .t-short { display: inline; } }
+@media (max-width: 820px) { .nav-live { display: none; } }
 
 /* ---------- hero: full-bleed image, centred copy at the foot ---------- */
 .hero { position: relative; margin-top: calc(-1 * var(--nav-h)); height: clamp(540px, 86vh, 820px); background: #1A0B0D; color: #FFFFFF; overflow: hidden; display: flex; align-items: flex-end; justify-content: center; }
@@ -253,14 +257,15 @@ a { color: var(--accent); }
 .heading-xl { font-family: var(--f-display); font-weight: 400; font-size: clamp(30px, 3.4vw, 40px); line-height: 1.2; letter-spacing: -.01em; color: var(--ink-2); margin: 0; text-wrap: balance; }
 .heading-xl .accent { color: var(--accent); }
 .intro-sub { font-size: 16px; line-height: 1.6; color: var(--ink-2); margin: 14px auto 0; max-width: 62ch; text-wrap: pretty; }
+.intro-link { margin-top: 16px; font: 600 13px/1.2 var(--f-mono); letter-spacing: -.02em; }
 
-.layout { display: grid; grid-template-columns: 360px minmax(0, 1fr); gap: 20px; align-items: start; padding-bottom: 64px; }
+.layout { display: grid; grid-template-columns: 372px minmax(0, 1fr); gap: 24px; align-items: start; padding-bottom: 72px; }
 .side { position: sticky; top: calc(env(safe-area-inset-top, 0px) + var(--nav-h) + 12px); max-height: calc(100vh - var(--nav-h) - 24px); overflow: auto; display: flex; flex-direction: column; gap: var(--gap); scrollbar-width: thin; padding-bottom: 4px; }
 .main { min-width: 0; display: flex; flex-direction: column; gap: var(--gap); container-type: inline-size; }
 @media (max-width: 1100px) { .layout { grid-template-columns: minmax(0, 1fr); } .side { position: static; max-height: none; overflow: visible; } }
 
 .card { background: var(--surface); border: 1px solid var(--card-line); border-radius: var(--r1); padding: var(--pad); min-width: 0; }
-.card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px 14px; margin-bottom: 16px; flex-wrap: wrap; }
+.card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px 16px; margin-bottom: 20px; flex-wrap: wrap; }
 .card-head > div:first-child { min-width: 0; flex: 1 1 240px; }
 .duo { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--gap); align-items: start; }
 @container (min-width: 980px) {
@@ -273,19 +278,19 @@ a { color: var(--accent); }
 .side-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; }
 .side-total { text-align: right; }
 .num-lg { display: block; font-family: var(--f-display); font-size: 27px; line-height: 1.1; margin-top: 4px; font-variant-numeric: tabular-nums; }
-.samples { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 16px; }
-.sample { border: 1px solid var(--line-2); background: var(--surface); border-radius: var(--r1); padding: 7px 10px; cursor: pointer; text-align: left; line-height: 1.2; transition: border-color .15s, background .15s; }
+.samples { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+.sample { border: 1px solid var(--line-2); background: var(--surface); border-radius: var(--r1); padding: 8px 12px; cursor: pointer; text-align: left; line-height: 1.2; transition: border-color .15s, background .15s; }
 .sample:hover { border-color: var(--ink-3); }
 .sample.on { border-color: var(--accent); background: var(--accent-soft); }
 .sample b { display: block; font-weight: 500; font-size: 13px; }
-.sample span { display: block; font: 500 10.5px/1.3 var(--f-mono); letter-spacing: -.01em; color: var(--ink-3); margin-top: 3px; }
-.sample-note { font-size: 12.5px; color: var(--ink-3); margin: 10px 0 0; line-height: 1.5; }
+.sample span { display: block; font: 500 10.5px/1.3 var(--f-mono); letter-spacing: -.01em; color: var(--ink-3); margin-top: 4px; }
+.sample-note { font-size: 13px; color: var(--ink-2); margin: 14px 0 0; line-height: 1.55; }
 
-.holds { margin-top: 14px; border-top: 1px solid var(--line); }
-.hold { display: grid; grid-template-columns: minmax(0, 1fr) 118px 62px 22px; gap: 8px; align-items: center; padding: 9px 0; border-bottom: 1px solid var(--line); }
+.holds { margin-top: 18px; border-top: 1px solid var(--line); }
+.hold { display: grid; grid-template-columns: minmax(0, 1fr) 118px 62px 22px; gap: 8px; align-items: center; padding: 11px 0; border-bottom: 1px solid var(--line); }
 .hold-tk { min-width: 0; }
 .tk { font-family: var(--f-mono); font-weight: 600; font-size: 12.5px; letter-spacing: 0; }
-.tk-name { display: block; font-size: 11.5px; color: var(--ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tk-name { display: block; font-size: 11.5px; color: var(--ink-3); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .amt-box { display: flex; align-items: center; border: 1px solid var(--line-2); border-radius: var(--r1); background: var(--surface); }
 .amt-box:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
 .amt-box input { width: 100%; min-width: 0; border: 0; background: none; padding: 6px 4px 6px 8px; font: 500 12.5px var(--f-mono); text-align: right; }
@@ -298,7 +303,7 @@ a { color: var(--accent); }
 .x { width: 24px; height: 24px; border-radius: var(--r1); border: 0; background: none; color: var(--ink-3); cursor: pointer; font-size: 17px; line-height: 1; flex: none; }
 .x:hover { background: var(--sunk); color: var(--ink); }
 
-.add { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; margin-top: 12px; }
+.add { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; margin-top: 16px; }
 .add .ac { position: relative; }
 .add-row2 { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 8px; }
 .ac-list { position: absolute; z-index: 5; left: 0; right: 0; top: calc(100% + 6px); list-style: none; margin: 0; padding: 4px; background: var(--surface); border: 1px solid var(--card-line); border-radius: var(--r3); box-shadow: var(--shadow-panel); }
@@ -307,54 +312,58 @@ a { color: var(--accent); }
 .ac-name { font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ac-px { font-size: 11px; color: var(--ink-3); }
 .hint { margin: 0; font-size: 12.5px; color: var(--ink-3); }
-.universe { margin-top: 12px; font-size: 12.5px; color: var(--ink-3); }
+.universe { margin-top: 16px; font-size: 12.5px; color: var(--ink-3); }
 .universe summary { cursor: pointer; }
 .universe p { margin: 6px 0 0; font-family: var(--f-mono); font-size: 11px; line-height: 1.7; word-spacing: 4px; }
 
-.lt-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.lt-list { list-style: none; margin: 0; padding: 0; }
+.lt-list > li { padding: 13px 0; border-top: 1px solid var(--line); }
+.lt-list > li:first-child { border-top: 0; padding-top: 0; }
+.lt-list > li:last-child { padding-bottom: 0; }
 .lt-top { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
 .lt-top .tk { flex: 0 0 auto; }
 .lt-name { min-width: 0; flex: 1; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .lt-w { font-size: 12px; }
-.bar { height: 4px; background: var(--sunk); border-radius: 2px; margin-top: 5px; overflow: hidden; }
+.bar { height: 4px; background: var(--sunk); border-radius: 2px; margin-top: 8px; overflow: hidden; }
 .bar i { display: block; height: 100%; background: var(--ink-2); border-radius: 2px; }
-.lt-via { font-size: 10.5px; color: var(--ink-3); margin-top: 4px; }
+.lt-via { font-size: 11px; line-height: 1.45; color: var(--ink-3); margin-top: 7px; }
 
-.exp-row { display: grid; grid-template-columns: 116px minmax(0, 1fr) 56px; gap: 8px; align-items: center; padding: 3px 0; }
+.exp-row { display: grid; grid-template-columns: 116px minmax(0, 1fr) 56px; gap: 8px; align-items: center; padding: 5px 0; }
 .exp-name { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .exp-bar { position: relative; height: 10px; }
 .exp-bar::before { content: ""; position: absolute; left: 50%; top: -3px; bottom: -3px; width: 1px; background: var(--line-2); }
 .exp-bar i { position: absolute; top: 2px; height: 6px; border-radius: 2px; background: var(--ink-2); }
 .exp-bar i.neg { background: var(--ink-3); }
 .exp-v { text-align: right; font-size: 11.5px; }
-.fit { display: flex; align-items: center; gap: 12px; margin-top: 16px; padding: 12px 14px; background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r1); }
+.fit { display: flex; align-items: center; gap: 14px; margin-top: 20px; padding: 14px 16px; background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r1); }
 .fit-v { font-family: var(--f-display); font-size: 24px; line-height: 1; }
-.fit p { margin: 0; font-size: 12px; color: var(--ink-3); line-height: 1.45; }
-.exp-note { margin: 12px 0 0; font-size: 12px; color: var(--ink-3); line-height: 1.45; }
+.fit p { margin: 0; font-size: 12.5px; color: var(--ink-2); line-height: 1.5; }
+.exp-note { margin: 16px 0 0; font-size: 12.5px; color: var(--ink-3); line-height: 1.55; }
 .pill-demo { margin-left: 8px; vertical-align: 1px; }
 
 /* ---------- engine column ---------- */
 .pipe { list-style: none; margin: 0; padding: 0; display: flex; overflow-x: auto; background: var(--band); color: var(--band-ink); border: 1px solid var(--card-line); border-radius: var(--r1); scrollbar-width: thin; }
-.pipe-step { flex: 1 0 136px; padding: 14px 16px 15px; border-right: 1px solid var(--band-line); min-width: 0; }
+.pipe-step { flex: 1 0 136px; padding: 16px 18px 17px; border-right: 1px solid var(--band-line); min-width: 0; }
 .pipe-step:last-child { border-right: 0; }
 .pipe .label { color: var(--band-ink-3); }
 .pipe-n { color: var(--accent-hi); margin-right: 4px; }
-.pipe-v { display: block; font-size: 13px; line-height: 1.4; margin-top: 6px; color: var(--band-ink-2); }
+.pipe-v { display: block; font-size: 13px; line-height: 1.45; margin-top: 8px; color: var(--band-ink-2); }
 .pipe-v b { font-weight: 600; color: var(--band-ink); font-variant-numeric: tabular-nums; }
 
 .whatif { display: flex; align-items: center; gap: 12px 16px; flex-wrap: wrap; padding: 12px 16px; border: 1px solid var(--accent-line); background: var(--accent-soft); border-radius: var(--r1); }
 .whatif p { margin: 0; flex: 1 1 320px; font-size: 13.5px; }
 
-.tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--gap); }
 @container (max-width: 820px) { .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-.tile { background: var(--surface); border: 1px solid var(--card-line); border-radius: var(--r1); padding: 16px 18px; min-width: 0; text-align: left; color: inherit; font: inherit; }
+.tile { background: var(--surface); border: 1px solid var(--card-line); border-radius: var(--r1); padding: 18px 20px; min-width: 0; text-align: left; color: inherit; font: inherit; }
+.tile > .label { display: block; }
 button.tile { display: flex; flex-direction: column; align-items: stretch; justify-content: flex-start; width: 100%; cursor: pointer; position: relative; transition: box-shadow .15s; }
 button.tile:hover { box-shadow: var(--shadow-panel); }
-button.tile::after { content: "→"; position: absolute; top: 14px; right: 16px; font: 500 13px var(--f-mono); color: var(--accent); }
-.tile-v { font-family: var(--f-display); font-size: 30px; line-height: 1.1; margin-top: 10px; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+button.tile::after { content: "→"; position: absolute; top: 16px; right: 18px; font: 500 13px var(--f-mono); color: var(--accent); }
+.tile-v { font-family: var(--f-display); font-size: 30px; line-height: 1.1; margin-top: 12px; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .tile-v.small { font-size: 21px; white-space: normal; line-height: 1.2; }
-.tile-s { font-size: 12.5px; color: var(--ink-3); margin-top: 6px; line-height: 1.45; }
-.mix { display: flex; height: 6px; border-radius: 3px; overflow: hidden; margin-top: 10px; gap: 2px; }
+.tile-s { font-size: 13px; color: var(--ink-2); margin-top: 10px; line-height: 1.5; }
+.mix { display: flex; height: 6px; border-radius: 3px; overflow: hidden; margin-top: 12px; gap: 2px; }
 .mix i { display: block; height: 100%; }
 
 .map-wrap { position: relative; height: 440px; border-radius: var(--r1); background: var(--surface-2); border: 1px solid var(--line); overflow: hidden; }
@@ -366,7 +375,7 @@ button.tile::after { content: "→"; position: absolute; top: 14px; right: 16px;
 .map-tools { position: absolute; right: 10px; bottom: 10px; display: flex; gap: 6px; }
 .map-tools .btn-ghost { background: var(--surface); padding: 6px 10px; font-size: 12px; }
 .map-hint { position: absolute; left: 12px; bottom: 12px; font: 500 10px/1.3 var(--f-mono); letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3); pointer-events: none; }
-.legend { display: flex; flex-wrap: wrap; gap: 8px 16px; margin-top: 12px; font-size: 12.5px; color: var(--ink-3); align-items: center; }
+.legend { display: flex; flex-wrap: wrap; gap: 10px 20px; margin-top: 16px; font-size: 12.5px; color: var(--ink-2); align-items: center; }
 .legend .sw { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: -1px; }
 .legend .arrow { display: inline-block; width: 18px; height: 2px; background: var(--accent); margin-right: 8px; vertical-align: 3px; position: relative; }
 .legend .arrow::after { content: ""; position: absolute; right: -2px; top: -3px; border: 4px solid transparent; border-left: 6px solid var(--accent); border-right: 0; }
@@ -381,28 +390,42 @@ button.tile::after { content: "→"; position: absolute; top: 14px; right: 16px;
 .lbl.on { fill: var(--ink); font-weight: 600; }
 
 .list-card { container-type: inline-size; }
-.ev-head, .ev-row { display: grid; grid-template-columns: 18px minmax(0, 1fr) 46px 84px 74px 22px; gap: 10px; align-items: center; }
-.ev-head { padding: 0 6px 8px; }
-.ev-head .r { text-align: right; }
-.ev-c-no { display: none; }
+.ev-head, .ev-row { display: grid; grid-template-columns: 22px repeat(3, minmax(0, 1fr)) 24px; gap: 10px 12px; align-items: center; }
+/* Narrower than 640px (phones, and the column beside the map), each event takes two lines: the title
+   across the width, its numbers underneath, so a long title never shrinks to a word per line. */
+.ev-rank { grid-area: 1 / 1; align-self: start; padding-top: 2px; }
+.ev-main { grid-area: 1 / 2 / 2 / 5; }
+.ev-c-tier { grid-area: 1 / 5; align-self: start; justify-self: end; }
+.ev-c-odds { grid-area: 2 / 2; }
+.ev-c-yes { grid-area: 2 / 3; }
+.ev-c-sw { grid-area: 2 / 4; }
+/* :where keeps this as weak as the wide layout's reset below, so the reset wins there. */
+.ev-head > :where(.ev-c-odds, .ev-c-yes, .ev-c-sw) { grid-row: 1; }
+.ev-c-no, .ev-h-wide { display: none; }
+.ev-head { padding: 0 6px 10px; }
+.ev-row .cell { text-align: left; }
+.ev-row .oddsbar { max-width: 56px; }
 @container (min-width: 640px) {
-  .ev-head, .ev-row { grid-template-columns: 18px minmax(0, 1fr) 52px 92px 84px 80px 108px; }
-  .ev-c-no { display: block; }
-  .tier span { display: inline; }
+  .ev-head, .ev-row { grid-template-columns: 18px minmax(0, 1fr) 52px 92px 84px 80px 108px; gap: 10px; }
+  .ev-head > *, .ev-row > * { grid-area: auto; align-self: center; justify-self: stretch; padding-top: 0; }
+  .ev-c-no, .ev-h-wide { display: block; }
+  .ev-row .cell, .ev-head > .ev-c-odds, .ev-head > .ev-c-yes, .ev-head > .ev-c-no, .ev-head > .ev-c-sw { text-align: right; }
+  .ev-row .oddsbar { max-width: none; }
+  .ev-row .tier span { display: inline; }
 }
 .ev-list { list-style: none; margin: 0; padding: 0; }
-.ev-row { width: 100%; text-align: left; background: none; border: 0; border-top: 1px solid var(--line); padding: 11px 6px; cursor: pointer; border-radius: 0; color: inherit; }
+.ev-row { width: 100%; text-align: left; background: none; border: 0; border-top: 1px solid var(--line); padding: 14px 6px; cursor: pointer; border-radius: 0; color: inherit; }
 .ev-row:hover, .ev-row.hov { background: var(--surface-2); }
 .ev-row.sel { background: var(--accent-soft); box-shadow: inset 2px 0 0 var(--accent); }
 .ev-rank { font-size: 11px; color: var(--ink-3); }
 .ev-main { min-width: 0; }
 .ev-title { display: block; font-weight: 500; line-height: 1.3; }
-.ev-meta { display: block; font-size: 10.5px; color: var(--ink-3); margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ev-meta { display: block; font-size: 10.5px; color: var(--ink-3); margin-top: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .cell { text-align: right; line-height: 1.25; font-family: var(--f-mono); font-variant-numeric: tabular-nums; font-size: 12.5px; }
 .cell small { display: block; font-size: 10.5px; color: var(--ink-3); margin-top: 2px; }
-.oddsbar { display: block; height: 3px; background: var(--sunk); border-radius: 2px; margin-top: 5px; overflow: hidden; }
+.oddsbar { display: block; height: 3px; background: var(--sunk); border-radius: 2px; margin-top: 6px; overflow: hidden; }
 .oddsbar i { display: block; height: 100%; background: var(--ink-2); }
-.list-foot { margin: 12px 6px 0; }
+.list-foot { margin: 16px 6px 0; }
 
 .tier { display: inline-flex; align-items: center; gap: 7px; font: 500 11px/1 var(--f-mono); color: var(--ink-2); white-space: nowrap; }
 .tier b { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: var(--r1); font-weight: 600; font-size: 11px; }
@@ -414,21 +437,25 @@ button.tile::after { content: "→"; position: absolute; top: 14px; right: 16px;
 .tD b { border: 1.5px dashed var(--tD); color: var(--ink-3); }
 
 .hist svg { width: 100%; height: auto; display: block; }
-.stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-top: 14px; align-items: end; }
+.stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px 14px; margin-top: 20px; align-items: end; }
 @container (max-width: 560px) { .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-.stat .v { display: block; font: 500 15px var(--f-mono); margin-top: 4px; font-variant-numeric: tabular-nums; }
-.drivers { list-style: none; margin: 16px 0 0; padding: 16px 0 0; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 10px; }
-.drivers li { font-size: 13px; }
-.drv-bars { display: grid; grid-template-columns: 1fr; gap: 3px; margin-top: 6px; }
+.stat .v { display: block; font: 500 15px var(--f-mono); margin-top: 6px; font-variant-numeric: tabular-nums; }
+.drivers { list-style: none; margin: 22px 0 0; padding: 20px 0 0; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 18px; }
+.drivers li { font-size: 13.5px; line-height: 1.5; }
+.drv-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 16px; }
+.drv-key { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--ink-3); }
+.drv-key i { display: inline-block; width: 14px; height: 5px; border-radius: 3px; }
+.drv-key i + span { margin-right: 8px; }
+.drv-bars { display: grid; grid-template-columns: 1fr; gap: 4px; margin-top: 8px; }
 .drv-bar { height: 5px; background: var(--sunk); border-radius: 3px; overflow: hidden; }
 .drv-bar i { display: block; height: 100%; border-radius: 3px; }
-.note { font-size: 13px; color: var(--ink-2); background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r1); padding: 11px 13px; margin: 14px 0 0; line-height: 1.5; }
+.note { font-size: 13px; color: var(--ink-2); background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r1); padding: 12px 14px; margin: 18px 0 0; line-height: 1.55; }
 
 .feed { list-style: none; margin: 0; padding: 0; }
-.feed li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 12px; padding: 10px 0; border-top: 1px solid var(--line); }
+.feed li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 5px 12px; padding: 13px 0; border-top: 1px solid var(--line); }
 .feed li:first-child { border-top: 0; }
 .feed .f-t { font-weight: 500; font-size: 13px; }
-.feed .f-m { grid-column: 1 / -1; font-size: 11px; color: var(--ink-3); font-family: var(--f-mono); }
+.feed .f-m { grid-column: 1 / -1; font-size: 11.5px; color: var(--ink-3); font-family: var(--f-mono); }
 .feed .f-v { font: 500 12.5px var(--f-mono); text-align: right; }
 
 .empty { text-align: left; padding: 36px; }
@@ -443,66 +470,66 @@ button.tile::after { content: "→"; position: absolute; top: 14px; right: 16px;
 .dr-head { padding: 12px 14px 12px 22px; border-bottom: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .dr-body { overflow: auto; overscroll-behavior: contain; padding: 6px 24px 32px; flex: 1; }
 .dr-title { font-size: 30px; line-height: 1.12; margin: 16px 0 12px; }
-.dr-sec { padding-block: 22px; border-top: 1px solid var(--line); }
+.dr-sec { padding-block: 26px; border-top: 1px solid var(--line); }
 .dr-sec:first-of-type { border-top: 0; }
-.dr-sec > .label { display: block; margin-bottom: 12px; font: 600 12.5px/1.3 var(--f-mono); letter-spacing: -.01em; text-transform: none; color: var(--ink-3); }
-.tierline { display: flex; gap: 10px; align-items: flex-start; font-size: 13px; color: var(--ink-2); }
+.dr-sec > .label { display: block; margin-bottom: 14px; font: 600 12.5px/1.3 var(--f-mono); letter-spacing: -.01em; text-transform: none; color: var(--ink-3); }
+.tierline { display: flex; gap: 12px; align-items: flex-start; font-size: 13.5px; line-height: 1.55; color: var(--ink-2); }
 .tierline p { margin: 0; }
-.three { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.three { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
 .three .v { display: block; font-family: var(--f-display); font-size: 26px; line-height: 1.1; margin-top: 6px; font-variant-numeric: tabular-nums; }
 .three .s { display: block; font: 400 11.5px var(--f-mono); color: var(--ink-3); margin-top: 4px; }
-.formula { font: 400 12px/1.65 var(--f-mono); color: var(--ink-2); background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r1); padding: 10px 12px; margin-top: 14px; overflow-x: auto; white-space: nowrap; }
+.formula { font: 400 12px/1.65 var(--f-mono); color: var(--ink-2); background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r1); padding: 11px 13px; margin-top: 16px; overflow-x: auto; white-space: nowrap; }
 .split svg { width: 100%; height: auto; display: block; margin-top: 16px; }
-.btnrow { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+.btnrow { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
 .odds-big { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
 .odds-big .v { font-family: var(--f-display); font-size: 36px; line-height: 1; }
 .venues { list-style: none; margin: 12px 0 0; padding: 0; }
-.venues li { display: flex; justify-content: space-between; gap: 12px; padding: 7px 0; border-top: 1px solid var(--line); font-size: 13px; }
+.venues li { display: flex; justify-content: space-between; gap: 12px; padding: 9px 0; border-top: 1px solid var(--line); font-size: 13px; }
 .venues li span:last-child { font-family: var(--f-mono); }
 .spark svg { width: 100%; height: auto; display: block; margin-top: 12px; }
 .quote { margin: 12px 0 0; padding: 10px 13px; border-left: 2px solid var(--accent); background: var(--surface-2); font-size: 13px; color: var(--ink-2); border-radius: 0 var(--r1) var(--r1) 0; }
 .quote b { color: var(--ink); font-weight: 500; }
 .cmp { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 12.5px; }
 .cmp th { text-align: left; font: 500 10px/1.2 var(--f-mono); letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3); padding: 0 8px 6px 0; }
-.cmp td { padding: 7px 8px 7px 0; border-top: 1px solid var(--line); vertical-align: top; }
+.cmp td { padding: 9px 10px 9px 0; border-top: 1px solid var(--line); vertical-align: top; }
 .cmp td:last-child { width: 20px; text-align: right; padding-right: 0; }
 .mk { font: 600 12px var(--f-mono); }
 .mk.ok { color: var(--gain); } .mk.mid { color: var(--ink-3); } .mk.bad { color: var(--loss); }
 .scorebar { display: inline-block; width: 70px; height: 5px; border-radius: 3px; background: var(--sunk); overflow: hidden; vertical-align: 1px; margin-left: 6px; }
 .scorebar i { display: block; height: 100%; background: var(--accent); }
-.miss { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
-.miss li { font-size: 12.5px; padding: 10px 12px; border: 1px dashed var(--line-2); border-radius: var(--r1); }
+.miss { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.miss li { font-size: 12.5px; line-height: 1.5; padding: 11px 13px; border: 1px dashed var(--line-2); border-radius: var(--r1); }
 .miss li b { font-weight: 500; display: block; margin: 2px 0 3px; }
 .miss li span { color: var(--ink-3); }
-.ev-src { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) 58px; gap: 4px 10px; align-items: center; }
+.ev-src { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) 58px; gap: 8px 12px; align-items: center; }
 .ev-src .nm { font-size: 12.5px; line-height: 1.3; padding: 6px 0; }
-.ev-src .nm small { display: block; color: var(--ink-3); font-size: 11px; }
+.ev-src .nm small { display: block; color: var(--ink-3); font-size: 11px; line-height: 1.45; margin-top: 2px; }
 .ev-src .vv { font: 500 12px var(--f-mono); text-align: right; }
 .ev-src svg { width: 100%; height: 22px; display: block; overflow: visible; }
-.verdict { display: flex; gap: 10px; align-items: flex-start; margin-top: 14px; font-size: 13px; padding: 11px 13px; border-radius: var(--r1); background: var(--surface-2); border: 1px solid var(--line); }
+.verdict { display: flex; gap: 10px; align-items: flex-start; margin-top: 16px; font-size: 13px; line-height: 1.55; padding: 12px 14px; border-radius: var(--r1); background: var(--surface-2); border: 1px solid var(--line); }
 .verdict p { margin: 0; }
-.contrib { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 56px; gap: 6px 10px; align-items: center; font-size: 12.5px; }
-.contrib .why2 { font: 400 10.5px var(--f-mono); color: var(--ink-3); display: block; }
+.contrib { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 56px; gap: 12px; align-items: center; font-size: 12.5px; }
+.contrib .why2 { font: 400 10.5px/1.4 var(--f-mono); color: var(--ink-3); display: block; margin-top: 2px; }
 .cbar { position: relative; height: 8px; }
 .cbar::before { content: ""; position: absolute; left: 50%; top: -3px; bottom: -3px; width: 1px; background: var(--line-2); }
 .cbar i { position: absolute; top: 1px; height: 6px; border-radius: 2px; background: var(--gain); }
 .cbar i.neg { background: var(--loss); }
-.knock { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
-.knock li { font-size: 13px; padding: 11px 13px; background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r1); }
+.knock { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.knock li { font-size: 13px; line-height: 1.55; padding: 12px 14px; background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r1); }
 .knock li button { background: none; border: 0; padding: 0; font: inherit; color: inherit; cursor: pointer; font-weight: 500; text-decoration: underline; text-decoration-color: var(--line-2); text-underline-offset: 3px; }
 .knock li button:hover { text-decoration-color: var(--accent); }
 .ai-out { margin-top: 12px; font-size: 13.5px; line-height: 1.6; white-space: pre-wrap; }
-.hedge { font-size: 13px; color: var(--ink-2); }
-.hedge p { margin: 0 0 8px; }
+.hedge { font-size: 13.5px; line-height: 1.6; color: var(--ink-2); }
+.hedge p { margin: 0 0 10px; }
 
 /* ---------- tweaks ---------- */
 .tw-body { overflow: auto; overscroll-behavior: contain; padding: 4px 20px 28px; }
-.tw-group { padding-block: 16px; border-top: 1px solid var(--line); }
+.tw-group { padding-block: 18px; border-top: 1px solid var(--line); }
 .tw-group:first-child { border-top: 0; }
 .tw-group > .label { display: block; margin-bottom: 4px; font: 600 12.5px/1.3 var(--f-mono); letter-spacing: -.01em; text-transform: none; color: var(--ink-3); }
-.tw-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 7px 0; flex-wrap: wrap; }
+.tw-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 0; flex-wrap: wrap; }
 .tw-row > span { font-size: 13px; }
-.tw-row small { display: block; font-size: 11.5px; color: var(--ink-3); }
+.tw-row small { display: block; font-size: 12px; line-height: 1.45; color: var(--ink-3); margin-top: 3px; }
 .copybox { width: 100%; height: 120px; margin-top: 10px; font: 400 11px var(--f-mono); }
 
 /* ---------- replay ---------- */
@@ -514,22 +541,70 @@ button.tile::after { content: "→"; position: absolute; top: 14px; right: 16px;
 .rp-day.on { border-color: var(--ink); color: var(--surface); background: var(--ink); }
 .rp-day.res::after { content: ""; position: absolute; top: 3px; right: 3px; width: 5px; height: 5px; border-radius: 50%; background: var(--accent); }
 .rp-day.on.res::after { background: var(--accent-hi); }
-.rp-note { margin: 16px 0 0; font-size: 14px; display: flex; gap: 12px; align-items: baseline; flex-wrap: wrap; }
+.rp-note { margin: 20px 0 0; font-size: 14px; line-height: 1.55; display: flex; gap: 8px 14px; align-items: baseline; flex-wrap: wrap; }
 .rp-list { list-style: none; margin: 0; padding: 0; }
-.rp-list li { display: grid; grid-template-columns: minmax(0, 1fr) 44px 92px; gap: 10px; align-items: center; padding: 10px 0; border-top: 1px solid var(--line); font-size: 13px; }
+.rp-list li { display: grid; grid-template-columns: minmax(0, 1fr) 44px 92px; gap: 12px; align-items: center; padding: 13px 0; border-top: 1px solid var(--line); font-size: 13px; }
 .rp-list li.done { color: var(--ink-3); }
-.rp-list small { display: block; font-size: 11px; color: var(--ink-3); margin-top: 2px; font-family: var(--f-mono); }
+.rp-list small { display: block; font-size: 11px; line-height: 1.45; color: var(--ink-3); margin-top: 4px; font-family: var(--f-mono); }
 .calls { width: 100%; border-collapse: collapse; font-size: 13px; }
-.calls th { text-align: left; font: 500 10px/1.2 var(--f-mono); letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3); padding: 0 10px 8px 0; white-space: nowrap; }
-.calls td { padding: 10px 10px 10px 0; border-top: 1px solid var(--line); vertical-align: top; }
+.calls th { text-align: left; font: 500 10px/1.2 var(--f-mono); letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3); padding: 0 12px 10px 0; white-space: nowrap; }
+.calls td { padding: 13px 12px 13px 0; border-top: 1px solid var(--line); vertical-align: top; }
 .calls td.n { font-family: var(--f-mono); white-space: nowrap; }
 .calls small { font-size: 11px; color: var(--ink-3); }
 .calls small a { color: inherit; }
 .calls td:first-child { min-width: 150px; }
-.rp-rank { margin: 8px 0 0; padding-left: 20px; font-size: 13px; line-height: 1.5; }
-.rp-rank li { margin: 4px 0; }
+.rp-rank { margin: 10px 0 0; padding-left: 20px; font-size: 13px; line-height: 1.55; }
+.rp-rank li { margin: 8px 0; }
 .scroll-x { overflow-x: auto; }
 .rp-chart svg { width: 100%; height: auto; display: block; }
+
+.rp-how { margin: 0; font-size: 13.5px; line-height: 1.65; color: var(--ink-2); max-width: 90ch; }
+.rp-how-l { display: block; margin: 22px 0 0; }
+.rp-how-list { margin: 10px 0 0; padding-left: 18px; font-size: 13.5px; line-height: 1.6; color: var(--ink-2); max-width: 90ch; }
+.rp-how-list li + li { margin-top: 8px; }
+
+/* ---------- methodology (ui-method.js): one reading column, no portfolio panel ---------- */
+.method { max-width: 920px; margin: 0 auto; display: flex; flex-direction: column; gap: var(--gap); padding-bottom: 72px; container-type: inline-size; }
+.m-p { margin: 18px 0 0; font-size: 14px; line-height: 1.65; color: var(--ink-2); max-width: 70ch; }
+.m-p.m-first { margin-top: 0; }
+.m-p b { color: var(--ink); font-weight: 600; }
+.m-three { margin-top: 20px; }
+.m-three .label { display: block; }
+.method .formula { white-space: normal; }
+.m-steps { list-style: none; margin: 0; padding: 0; }
+.m-step { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 10px 32px; padding: 26px 0; border-top: 1px solid var(--line); }
+.m-step:first-child { border-top: 0; padding-top: 0; }
+.m-step:last-child { padding-bottom: 4px; }
+.m-step-h { display: flex; align-items: baseline; gap: 12px; }
+.m-n { font: 600 13px/1 var(--f-mono); color: var(--accent); flex: none; }
+.m-step-t { font-family: var(--f-display); font-weight: 400; font-size: 20px; line-height: 1.25; letter-spacing: -.01em; margin: 0; }
+.m-step-b > * { margin: 0; }
+.m-step-b > * + * { margin-top: 14px; }
+.m-step-b > p { font-size: 14px; line-height: 1.65; color: var(--ink-2); max-width: 66ch; }
+.m-step-b .m-where { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; font-size: 12.5px; line-height: 1.4; color: var(--ink-3); }
+.m-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.m-chip { display: inline-flex; align-items: baseline; gap: 7px; padding: 6px 10px; border: 1px solid var(--line); border-radius: var(--r1); background: var(--surface-2); font-size: 12.5px; line-height: 1.3; }
+.m-chip small { font: 500 10.5px/1.3 var(--f-mono); color: var(--ink-3); }
+.m-tiers { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 14px; }
+.m-tiers li { display: grid; grid-template-columns: 132px minmax(0, 1fr); gap: 6px 14px; align-items: start; font-size: 13.5px; line-height: 1.55; color: var(--ink-2); }
+.m-tests { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--gap); }
+.m-tile { background: var(--surface-2); border: 1px solid var(--line); }
+.m-tile .tile-v small { font-size: 16px; color: var(--ink-3); }
+.m-sub-l { display: block; margin: 30px 0 0; }
+.m-limits { list-style: none; margin: 10px 0 0; padding: 0; }
+.m-limits li { padding: 14px 0; border-top: 1px solid var(--line); font-size: 14px; line-height: 1.6; color: var(--ink-2); }
+.m-limits li:first-child { border-top: 0; padding-top: 4px; }
+.m-limits li:last-child { padding-bottom: 0; }
+.m-limits b { color: var(--ink); font-weight: 600; margin-right: 4px; }
+@container (max-width: 700px) {
+  .m-step { grid-template-columns: minmax(0, 1fr); }
+  .m-tests { grid-template-columns: minmax(0, 1fr); }
+}
+@container (max-width: 480px) {
+  .m-tiers li { grid-template-columns: minmax(0, 1fr); }
+  /* Labels that wrap to two lines keep the three numbers level. */
+  .m-three .label { min-height: 2.6em; }
+}
 
 /* ---------- footer: full-bleed dark, as on castle.tech ---------- */
 .foot { background: var(--band); color: var(--band-ink-2); }
@@ -541,7 +616,6 @@ button.tile::after { content: "→"; position: absolute; top: 14px; right: 16px;
 
 /* ---------- small screens ---------- */
 @media (max-width: 760px) {
-  .nav-live { display: none; }
   .foot-in { grid-template-columns: minmax(0, 1fr); }
   .hero { height: clamp(540px, 88vh, 720px); }
   .hero-img { object-position: 68% 30%; }
@@ -553,11 +627,9 @@ button.tile::after { content: "→"; position: absolute; top: 14px; right: 16px;
 @media (max-width: 560px) {
   .banner-x { display: none; }
   .brand-name { display: none; }
-  .t-long { display: none; }
-  .t-short { display: inline; }
   .tab { padding: 9px 10px; font-size: 13px; }
   .nav-in { gap: 6px; padding-left: 10px; }
-  .card { padding: 15px; }
+  .card { padding: 18px; }
   .hold { grid-template-columns: minmax(0, 1fr) 104px 58px 24px; }
   .three .v { font-size: 21px; }
   .hero-eyebrow::before, .hero-eyebrow::after { display: none; }
@@ -565,6 +637,17 @@ button.tile::after { content: "→"; position: absolute; top: 14px; right: 16px;
   .dr-body { padding: 4px max(16px, env(safe-area-inset-left, 0px)) 28px; }
   .map-wrap { height: 340px; }
   .hero-cta .btn { padding: 11px 14px; font-size: 13px; }
+}
+@media (max-width: 400px) {
+  .tabs { gap: 0; }
+  .tab { padding: 9px 7px; }
+  .nav-in { gap: 4px; padding-left: 8px; }
+  .nav .btn-sm { padding: 7px 10px; }
+}
+@media (max-width: 340px) {
+  .tab, .nav .btn-sm { font-size: 12px; }
+  .tab { padding: 9px 6px; }
+  .nav .btn-sm { padding: 7px 8px; }
 }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
 </style>
@@ -1616,7 +1699,7 @@ function Nav({ tab, goTab, live, setLive, openTweaks, solid }) {
   const T = (k, long, short) => html`<button role="tab" aria-selected=${tab === k} className=${cls('tab', tab === k && 'on')} onClick=${() => goTab(k)}><span className="t-long">${long}</span><span className="t-short">${short}</span></button>`;
   return html`<header className=${cls('nav', solid && 'scrolled')}><div className="nav-in">
     <a className="brand" href="#" aria-label="The Red Keep, back to top" onClick=${e => { e.preventDefault(); window.scrollTo({ top: 0, behavior: REDUCED ? 'auto' : 'smooth' }); }}><${KeepMark} size=${20} /><span className="brand-name">The Red Keep</span></a>
-    <div className="tabs" role="tablist" aria-label="Views">${T('analysis', 'Live analysis', 'Analysis')}${T('replay', 'Historical replay', 'Replay')}</div>
+    <div className="tabs" role="tablist" aria-label="Views">${T('analysis', 'Live analysis', 'Analysis')}${T('replay', 'Historical replay', 'Replay')}${T('method', 'Methodology', 'Method')}</div>
     <div className="nav-right">
       <button className=${cls('nav-live', live && 'on')} onClick=${() => setLive(!live)} aria-pressed=${live} title="Simulated odds changes, priced through your portfolio as they happen"><i className="dot-live"></i>${live ? 'Live odds on' : 'Simulate live odds'}</button>
       <button className="btn btn-light btn-sm" onClick=${openTweaks}>Tweaks</button>
@@ -1643,10 +1726,12 @@ function Hero({ tw, goTab, heroRef }) {
 const INTRO = {
   analysis: ['What could move ', 'your portfolio', 'Start from a famous portfolio or build your own. Everything recomputes as you edit: what you actually own, which way it leans, the events ahead and thousands of simulated futures.'],
   replay: ['Check the engine ', 'against history', 'Replay the April 2025 tariff shock one trading day at a time. Each evening the engine sees only the odds known at that close, and you can change the portfolio while it plays.'],
+  method: ['How the engine ', 'works', 'From a portfolio to the events that could move it, in seven steps: the same seven as the strip on the analysis tab. Every number on this site comes out of one of them.'],
 };
-function Intro({ tab }) {
+function Intro({ tab, goTab }) {
   const [a, b, sub] = INTRO[tab] || INTRO.analysis;
-  return html`<header className="intro"><h2 className="heading-xl">${a}<span className="accent">${b}</span></h2><p className="intro-sub">${sub}</p></header>`;
+  return html`<header className="intro"><h2 className="heading-xl">${a}<span className="accent">${b}</span></h2><p className="intro-sub">${sub}</p>
+    ${tab !== 'method' && html`<button className="link intro-link" onClick=${() => goTab('method')}>How the engine works</button>`}</header>`;
 }
 
 /* ---------- portfolio panel ---------- */
@@ -2221,15 +2306,15 @@ function EventList({ shown, beyond, P, tw, setTw, hover, setHover, sel, onOpen }
         <p className="sub">What each event would do to you, net of what its odds already price in. Swing is how far it could move you either way.</p></div>
       <div className="seg" role="group" aria-label="Sort events">${[['swing', 'Swing'], ['hit', 'Worst hit'], ['date', 'Soonest']].map(([k, l]) => html`<button key=${k} className=${sort === k ? 'on' : ''} aria-pressed=${sort === k} onClick=${() => setSort(k)}>${l}</button>`)}</div>
     </div>
-    <div className="ev-head label" aria-hidden="true"><span>#</span><span>Event</span><span className="r">Odds</span><span className="r">If it happens</span><span className="r ev-c-no">If not</span><span className="r">Swing</span><span>Tier</span></div>
+    <div className="ev-head label" aria-hidden="true"><span className="ev-h-wide">#</span><span className="ev-h-wide">Event</span><span className="ev-c-odds">Odds</span><span className="ev-c-yes">If it happens</span><span className="ev-c-no">If not</span><span className="ev-c-sw">Swing</span><span className="ev-c-tier ev-h-wide">Tier</span></div>
     <ul className="ev-list">${list.map(e => html`<li key=${e.id}><button className=${cls('ev-row', hover === e.id && 'hov', sel === e.id && 'sel')} onMouseEnter=${() => setHover(e.id)} onMouseLeave=${() => setHover(null)} onFocus=${() => setHover(e.id)} onBlur=${() => setHover(null)} onClick=${() => onOpen(e.id)}>
       <span className="ev-rank mono">${rank[e.id]}</span>
       <span className="ev-main"><span className="ev-title">${e.t}</span><span className="ev-meta mono">${fmtDate(e.date, false)} · ${e.days} days · ${e.cat}</span></span>
-      <span className="cell">${fmtOdds(e.qEff)}<span className="oddsbar"><i style=${{ width: (e.qEff * 100).toFixed(1) + '%' }}></i></span></span>
-      <span className=${cls('cell', tone(e.ifYes))}>${fmtUsd(e.ifYes * V / 100, true)}<small>${fmtPct(e.ifYes)}</small></span>
+      <span className="cell ev-c-odds">${fmtOdds(e.qEff)}<span className="oddsbar"><i style=${{ width: (e.qEff * 100).toFixed(1) + '%' }}></i></span></span>
+      <span className=${cls('cell ev-c-yes', tone(e.ifYes))}>${fmtUsd(e.ifYes * V / 100, true)}<small>${fmtPct(e.ifYes)}</small></span>
       <span className=${cls('cell ev-c-no', tone(e.ifNo))}>${fmtUsd(e.ifNo * V / 100, true)}<small>${fmtPct(e.ifNo)}</small></span>
-      <span className="cell">${swingUsd(e.swingPct * V / 100)}<small>${swingPct(e.swingPct)}</small></span>
-      <span className=${'tier t' + e.tier} title=${TIERS[e.tier].name}><b>${e.tier}</b><span>${TIERS[e.tier].name}</span></span>
+      <span className="cell ev-c-sw">${swingUsd(e.swingPct * V / 100)}<small>${swingPct(e.swingPct)}</small></span>
+      <span className=${'tier ev-c-tier t' + e.tier} title=${TIERS[e.tier].name}><b>${e.tier}</b><span>${TIERS[e.tier].name}</span></span>
     </button></li>`)}</ul>
     <p className="list-foot sub">Showing ${list.length} of ${shown.length} events in the next ${tw.horizon} months.${beyond === 1 ? ' One more resolves after that, so the simulation reprices it instead of resolving it.' : beyond > 1 ? ' ' + beyond + ' more resolve after that, so the simulation reprices them instead of resolving them.' : ''}${list.length < shown.length ? html` <button className="link" onClick=${() => setTw({ ...tw, topN: 'all' })}>Show all ${shown.length}</button>` : ''}</p>
   </section>`;
@@ -2263,7 +2348,8 @@ function OutcomeCard({ sim, P, S, tw, onOpen }) {
       <div className="stat"><span className="label">Best 1 in 20</span><span className=${cls('v', tone(sim.p95))}>${fmtUsd(sim.p95 * V / 100, true)}</span></div>
       <div className="stat"><span className="label">Worst 5% average</span><span className=${cls('v', tone(sim.es))}>${fmtUsd(sim.es * V / 100, true)}</span></div>
     </div>
-    ${drivers.length > 0 && html`<ul className="drivers"><li className="label">What the worst 5% have in common</li>${drivers.map(d => html`<li key=${d.id}>
+    ${drivers.length > 0 && html`<ul className="drivers"><li className="drv-head"><span className="label">What the worst 5% have in common</span>
+      <span className="drv-key" aria-hidden="true"><i style=${{ background: 'var(--ink-3)' }}></i><span>Overall</span><i style=${{ background: 'var(--loss)' }}></i><span>In the worst 5%</span></span></li>${drivers.map(d => html`<li key=${d.id}>
       <button className="inl" onClick=${() => onOpen(d.id)}>${S.byId[d.id].s}</button> ${d.yes ? 'happens' : 'doesn’t happen'} in <b>${pct0(d.ft)}</b> of the worst 5%, against ${pct0(d.fb)} overall.
       <div className="drv-bars" aria-hidden="true"><div className="drv-bar"><i style=${{ width: d.fb * 100 + '%', background: 'var(--ink-3)' }}></i></div><div className="drv-bar"><i style=${{ width: d.ft * 100 + '%', background: 'var(--loss)' }}></i></div></div></li>`)}</ul>`}
     <p className="note">${tw.odds === 'calibrated' ? 'With calibrated odds the average is ' + fmtPct(sim.mean, 2) + '. That is the engine’s edge over market prices, a hint rather than a forecast.' : 'The average is about zero (' + fmtPct(sim.mean, 2) + ') because market odds are already in today’s prices. What is left is the swing.'}</p>
@@ -2662,6 +2748,112 @@ function DragonScene({ tw, rootRef: outerRef }) {
 }
 
 /* ==========================================================================
+   UI · Part 4: the methodology tab. A short tour in plain words: the
+   priced-in idea, the seven steps on the analysis tab's strip, how the
+   engine is tested and what it doesn't do yet. The math, the rejected
+   alternatives and the references are in docs/DESIGN.md; the saved eval
+   results quoted here are from docs/WRITEUP.md.
+   ========================================================================== */
+
+// The worked example in DESIGN.md section 3, with its illustrative numbers: $1M of QQQ, tariffs on China at 40%.
+const M_EXAMPLE = { V: 1e6, direct: -6.0, knock: -2.5, q: 0.4 };
+// Results of the saved eval runs of Nov 8, 2026 (WRITEUP.md, "What the evals found"): E9's odds, E4's
+// coverage over E3's 54 resolved markets, and E0's screen. Update them when those evals rerun. The replay's
+// numbers are not here: they come with the snapshot (REPLAY.metrics).
+const M_EVALS = { brierMarket: 0.110, brierAI: 0.191, oddsMarkets: 250, covered: 0.83, jumpMarkets: 54, screenFinds: 0.96, screenSends: 0.38 };
+
+function MethodExample({ P, top, onOpen }) {
+  const { V, direct, knock, q } = M_EXAMPLE, dT = direct + knock;
+  const ifYes = (1 - q) * dT, ifNo = -q * dT, sw = Math.abs(dT) * Math.sqrt(q * (1 - q));
+  return html`<section className="card" aria-labelledby="m-ex-h">
+    <div className="card-head"><div><span className="kicker">The core idea · an illustrative example</span><h3 className="h3" id="m-ex-h" style=${{ marginTop: 6 }}>Only the surprise counts</h3>
+      <p className="sub">You hold $1M of QQQ, and prediction markets give US tariffs on China a 40% chance. If tariffs happen, QQQ falls about 8.5%: 6% directly, and 2.5% more because tariffs make a recession likelier. But at 40% odds, 40% of that fall is already in today’s price.</p></div></div>
+    <${SplitBar} dT=${dT} q=${q} />
+    <div className="three m-three">
+      <div><span className="label">If tariffs happen</span><span className="v neg">${fmtUsd(ifYes * V / 100, true)}</span><span className="s">${fmtPct(ifYes)} · the surprise</span></div>
+      <div><span className="label">If they don’t</span><span className="v pos">${fmtUsd(ifNo * V / 100, true)}</span><span className="s">${fmtPct(ifNo)} · the relief</span></div>
+      <div><span className="label">Swing</span><span className="v">${swingUsd(sw * V / 100)}</span><span className="s">${swingPct(sw)} · either way</span></div>
+    </div>
+    <div className="formula">
+      <div>full move ${fmtPct(dT)} = direct ${fmtPct(direct)} + knock-on through recession ${fmtPct(knock)}</div>
+      <div>if it happens: (1 − ${q.toFixed(2)}) × ${fmtPct(dT)} = ${fmtPct(ifYes)}</div>
+      <div>if it doesn’t: ${MINUS}${q.toFixed(2)} × ${fmtPct(dT)} = ${fmtPct(ifNo)}</div>
+      <div>swing: ${Math.abs(dT).toFixed(1)}% × √(${q.toFixed(2)} × ${(1 - q).toFixed(2)}) = ${swingPct(sw)}</div>
+    </div>
+    <p className="m-p">Weighted by their odds, the two outcomes net to zero: that is what priced in means. So the engine ranks events by <b>swing</b>, how far each one could still move you either way. Swing is largest for coin flips with big moves, and small for events the market already treats as settled, however alarming the headline.</p>
+    ${top && html`<p className="note">On your portfolio right now, the biggest swing is <button className="inl" onClick=${() => onOpen(top.id)}>${top.t}</button>: ${swingUsd(top.swingPct * P.V / 100)} at ${fmtOdds(top.qEff)} odds.</p>`}
+  </section>`;
+}
+
+function MethodSteps({ tw }) {
+  const listed = DATASET === 'live' && RK_LIVE.catalogue ? Object.values(RK_LIVE.catalogue).reduce((a, n) => a + (+n || 0), 0) : 0;
+  const markets = listed >= 1000 ? 'Polymarket and Kalshi list about ' + (Math.round(listed / 1000) * 1000).toLocaleString('en-US') + ' markets.'
+    : 'Polymarket and Kalshi list tens of thousands of markets.';
+  const steps = [
+    ['Look through', 'What you actually own', html`<p>Each fund is replaced by the companies it holds, and a company held several ways is added up, so a stock you own directly and through a fund shows as one line. A fund with no holdings data stays whole and is measured from its own prices.</p>`],
+    ['Exposure', 'Which way it leans', html`<p>The engine measures how each holding has moved with ten market factors, each tracked by a real price:</p>
+      <div className="m-chips">${FACTORS.map(f => html`<span key=${f.k} className="m-chip">${f.name}<small>${f.proxy}</small></span>`)}</div>
+      <p>Weighted by the holdings, that gives the portfolio’s arrow: how much it gains or loses when each factor makes a typical move, one standard deviation of its weekly change. Other factors join only when a portfolio needs them, and the fit is the share of its daily moves the factors explain, on prices the model didn’t see.</p>`],
+    ['Discover', 'Events that could move you, and the event map', html`<p>${markets} Claude labels a sample of them, and a small model trained on those labels screens the rest: on markets it hadn’t seen, it kept ${pct0(M_EVALS.screenFinds)} of the ones that matter while sending Claude only ${pct0(M_EVALS.screenSends)}. The events that survive form a shared library, and each portfolio sees the ones that resolve inside its horizon, ${tw.horizon} months here.</p>`],
+    ['Match', 'Each event’s card, under Matched market', html`<p>An event takes its odds from a market only if the market asks the same question: the same threshold, deadline and source. Claude judges each candidate against a fixed rubric and quotes the rule it relied on. When nothing fits, the event is marked unpriced and the rejected near-misses are shown with the reason, instead of borrowing the nearest market’s odds.</p>`],
+    ['Evidence', 'Each event’s card, under How big is the jump?', html`<p>How far each factor jumps if the event happens is measured, not guessed: from how prices moved on the days the event’s odds moved sharply, from Hyperliquid’s perps on weekends while stock markets are shut, from past similar events, and from an AI prior. Each reading carries an error bar, and they are averaged by their precision. Then each event gets a tier:</p>
+      <ul className="m-tiers">${['A', 'B', 'C', 'D'].map(t => html`<li key=${t}><span className=${'tier show t' + t}><b>${t}</b><span>${TIERS[t].name}</span></span><span>${TIERS[t].rule}</span></li>`)}</ul>`],
+    ['Graph', 'Each event’s card, under Knock-on effects', html`<p>Some events make others likelier: tariffs raise the odds of a recession. An event’s full move adds the moves it sets off along those links, so each blow is counted once. Links are checked against how the two events’ odds have moved together, and related prices against the rules of probability.</p>`],
+    ['Simulate', 'Range of outcomes', html`<p>Thousands of futures are drawn together over the graph at market odds, so linked events tend to happen together. The average comes out near zero, because those odds are already in today’s prices. What is left is the spread: the worst 1 in 20, and what the worst futures have in common.</p>`],
+  ];
+  return html`<section className="card" aria-labelledby="m-steps-h">
+    <div className="card-head"><div><span className="kicker">From portfolio to ranked events</span><h3 className="h3" id="m-steps-h" style=${{ marginTop: 6 }}>Seven steps</h3></div></div>
+    <ol className="m-steps">${steps.map(([t, where, body], i) => html`<li key=${t} className="m-step">
+      <div className="m-step-h"><span className="m-n">${String(i + 1).padStart(2, '0')}</span><h4 className="m-step-t">${t}</h4></div>
+      <div className="m-step-b">${body}<p className="m-where"><span className="label">On the page</span><span>${where}</span></p></div>
+    </li>`)}</ol>
+  </section>`;
+}
+
+function MethodTests({ goTab }) {
+  const ex = REPLAY_SOURCE === 'engine' && REPLAY.metrics ? REPLAY.metrics.explained : null;
+  return html`<section className="card" aria-labelledby="m-test-h">
+    <div className="card-head"><div><span className="kicker">How it’s tested</span><h3 className="h3" id="m-test-h" style=${{ marginTop: 6 }}>Checked against what happened</h3>
+      <p className="sub">Each test’s measure was written down before its first run, and one of them asks whether the engine beats simply asking an AI.</p></div></div>
+    <div className="m-tests">
+      <div className="tile m-tile"><span className="label">Odds · markets vs an AI</span><div className="tile-v">${M_EVALS.brierMarket.toFixed(3)} <small>vs</small> ${M_EVALS.brierAI.toFixed(3)}</div>
+        <div className="tile-s">Brier score, lower is better, on ${M_EVALS.oddsMarkets} markets that resolved after Claude’s training data. The markets won, so a market sets the odds wherever one fits.</div></div>
+      ${ex && ex.explained_share != null
+        ? html`<button className="tile m-tile" onClick=${() => goTab('replay')}><span className="label">Replay · April 2025</span><div className="tile-v">${fmtShare(ex.explained_share)}</div>
+            <div className="tile-s">of the daily factor moves came from the events’ jumps times their odds changes, rerunning the engine evening by evening on archived prices. Right sign on ${ex.big_days_right} of ${ex.big_days} big days.</div></button>`
+        : html`<button className="tile m-tile" onClick=${() => goTab('replay')}><span className="label">Replay · April 2025</span><div className="tile-v small">Day by day</div>
+            <div className="tile-s">The engine replays the April 2025 tariff shock one evening at a time, seeing only the odds known at each close.</div></button>`}
+      <div className="tile m-tile"><span className="label">Error bars · resolved markets</span><div className="tile-v">${pct0(M_EVALS.covered)}</div>
+        <div className="tile-s">of the jumps on ${M_EVALS.jumpMarkets} resolved markets landed inside the engine’s 80% ranges. One market’s reading alone was too vague to act on, which is why a jump needs two that agree.</div></div>
+    </div>
+    <span className="label m-sub-l">What it doesn’t do yet</span>
+    <ul className="m-limits">
+      <li><b>Read options.</b> They would give every factor a second market reading, so more jumps could be confirmed.</li>
+      <li><b>Give the AI prior today’s news.</b> It reasons from its training data, so it can lag the markets. It never sets odds where a market fits, but it does weigh on jumps the markets can’t pin down.</li>
+      <li><b>Use stress-day exposures.</b> Markets move together more in a sell-off, so a big shock can hit harder than exposures measured on ordinary days suggest.</li>
+    </ul>
+  </section>`;
+}
+
+function MethodSources() {
+  return html`<section className="card" aria-labelledby="m-src-h">
+    <div className="card-head"><div><span className="kicker">Where the numbers come from</span><h3 className="h3" id="m-src-h" style=${{ marginTop: 6 }}>Markets first, the AI second</h3></div></div>
+    <p className="m-p m-first">Odds come from Polymarket and Kalshi, prices and factor data from Massive and FRED, and weekend prices from Hyperliquid’s perps. Claude labels markets for the screen, judges the matches, picks past analogs and writes a starting estimate, but wherever a market can measure a number, the market’s evidence wins.</p>
+    <p className="m-p">The design doc in the repository (docs/DESIGN.md) has the math, every alternative weighed, and the references. Nothing here is investment advice.</p>
+  </section>`;
+}
+
+function MethodView({ P, shown, tw, onOpen, goTab }) {
+  const top = P.V > 0 && shown.length ? shown[0] : null;
+  return html`<div className="method">
+    <${MethodExample} P=${P} top=${top} onOpen=${onOpen} />
+    <${MethodSteps} tw=${tw} />
+    <${MethodTests} goTab=${goTab} />
+    <${MethodSources} />
+  </div>`;
+}
+
+/* ==========================================================================
    UI · Part 3: the event card, historical replay, tweaks, and the app shell.
    ========================================================================== */
 const REL = { same: 'Same event', sum: 'Sum of outcomes', implies: 'Stricter market · lower bound', ladder: 'Ladder', bound: 'Bounded by related markets' };
@@ -2669,13 +2861,15 @@ const REL = { same: 'Same event', sum: 'Sum of outcomes', implies: 'Stricter mar
 function SplitBar({ dT, q }) {
   const ref = useRef(null);
   const W = Math.max(280, useWidth(ref, 520)), a = 8, b = W - 8, x1 = a + q * (b - a);
-  return html`<div className="split" ref=${ref}><svg viewBox=${'0 0 ' + W + ' 62'} role="img" aria-label=${'Of the full ' + fmtPct(dT) + ' move, ' + fmtPct(q * dT) + ' is already priced in and ' + fmtPct((1 - q) * dT) + ' would still be a surprise.'}>
+  // Under 400px the two labels under the bar would run into each other, so the second one drops a line.
+  const two = W < 400;
+  return html`<div className="split" ref=${ref}><svg viewBox=${'0 0 ' + W + ' ' + (two ? 76 : 62)} role="img" aria-label=${'Of the full ' + fmtPct(dT) + ' move, ' + fmtPct(q * dT) + ' is already priced in and ' + fmtPct((1 - q) * dT) + ' would still be a surprise.'}>
     <defs><pattern id="rk-hatch" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="2" height="5" style=${{ fill: 'var(--ink-3)', opacity: 0.6 }} /></pattern></defs>
     <text x=${a} y="11" className="ax">Full move if it happens · ${fmtPct(dT)}</text>
     <rect x=${a} y="20" width=${Math.max(0, x1 - a - 1)} height="16" rx="2" style=${{ fill: 'url(#rk-hatch)' }} />
     <rect x=${x1 + 1} y="20" width=${Math.max(0, b - x1 - 1)} height="16" rx="2" style=${{ fill: dT < 0 ? 'var(--loss)' : 'var(--gain)' }} />
     <text x=${a} y="54" className="ax">Priced in at ${fmtOdds(q)} · ${fmtPct(q * dT)}</text>
-    <text x=${b} y="54" textAnchor="end" className="ax">Surprise if it happens · ${fmtPct((1 - q) * dT)}</text>
+    <text x=${b} y=${two ? 70 : 54} textAnchor="end" className="ax">Surprise if it happens · ${fmtPct((1 - q) * dT)}</text>
   </svg></div>`;
 }
 
@@ -3019,12 +3213,14 @@ function ReplayView({ P, tw }) {
       ${summary && html`<p className="note">${summary}</p>`}
     </section>
     ${engine && html`<${ReplayScore} />`}
-    ${engine ? html`<div className="sub" style=${{ maxWidth: '90ch' }}>
-        <p>How this replay was made: factor moves are daily closes from ${replaySources(R.sources)}. The odds are archived Polymarket and Kalshi prices at each 4 p.m. New York close, from markets the same judge as a refresh matched to each event, as of the evening before the first day. Each evening’s jumps come only from data up to that close: market windows over the previous ${R.lookback || 180} days, fused with each event’s historical analogs. This portfolio’s exposures are today’s, not April 2025’s. Run ${fmtStamp(R.asOf)}.</p>
-        <p>Left out: ${(R.leftOut || []).join(' ')}</p>
-        ${(R.warnings || []).length > 0 && html`<ul style=${{ margin: '6px 0 0', paddingLeft: 18 }}>${R.warnings.map(w => html`<li key=${w}>${w}</li>`)}</ul>`}
-      </div>`
-      : html`<p className="sub" style=${{ maxWidth: '90ch' }}>Factor moves are approximate daily closes from April 2025. The odds paths are illustrative reconstructions, not archived prices. In the real system this test runs on every resolved event, and its results set how much each evidence source is trusted.</p>`}
+    <section className="card" aria-labelledby="rp-how-h"><div className="card-head"><div><span className="kicker">Method</span><h3 className="h3" id="rp-how-h" style=${{ marginTop: 6 }}>How this replay was made</h3></div></div>
+      ${engine ? html`<${Frag}>
+          <p className="rp-how">Factor moves are daily closes from ${replaySources(R.sources)}. The odds are archived Polymarket and Kalshi prices at each 4 p.m. New York close, from markets the same judge as a refresh matched to each event, as of the evening before the first day. Each evening’s jumps come only from data up to that close: market windows over the previous ${R.lookback || 180} days, fused with each event’s historical analogs. This portfolio’s exposures are today’s, not April 2025’s. Run ${fmtStamp(R.asOf)}.</p>
+          ${(R.leftOut || []).length > 0 && html`<span className="label rp-how-l">Left out</span><ul className="rp-how-list">${R.leftOut.map(x => html`<li key=${x}>${x}</li>`)}</ul>`}
+          ${(R.warnings || []).length > 0 && html`<span className="label rp-how-l">Gaps in the data</span><ul className="rp-how-list">${R.warnings.map(w => html`<li key=${w}>${w}</li>`)}</ul>`}
+        <//>`
+        : html`<p className="rp-how">Factor moves are approximate daily closes from April 2025. The odds paths are illustrative reconstructions, not archived prices. In the real system this test runs on every resolved event, and its results set how much each evidence source is trusted.</p>`}
+    </section>
   <//>`;
 }
 
@@ -3141,7 +3337,7 @@ function App({ ds, setDs }) {
   const [holdings, setHoldings] = useState(() => { const h = saved && validHoldings(saved.holdings); return h && h.length ? h : sampleToHoldings(SAMPLES[0]); });
   const [sampleId, setSampleId] = useState(() => (saved && 'sampleId' in saved ? saved.sampleId : SAMPLES[0].id));
   const [tw, setTw] = useState(() => ({ ...DEFAULT_TWEAKS, ...cleanTweaks(saved && saved.tweaks) }));
-  const [tab, setTab] = useState(() => (saved && saved.tab === 'replay' ? 'replay' : 'analysis'));
+  const [tab, setTab] = useState(() => (saved && (saved.tab === 'replay' || saved.tab === 'method') ? saved.tab : 'analysis'));
   const [sel, setSel] = useState(null);
   const [hover, setHover] = useState(null);
   const [whatIf, setWhatIf] = useState({});
@@ -3219,8 +3415,8 @@ function App({ ds, setDs }) {
     ${tw.hero && html`<${Hero} tw=${tw} goTab=${goTab} heroRef=${heroRef} />`}
     ${tw.dragon && html`<${DragonScene} tw=${tw} rootRef=${dragonRef} />`}
     <div className="wrap" id="app">
-      <${Intro} tab=${tab} />
-      <div className="layout">
+      <${Intro} tab=${tab} goTab=${goTab} />
+      ${tab === 'method' ? html`<${MethodView} P=${P} shown=${shown} tw=${tw} onOpen=${openEv} goTab=${goTab} />` : html`<div className="layout">
         <aside className="side" aria-label="Portfolio">
           <${PortfolioCard} holdings=${holdings} P=${P} sampleId=${sampleId} onPick=${loadSample} onEdit=${editHoldings} />
           ${P.V > 0 && html`<${LookThrough} P=${P} />`}
@@ -3231,7 +3427,7 @@ function App({ ds, setDs }) {
             : tab === 'analysis' ? html`<${AnalysisView} P=${P} S=${S} sim=${sim} shown=${shown} beyond=${beyond} tw=${tw} setTw=${setTw} hover=${hover} setHover=${setHover} sel=${sel} onOpen=${openEv} whatIf=${whatIf} setWhatIf=${setWhatIf} live=${live} setLive=${setLive} feed=${feed} ripple=${ripple} hasLive=${hasLive} resetLive=${resetLive} />`
             : html`<${ReplayView} P=${P} tw=${tw} />`}
         </main>
-      </div>
+      </div>`}
     </div>
     <${Footer} ds=${ds} />
     ${selEv && html`<${Drawer} e=${selEv} S=${S} P=${P} tw=${tw} sampleId=${sampleId} whatIf=${whatIf} setWhatIf=${setWhatIf} onOpen=${openEv} onClose=${closeEv} aiOK=${aiOK} />`}

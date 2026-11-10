@@ -6,13 +6,15 @@ const REL = { same: 'Same event', sum: 'Sum of outcomes', implies: 'Stricter mar
 function SplitBar({ dT, q }) {
   const ref = useRef(null);
   const W = Math.max(280, useWidth(ref, 520)), a = 8, b = W - 8, x1 = a + q * (b - a);
-  return html`<div className="split" ref=${ref}><svg viewBox=${'0 0 ' + W + ' 62'} role="img" aria-label=${'Of the full ' + fmtPct(dT) + ' move, ' + fmtPct(q * dT) + ' is already priced in and ' + fmtPct((1 - q) * dT) + ' would still be a surprise.'}>
+  // Under 400px the two labels under the bar would run into each other, so the second one drops a line.
+  const two = W < 400;
+  return html`<div className="split" ref=${ref}><svg viewBox=${'0 0 ' + W + ' ' + (two ? 76 : 62)} role="img" aria-label=${'Of the full ' + fmtPct(dT) + ' move, ' + fmtPct(q * dT) + ' is already priced in and ' + fmtPct((1 - q) * dT) + ' would still be a surprise.'}>
     <defs><pattern id="rk-hatch" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="2" height="5" style=${{ fill: 'var(--ink-3)', opacity: 0.6 }} /></pattern></defs>
     <text x=${a} y="11" className="ax">Full move if it happens · ${fmtPct(dT)}</text>
     <rect x=${a} y="20" width=${Math.max(0, x1 - a - 1)} height="16" rx="2" style=${{ fill: 'url(#rk-hatch)' }} />
     <rect x=${x1 + 1} y="20" width=${Math.max(0, b - x1 - 1)} height="16" rx="2" style=${{ fill: dT < 0 ? 'var(--loss)' : 'var(--gain)' }} />
     <text x=${a} y="54" className="ax">Priced in at ${fmtOdds(q)} · ${fmtPct(q * dT)}</text>
-    <text x=${b} y="54" textAnchor="end" className="ax">Surprise if it happens · ${fmtPct((1 - q) * dT)}</text>
+    <text x=${b} y=${two ? 70 : 54} textAnchor="end" className="ax">Surprise if it happens · ${fmtPct((1 - q) * dT)}</text>
   </svg></div>`;
 }
 
@@ -356,12 +358,14 @@ function ReplayView({ P, tw }) {
       ${summary && html`<p className="note">${summary}</p>`}
     </section>
     ${engine && html`<${ReplayScore} />`}
-    ${engine ? html`<div className="sub" style=${{ maxWidth: '90ch' }}>
-        <p>How this replay was made: factor moves are daily closes from ${replaySources(R.sources)}. The odds are archived Polymarket and Kalshi prices at each 4 p.m. New York close, from markets the same judge as a refresh matched to each event, as of the evening before the first day. Each evening’s jumps come only from data up to that close: market windows over the previous ${R.lookback || 180} days, fused with each event’s historical analogs. This portfolio’s exposures are today’s, not April 2025’s. Run ${fmtStamp(R.asOf)}.</p>
-        <p>Left out: ${(R.leftOut || []).join(' ')}</p>
-        ${(R.warnings || []).length > 0 && html`<ul style=${{ margin: '6px 0 0', paddingLeft: 18 }}>${R.warnings.map(w => html`<li key=${w}>${w}</li>`)}</ul>`}
-      </div>`
-      : html`<p className="sub" style=${{ maxWidth: '90ch' }}>Factor moves are approximate daily closes from April 2025. The odds paths are illustrative reconstructions, not archived prices. In the real system this test runs on every resolved event, and its results set how much each evidence source is trusted.</p>`}
+    <section className="card" aria-labelledby="rp-how-h"><div className="card-head"><div><span className="kicker">Method</span><h3 className="h3" id="rp-how-h" style=${{ marginTop: 6 }}>How this replay was made</h3></div></div>
+      ${engine ? html`<${Frag}>
+          <p className="rp-how">Factor moves are daily closes from ${replaySources(R.sources)}. The odds are archived Polymarket and Kalshi prices at each 4 p.m. New York close, from markets the same judge as a refresh matched to each event, as of the evening before the first day. Each evening’s jumps come only from data up to that close: market windows over the previous ${R.lookback || 180} days, fused with each event’s historical analogs. This portfolio’s exposures are today’s, not April 2025’s. Run ${fmtStamp(R.asOf)}.</p>
+          ${(R.leftOut || []).length > 0 && html`<span className="label rp-how-l">Left out</span><ul className="rp-how-list">${R.leftOut.map(x => html`<li key=${x}>${x}</li>`)}</ul>`}
+          ${(R.warnings || []).length > 0 && html`<span className="label rp-how-l">Gaps in the data</span><ul className="rp-how-list">${R.warnings.map(w => html`<li key=${w}>${w}</li>`)}</ul>`}
+        <//>`
+        : html`<p className="rp-how">Factor moves are approximate daily closes from April 2025. The odds paths are illustrative reconstructions, not archived prices. In the real system this test runs on every resolved event, and its results set how much each evidence source is trusted.</p>`}
+    </section>
   <//>`;
 }
 
@@ -478,7 +482,7 @@ function App({ ds, setDs }) {
   const [holdings, setHoldings] = useState(() => { const h = saved && validHoldings(saved.holdings); return h && h.length ? h : sampleToHoldings(SAMPLES[0]); });
   const [sampleId, setSampleId] = useState(() => (saved && 'sampleId' in saved ? saved.sampleId : SAMPLES[0].id));
   const [tw, setTw] = useState(() => ({ ...DEFAULT_TWEAKS, ...cleanTweaks(saved && saved.tweaks) }));
-  const [tab, setTab] = useState(() => (saved && saved.tab === 'replay' ? 'replay' : 'analysis'));
+  const [tab, setTab] = useState(() => (saved && (saved.tab === 'replay' || saved.tab === 'method') ? saved.tab : 'analysis'));
   const [sel, setSel] = useState(null);
   const [hover, setHover] = useState(null);
   const [whatIf, setWhatIf] = useState({});
@@ -556,8 +560,8 @@ function App({ ds, setDs }) {
     ${tw.hero && html`<${Hero} tw=${tw} goTab=${goTab} heroRef=${heroRef} />`}
     ${tw.dragon && html`<${DragonScene} tw=${tw} rootRef=${dragonRef} />`}
     <div className="wrap" id="app">
-      <${Intro} tab=${tab} />
-      <div className="layout">
+      <${Intro} tab=${tab} goTab=${goTab} />
+      ${tab === 'method' ? html`<${MethodView} P=${P} shown=${shown} tw=${tw} onOpen=${openEv} goTab=${goTab} />` : html`<div className="layout">
         <aside className="side" aria-label="Portfolio">
           <${PortfolioCard} holdings=${holdings} P=${P} sampleId=${sampleId} onPick=${loadSample} onEdit=${editHoldings} />
           ${P.V > 0 && html`<${LookThrough} P=${P} />`}
@@ -568,7 +572,7 @@ function App({ ds, setDs }) {
             : tab === 'analysis' ? html`<${AnalysisView} P=${P} S=${S} sim=${sim} shown=${shown} beyond=${beyond} tw=${tw} setTw=${setTw} hover=${hover} setHover=${setHover} sel=${sel} onOpen=${openEv} whatIf=${whatIf} setWhatIf=${setWhatIf} live=${live} setLive=${setLive} feed=${feed} ripple=${ripple} hasLive=${hasLive} resetLive=${resetLive} />`
             : html`<${ReplayView} P=${P} tw=${tw} />`}
         </main>
-      </div>
+      </div>`}
     </div>
     <${Footer} ds=${ds} />
     ${selEv && html`<${Drawer} e=${selEv} S=${S} P=${P} tw=${tw} sampleId=${sampleId} whatIf=${whatIf} setWhatIf=${setWhatIf} onOpen=${openEv} onClose=${closeEv} aiOK=${aiOK} />`}

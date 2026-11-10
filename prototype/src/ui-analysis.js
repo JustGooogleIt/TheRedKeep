@@ -386,15 +386,15 @@ function EventList({ shown, beyond, P, tw, setTw, hover, setHover, sel, onOpen }
         <p className="sub">What each event would do to you, net of what its odds already price in. Swing is how far it could move you either way.</p></div>
       <div className="seg" role="group" aria-label="Sort events">${[['swing', 'Swing'], ['hit', 'Worst hit'], ['date', 'Soonest']].map(([k, l]) => html`<button key=${k} className=${sort === k ? 'on' : ''} aria-pressed=${sort === k} onClick=${() => setSort(k)}>${l}</button>`)}</div>
     </div>
-    <div className="ev-head label" aria-hidden="true"><span>#</span><span>Event</span><span className="r">Odds</span><span className="r">If it happens</span><span className="r ev-c-no">If not</span><span className="r">Swing</span><span>Tier</span></div>
+    <div className="ev-head label" aria-hidden="true"><span className="ev-h-wide">#</span><span className="ev-h-wide">Event</span><span className="ev-c-odds">Odds</span><span className="ev-c-yes">If it happens</span><span className="ev-c-no">If not</span><span className="ev-c-sw">Swing</span><span className="ev-c-tier ev-h-wide">Tier</span></div>
     <ul className="ev-list">${list.map(e => html`<li key=${e.id}><button className=${cls('ev-row', hover === e.id && 'hov', sel === e.id && 'sel')} onMouseEnter=${() => setHover(e.id)} onMouseLeave=${() => setHover(null)} onFocus=${() => setHover(e.id)} onBlur=${() => setHover(null)} onClick=${() => onOpen(e.id)}>
       <span className="ev-rank mono">${rank[e.id]}</span>
       <span className="ev-main"><span className="ev-title">${e.t}</span><span className="ev-meta mono">${fmtDate(e.date, false)} · ${e.days} days · ${e.cat}</span></span>
-      <span className="cell">${fmtOdds(e.qEff)}<span className="oddsbar"><i style=${{ width: (e.qEff * 100).toFixed(1) + '%' }}></i></span></span>
-      <span className=${cls('cell', tone(e.ifYes))}>${fmtUsd(e.ifYes * V / 100, true)}<small>${fmtPct(e.ifYes)}</small></span>
+      <span className="cell ev-c-odds">${fmtOdds(e.qEff)}<span className="oddsbar"><i style=${{ width: (e.qEff * 100).toFixed(1) + '%' }}></i></span></span>
+      <span className=${cls('cell ev-c-yes', tone(e.ifYes))}>${fmtUsd(e.ifYes * V / 100, true)}<small>${fmtPct(e.ifYes)}</small></span>
       <span className=${cls('cell ev-c-no', tone(e.ifNo))}>${fmtUsd(e.ifNo * V / 100, true)}<small>${fmtPct(e.ifNo)}</small></span>
-      <span className="cell">${swingUsd(e.swingPct * V / 100)}<small>${swingPct(e.swingPct)}</small></span>
-      <span className=${'tier t' + e.tier} title=${TIERS[e.tier].name}><b>${e.tier}</b><span>${TIERS[e.tier].name}</span></span>
+      <span className="cell ev-c-sw">${swingUsd(e.swingPct * V / 100)}<small>${swingPct(e.swingPct)}</small></span>
+      <span className=${'tier ev-c-tier t' + e.tier} title=${TIERS[e.tier].name}><b>${e.tier}</b><span>${TIERS[e.tier].name}</span></span>
     </button></li>`)}</ul>
     <p className="list-foot sub">Showing ${list.length} of ${shown.length} events in the next ${tw.horizon} months.${beyond === 1 ? ' One more resolves after that, so the simulation reprices it instead of resolving it.' : beyond > 1 ? ' ' + beyond + ' more resolve after that, so the simulation reprices them instead of resolving them.' : ''}${list.length < shown.length ? html` <button className="link" onClick=${() => setTw({ ...tw, topN: 'all' })}>Show all ${shown.length}</button>` : ''}</p>
   </section>`;
@@ -428,7 +428,8 @@ function OutcomeCard({ sim, P, S, tw, onOpen }) {
       <div className="stat"><span className="label">Best 1 in 20</span><span className=${cls('v', tone(sim.p95))}>${fmtUsd(sim.p95 * V / 100, true)}</span></div>
       <div className="stat"><span className="label">Worst 5% average</span><span className=${cls('v', tone(sim.es))}>${fmtUsd(sim.es * V / 100, true)}</span></div>
     </div>
-    ${drivers.length > 0 && html`<ul className="drivers"><li className="label">What the worst 5% have in common</li>${drivers.map(d => html`<li key=${d.id}>
+    ${drivers.length > 0 && html`<ul className="drivers"><li className="drv-head"><span className="label">What the worst 5% have in common</span>
+      <span className="drv-key" aria-hidden="true"><i style=${{ background: 'var(--ink-3)' }}></i><span>Overall</span><i style=${{ background: 'var(--loss)' }}></i><span>In the worst 5%</span></span></li>${drivers.map(d => html`<li key=${d.id}>
       <button className="inl" onClick=${() => onOpen(d.id)}>${S.byId[d.id].s}</button> ${d.yes ? 'happens' : 'doesn’t happen'} in <b>${pct0(d.ft)}</b> of the worst 5%, against ${pct0(d.fb)} overall.
       <div className="drv-bars" aria-hidden="true"><div className="drv-bar"><i style=${{ width: d.fb * 100 + '%', background: 'var(--ink-3)' }}></i></div><div className="drv-bar"><i style=${{ width: d.ft * 100 + '%', background: 'var(--loss)' }}></i></div></div></li>`)}</ul>`}
     <p className="note">${tw.odds === 'calibrated' ? 'With calibrated odds the average is ' + fmtPct(sim.mean, 2) + '. That is the engine’s edge over market prices, a hint rather than a forecast.' : 'The average is about zero (' + fmtPct(sim.mean, 2) + ') because market odds are already in today’s prices. What is left is the swing.'}</p>
