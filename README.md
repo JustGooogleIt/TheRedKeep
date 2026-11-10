@@ -17,6 +17,12 @@
 
 The first Red Keep had thick walls and no plan for dragons. This one starts with the dragons.
 
+**Start here**
+
+- [Try it live](https://red-keep.vercel.app): pick a famous portfolio and see the events that could move it.
+- [Read the write-up](docs/WRITEUP.md): what was built, what the evals found on live data, and what comes next.
+- [Follow the ten-minute demo](docs/WRITEUP.md#a-ten-minute-demo).
+
 ---
 
 ## The idea in one example
@@ -32,7 +38,7 @@ Events are ranked by that two-way **swing**, not by how scary the headline sound
 ## How it works
 
 1. **See what you really own.** Look through ETFs to the stocks inside, then measure how the portfolio responds to ten macro factors (stocks, rates, inflation, the dollar, oil, credit, fear, China, chips, gold).
-2. **Find the events that matter.** Screen every live Polymarket and Kalshi market with a small model taught by Claude's labels (a words model today; Laya, an open-source decision model, is the planned upgrade), and keep the ~100 that could swing this portfolio the most.
+2. **Find the events that matter.** Screen every live Polymarket and Kalshi market with a small model taught by Claude's labels (a words model today; Laya, an open-source decision model, is the planned upgrade), and keep the ~100 that could swing this portfolio the most. Today the screen finds the material markets, and the library is ten hand-picked events; turning the screen's finds into events comes next.
 3. **Match events to markets.** Check each market's wording, threshold and deadline against the event, and say so when nothing fits.
 4. **Let markets check each other.** Odds and impacts come from prediction markets, ETF prices in market hours and Hyperliquid's perps on weekends and holidays, with options next (M6). A number is "confirmed" only when at least two independent markets agree, and disagreement is shown, not averaged away.
 5. **Show it and prove it.** A portfolio builder, a 3D risk map, live analysis and a historical replay, backed by evals against a "just ask an AI" baseline.
