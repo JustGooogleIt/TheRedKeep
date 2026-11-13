@@ -91,7 +91,7 @@ class FakeMassive:
         self.extra, self.levels = extra, levels
 
     def closes(self, t, start, end):
-        src = self.levels.get(t) or self.extra[t]
+        src = self.levels.get(t) or self.extra.get(t, {})  # an unknown ticker has no bars, as on Massive
         return {d: v for d, v in src.items() if start <= d <= end}
 
     def details(self, t):

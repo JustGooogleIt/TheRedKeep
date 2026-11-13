@@ -1,5 +1,5 @@
-"""Command line: ``redkeep check | refresh | analyze | funnel | calibrate | jumps | baseline | replay | record | store | app
-| serve``."""
+"""Command line: ``redkeep check | refresh | analyze | funnel | calibrate | jumps | baseline | granger | replay | record | store
+| app | serve``."""
 
 from __future__ import annotations
 
@@ -499,6 +499,18 @@ def print_funnel(rep: dict) -> None:
         print(f"  {g['title'][:60]:<60} {g['venue']:<10} {g['material']:>3} mkts  {mv:<34} {g['reason'][:80]}")
 
 
+def cmd_granger(s: Settings, args) -> int:
+    """Lead and lag between factors, odds and markets: VAR, Granger tests and clocks (DESIGN.md 4.8, eval E10)."""
+    from . import leadlag
+    from .pipeline import finite, make_clients, save
+
+    rep = leadlag.run(make_clients(s, claude=False), odds=not args.no_odds, odds_days=args.odds_days)
+    leadlag.print_report(rep)
+    path = save(finite(rep), s.out_dir, "granger")
+    print(f"\nSaved {path}")
+    return 0
+
+
 def cmd_replay(s: Settings, args) -> int:
     """Replay a past episode day by day on the markets' archived prices (DESIGN.md section 10, eval E8)."""
     from .pipeline import make_clients, save
@@ -688,6 +700,9 @@ def main(argv: list[str] | None = None) -> int:
                     help="odds: markets from well before the cutoff asked as a check that it knows them (default 100)")
     bl.add_argument("--from", dest="from_file", metavar="FILE",
                     help="score a saved run again (out/baseline-<time>.json) without asking")
+    gr = sub.add_parser("granger", help="lead and lag: VAR, Granger tests and clocks on factors and odds (eval E10)")
+    gr.add_argument("--no-odds", action="store_true", help="factors only: skip the prediction-market parts")
+    gr.add_argument("--odds-days", type=int, default=200, help="days of hourly odds for the market parts")
     rp = sub.add_parser("replay", help="replay a past episode on archived prices (eval E8)")
     rp.add_argument("--episode", default="tariffs-2025", help="an episode in data/episodes, or a .toml file")
     rp.add_argument("--write", action="store_true", help="save it to data/replays for the app")
@@ -717,7 +732,7 @@ def main(argv: list[str] | None = None) -> int:
     logging.basicConfig(level=logging.INFO if args.verbose else logging.WARNING, format="%(levelname)s %(name)s: %(message)s")
     s = Settings.from_env()
     return {"check": cmd_check, "refresh": cmd_refresh, "analyze": cmd_analyze, "funnel": cmd_funnel, "calibrate": cmd_calibrate,
-            "jumps": cmd_jumps, "baseline": cmd_baseline, "replay": cmd_replay, "record": cmd_record, "store": cmd_store,
+            "jumps": cmd_jumps, "baseline": cmd_baseline, "granger": cmd_granger, "replay": cmd_replay, "record": cmd_record, "store": cmd_store,
             "app": cmd_app, "serve": cmd_serve}[args.cmd](s, args)
 
 

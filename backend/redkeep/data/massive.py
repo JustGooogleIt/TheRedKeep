@@ -2,6 +2,8 @@
 
 * Daily bars: ``GET /v2/aggs/ticker/{t}/range/1/day/{from}/{to}``, split-adjusted,
   results ``[{"t": ms, "c": close, ...}]``, paged by ``next_url``.
+* Hourly bars, the same way with ``1/hour``: ``t`` is when the bar starts. They
+  give a fund's price at a fixing time before the close (``at_hour``).
 * ETF holdings: ``GET /etf-global/v1/constituents`` (the ETF Global partner
   dataset), filtered by ``composite_ticker``, ``effective_date`` (the day the
   holdings were true) and ``processed_date`` (the day ETF Global had them, which
@@ -23,11 +25,14 @@ cache or logs.
 from __future__ import annotations
 
 from datetime import date, datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 
 from ..http import Http, HttpError
 from ..store import Store
 
 BASE = "https://api.massive.com"
+NY = ZoneInfo("America/New_York")
+SESSION_FROM = 9  # the first hourly bar that counts toward a day's price: 9 to 10 a.m., which holds the 9:30 open
 CONSTITUENTS = f"{BASE}/etf-global/v1/constituents"
 DATE_STEPS = 8
 MAX_PAGES = 100  # 5,000 holdings or 50,000 bars a page: far more than any fund or price history needs
@@ -79,6 +84,23 @@ class Massive:
                 out[datetime.fromtimestamp(bar["t"] / 1000, timezone.utc).date()] = float(bar["c"])
         if self.store is not None:
             self.store.add_closes("massive", ticker, out)
+        return out
+
+    def at_hour(self, ticker: str, start: date, end: date, *, hour: int = 12) -> dict[date, float]:
+        """Each trading day's last price before ``hour`` o'clock New York time: the close of the latest hourly bar
+        that ends by then, from the 9 o'clock bar on (earlier bars are the thin pre-market)."""
+        ttl = None if end < date.today() - timedelta(days=7) else self.ttl
+        res = self._get(f"{BASE}/v2/aggs/ticker/{ticker}/range/1/hour/{start.isoformat()}/{end.isoformat()}",
+                        {"adjusted": "true", "sort": "asc", "limit": 50000}, ttl=ttl)
+        last: dict[date, tuple[datetime, float]] = {}
+        for page in self._pages(res, ttl):
+            for bar in page.get("results") or []:
+                t = datetime.fromtimestamp(bar["t"] / 1000, timezone.utc).astimezone(NY)
+                if SESSION_FROM <= t.hour < hour and (t.date() not in last or t > last[t.date()][0]):
+                    last[t.date()] = (t, float(bar["c"]))
+        out = {d: c for d, (_, c) in last.items()}
+        if self.store is not None:
+            self.store.add_closes("massive", f"{ticker}@{hour:02d}:00", out)
         return out
 
     def details(self, ticker: str) -> dict:

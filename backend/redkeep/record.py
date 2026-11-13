@@ -140,7 +140,8 @@ def _factors(c, rec: Recording, today: date, progress) -> None:
     if not c.massive.available:
         rec.read["Massive"] = "skipped: no MASSIVE_API_KEY"
     else:
-        tickers = sorted({t for f in FACTORS for t in f.massive} | {t for p in samples().values() for t, _, _ in p.holdings})
+        tickers = sorted({t for f in FACTORS for t in (*f.massive, *([f.carry] if f.carry else []))}
+                         | {t for p in samples().values() for t, _, _ in p.holdings})
         held = 0
         for t in tickers:
             try:
@@ -148,5 +149,11 @@ def _factors(c, rec: Recording, today: date, progress) -> None:
                 held += c.massive.constituents(t, today) is not None
             except Exception as e:
                 rec.warnings.append(f"Massive {t} unavailable: {type(e).__name__}: {e}")
+        for f in FACTORS:  # the prices that carry a series from its fixing time to the close (factordata.carry_to_close)
+            if f.carry and f.fixed:
+                try:
+                    c.massive.at_hour(f.carry, since("massive", f"{f.carry}@{f.fixed:02d}:00"), today, hour=f.fixed)
+                except Exception as e:
+                    rec.warnings.append(f"Massive {f.carry} at {f.fixed}:00 unavailable: {type(e).__name__}: {e}")
         rec.read["Massive"] = f"closes for {len(tickers)} tickers, holdings for {held} funds"
     progress(f"Factors: {rec.read['FRED']}; Massive: {rec.read['Massive']}")

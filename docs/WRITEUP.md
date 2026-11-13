@@ -43,13 +43,13 @@ The engine ranks events by that two-way swing, not by how frightening the headli
 | Options (M6) | Not built yet. The paid Massive key includes the option chains, with implied volatility and open interest | |
 | Event graph and coherence (M7) | Built and live: knock-on links checked against odds histories, related prices checked against the rules of probability | merged |
 | App (M8) | A playable prototype with the live event library and an April 2025 replay screen | [`prototype/`](../prototype/) |
-| Evals (M9) | E8 (replay, now also in portfolio terms) and E9 ("just ask an AI") have run live | `redkeep replay`, `redkeep baseline`, PRs #11 and #14 |
+| Evals (M9) | E8 (replay, now also in portfolio terms), E9 ("just ask an AI") and E10 (lead and lag, Granger causality) have run live | `redkeep replay`, `redkeep baseline`, `redkeep granger`, PRs #11 and #14 |
 
-181 offline tests cover the backend with recorded response shapes, synthetic prices and stand-ins for Claude. None of them needs a key or the network.
+203 offline tests cover the backend with recorded response shapes, synthetic prices and stand-ins for Claude. None of them needs a key or the network.
 
 ## What the evals found
 
-Each finding below is from live runs between November 8 and 10, 2026. Where a result is weak, it says so.
+Each finding below is from live runs between November 8 and 13, 2026. Where a result is weak, it says so.
 
 **The live library.** The refresh of November 10 searched about 69,500 Polymarket and Kalshi markets and priced 7 of the 10 events from them (the recession only as a bound).
 
@@ -69,7 +69,7 @@ Each finding below is from live runs between November 8 and 10, 2026. Where a re
 **The April 2025 replay (E8): the events explain about a quarter of the moves, and the exposures held.** Rerunning the engine evening by evening on archived prices:
 
 - Three of six events matched a market. On the latest run (November 10, on Massive's paid key, so all ten factors reach back to the 2018 analogs), the matched events times their odds changes explain 26% of the daily factor moves (37% for stocks), with the right sign on 25 of 37 big moves. The first run, on FRED's seven factors, explained 28% of fewer day-factors.
-- The one call, the tariff pause, had the right sign on 8 of the 9 factors with a reading (gold was the miss), but was far too small: +1.3% for stocks against SPY's 10.5%.
+- The one call, the tariff pause, had the right sign on 8 of the 9 factors with a reading (gold was the miss), but was far too small: +1.3% for stocks against SPY's 10.5%. Graded on the dollar's 4 p.m. close, which E10 (below) added, the dollar was a miss too: 7 of 9.
 - **In portfolio terms.** Each sample portfolio, rebuilt as it stood on March 28, 2025 (holdings valued at that close, exposures fitted only on the two years before), was scored on the ten days. The factors explain 94% to over 99% of every portfolio's daily moves, so the exposures held through the crash and the rebound. The events explain from 26% (the Permanent Portfolio) to 40% (Yale-style). The pause call had the right sign on every portfolio but was 6 to 50 times too small: for $1M of QQQ, +1.8% (+$17,600) expected against +12.0% (+$120,000) that day.
 - One idea was tested on that run and dropped: a prior centered on no move, standing in for the AI prior the replay leaves out. It tamed a vague early reading (a recession lifting the Tech-heavy sample 5%, ± 5%), but it also flattened the later, well-measured ones and cut the explained share to 5%, because April 2025 moved further than the engine's jumps. The replay screen shows each jump's error bar instead.
 - The misses are April 3 and 4: the tariff announcement and China's answer. One market could have priced the announcement, Polymarket's general-tariff market at 50% the evening before. The judge called it an overlap, not a match, because it counted only an April 2 announcement and set no 10% minimum. That is the price of exact matching. An overlapping market could still inform an event as a flagged, lower-tier reading; the matching set (E1) is where to test whether that helps more than it misleads.
@@ -87,6 +87,13 @@ Each finding below is from live runs between November 8 and 10, 2026. Where a re
 - **Jumps.** 41 markets had a jump reading the evening before they resolved. Claude mostly predicts no move, and the engine, which gives Claude's estimate 61% of the weight, ties it: they explain −2% and −3% of the resolution-day moves. The market's reading alone explains −341%, and −173% even where it resolves a factor. At two standard errors, chance alone would make about as many of the 287 readings look resolved as did (13 against 14). So a reading that looks sure isn't enough on its own; the quorum asks for a second, independent one that agrees, which chance rarely gives.
 - **Too few to settle.** On the 7 material markets the engine explained +11% (95% range −45% to +38%). Claude's own error bars can't be sized on these markets, so they stay as wide as set.
 
+**Lead and lag (E10): an event's jump is its first day's move, and the dollar was on the wrong clock.** Granger causality asks whether one series' past helps forecast another's next move. It can't set an event's direction, because a jump is a same-day relation and timing can't orient those (the [research note](research/granger-causality.md) reviews why, and the literature). What it can test is whether the same-day reading is the whole story:
+
+- **Jumps don't keep travelling.** Since 2008, a vector autoregression of the ten factors' daily moves forecasts the next day worse than "no move" out of sample (pooled score −0.082, 95% range −0.148 to −0.023), on every stretch. So a jump stays its first day's move, and carrying the April 2025 jumps forward explains no more of what followed.
+- **The dollar was read four hours early.** The Fed's dollar index is fixed at noon; everything else at the 4 p.m. close. 23% of each day's dollar move showed up a day late, which made five factors look as if they led the dollar and understated international funds' dollar exposures by a fifth to a quarter. The engine now carries the index to the close with the dollar fund UUP's move since noon: the late share falls to 6%, and 19 of 25 funds' exposures fit held-out days better (the euro fund's from 0.40 to 0.59), none worse by more than 0.003. On the replay it exposed a call the noon clock had been crediting: the pause's dollar move.
+- **No factor trails the odds.** On 133 of the funnel's material markets, no factor kept moving the day after an odds change, so the jump windows stay one day long. Odds on the S&P 500's and the Nasdaq's own levels do trail stocks by a day, most likely a stale price at 4 p.m., but pooled across the stock-linked markets that isn't significant.
+- **Knock-on slopes last; links found by the data alone don't.** Same-day slopes between markets keep three quarters of their size over a week, but slopes picked by the data alone predict later data worse than no link, the fragility other work found on Kalshi. That backs the engine's rule that a link needs a mechanism and the data.
+
 ## What the findings change
 
 In order of what they would improve most:
@@ -96,13 +103,14 @@ In order of what they would improve most:
 3. **E9 in portfolio terms.** Massive's paid key turned on look-through and E8's portfolio metric. Scoring E9's markets the same way, on their resolution days, is what's left.
 4. **The matching set (E1)** and Laya, fine-tuned on Claude's labels, once its weights can be fetched. E0 sets the bar it has to clear.
 5. **Record on a schedule.** The store holds only what it has seen, so every day it doesn't run is history that can't be recovered.
+6. **Intraday jump windows.** E10's one clear lag was a clock: prices read at different times of day. Thirty-minute windows, which the design calls for, remove the clock, and would settle whether bond and oil markets move a day before the related odds, as E10's exploratory index hints.
 
 ## A ten-minute demo
 
 1. **The question (1 minute).** The QQQ example above: the jump, what's priced in, the swing.
 2. **A portfolio (2 minutes).** Open [red-keep.vercel.app](https://red-keep.vercel.app), or [`prototype/index.html`](../prototype/index.html) from a clone. Scroll the dragon story, then pick All Weather. Events are ranked by swing. Open Hormuz: two market readings that agree make it tier A. Open the December Fed hike: its readings disagree, so it is contested (tier B). Open Tech-heavy's holdings: NVIDIA held directly and inside QQQ and SMH, looked through to ETF Global's files. Open an event that nothing fits, with the near-misses and why they were rejected.
 3. **The replay (2 minutes).** Step through April 2025 one evening at a time: the pause call, what the events explain each day, and the two days no matched market priced, and why. Then pick QQQ and scroll to the portfolio as it stood on March 28, 2025: its exposures, fitted before the crash, explain 98% of its daily moves during it.
-4. **The evals (3 minutes).** E0 (the screen keeps 96% of what matters), E2 (market odds stand), E3 (honest error bars, vague point estimates, and the material split), E8 (a quarter of the moves explained, and exposures that held through April 2025) and E9 (the markets beat Claude on odds; on jumps the engine ties it, and a single reading alone does far worse).
+4. **The evals (3 minutes).** E0 (the screen keeps 96% of what matters), E2 (market odds stand), E3 (honest error bars, vague point estimates, and the material split), E8 (a quarter of the moves explained, and exposures that held through April 2025), E9 (the markets beat Claude on odds; on jumps the engine ties it, and a single reading alone does far worse) and E10 (a jump is its first day's move, and the dollar's noon clock, found and fixed).
 5. **What's next (2 minutes).** Options for the quorum's second reading (the paid Massive key already has the chains), and a prior that knows today's news.
 
 From a terminal, `cd backend && uv run pytest` runs the offline tests in about 15 seconds, and `uv run redkeep baseline --from <run>` rescores a saved E9 run without asking Claude anything.
@@ -111,4 +119,5 @@ From a terminal, `cd backend && uv run pytest` runs the offline tests in about 1
 
 - [System design](DESIGN.md): the math (section 4), each stage (6), where the AI is used (8), the evals and what they found (10), and the build plan (15).
 - [Backend](../backend/README.md): setup, keys, every command, and what doesn't work yet and why.
-- Saved runs: `backend/data/funnel/` (Claude's labels and E0), `backend/data/calibration.json` (E2), `backend/data/evals/` (E3 to E5, E9 and the second E2 run), `backend/data/replays/` (E8).
+- [Granger causality and The Red Keep](research/granger-causality.md): the literature review behind E10, how each idea maps onto the engine, and what the run found.
+- Saved runs: `backend/data/funnel/` (Claude's labels and E0), `backend/data/calibration.json` (E2), `backend/data/evals/` (E3 to E5, E9, E10 and the second E2 run), `backend/data/replays/` (E8).
