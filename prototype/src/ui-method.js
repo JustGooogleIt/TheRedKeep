@@ -9,11 +9,12 @@
 // The worked example in DESIGN.md section 3, with its illustrative numbers: $1M of QQQ, tariffs on China at 40%.
 const M_EXAMPLE = { V: 1e6, direct: -6.0, knock: -2.5, q: 0.4 };
 // Results of the saved eval runs (WRITEUP.md, "What the evals found"): E9's odds and E0's screen from Nov 8,
-// 2026, E4's coverage over E3's 55 resolved markets from the ten-factor rerun of Nov 10, and E10's dollar clock
-// (the share of a 4 p.m. move the series shows a day late) from Nov 13. Update them when those evals rerun. The
-// replay's numbers are not here: they come with the snapshot (REPLAY.metrics).
+// 2026, E4's coverage over E3's 55 resolved markets from the ten-factor rerun of Nov 10, E10's dollar clock
+// (the share of a 4 p.m. move the series shows a day late) from Nov 13, and E11's joint error bars from Nov 13
+// (the share of resolution days whose whole move landed inside each forecast's 80% zone). Update them when those
+// evals rerun. The replay's numbers are not here: they come with the snapshot (REPLAY.metrics).
 const M_EVALS = { brierMarket: 0.110, brierAI: 0.191, oddsMarkets: 250, covered: 0.84, jumpMarkets: 55, screenFinds: 0.96, screenSends: 0.38,
-  lateNoon: 0.23, lateCarried: 0.06 };
+  lateNoon: 0.23, lateCarried: 0.06, jointDays: 47, insideJoint: 0.64, insideApart: 0.77, insideHalf: 0.79 };
 
 function MethodExample({ P, top, onOpen }) {
   const { V, direct, knock, q } = M_EXAMPLE, dT = direct + knock;
@@ -80,12 +81,15 @@ function MethodTests({ goTab }) {
         <div className="tile-s">of the jumps on ${M_EVALS.jumpMarkets} resolved markets landed inside the engine’s 80% ranges. One market’s reading alone was too vague to act on, which is why a jump needs two that agree.</div></div>
       <div className="tile m-tile"><span className="label">Timing · lead and lag</span><div className="tile-v">${pct0(M_EVALS.lateNoon)} <small>→</small> ${pct0(M_EVALS.lateCarried)}</div>
         <div className="tile-s">of each day’s dollar move showed up a day late, read at the Fed’s noon fixing and then carried to the 4 p.m. close like every other factor. The same tests found that yesterday’s moves forecast today’s worse than no move, so an event’s jump is its first day’s move.</div></div>
+      <div className="tile m-tile"><span className="label">Error bubbles · errors together</span><div className="tile-v">${pct0(M_EVALS.insideJoint)} <small>vs</small> ${pct0(M_EVALS.insideApart)}</div>
+        <div className="tile-s">of ${M_EVALS.jointDays} resolution days landed inside the 80% zone with the factors’ errors moving together as measured, against one by one. The measured links were too strong, so ranges count each factor’s error on its own for now. At half strength the zone held ${pct0(M_EVALS.insideHalf)}, the next thing to test on new markets.</div></div>
     </div>
     <span className="label m-sub-l">What it doesn’t do yet</span>
     <ul className="m-limits">
       <li><b>Read options.</b> They would give every factor a second market reading, so more jumps could be confirmed.</li>
       <li><b>Give the AI prior today’s news.</b> It reasons from its training data, so it can lag the markets. It never sets odds where a market fits, but it does weigh on jumps the markets can’t pin down.</li>
       <li><b>Use stress-day exposures.</b> Markets move together more in a sell-off, so a big shock can hit harder than exposures measured on ordinary days suggest.</li>
+      <li><b>Count how the factors’ errors move together.</b> The engine measures it, so a hedge’s errors could cancel in its ranges, but the first test on resolved markets found the measured links too strong. Until a larger test backs them, each factor’s error counts on its own.</li>
     </ul>
   </section>`;
 }

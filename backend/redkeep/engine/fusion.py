@@ -36,6 +36,17 @@ of the jump (the same projection as the app's jump chart). At ``QUORUM_SE`` or l
 the reading alone tells the jump from no jump at two standard errors. A vaguer
 reading still enters the average and the χ² check, so it can contest a jump, but
 it can't help confirm one: two vague readings agree with anything.
+
+Joint error bars (DESIGN.md 4.9). A reading can also carry its errors' covariance
+across factors. The average is then its information form,
+``x̂ = (Σ P_s)⁻¹ Σ P_s x_s`` with ``Cov(x̂) = (Σ P_s)⁻¹``, where ``P_s`` inverts reading
+``s``'s covariance on the factors it informs and is zero elsewhere, so a reading of
+one factor can move another through the correlations (``FusedDelta.borrowed``). The
+χ² check becomes ``Σ (x_s − x̂)' P_s (x_s − x̂)`` with ``Σ rank P_s − rank Σ P_s``
+degrees of freedom, and a reading's error bar on the jump's size ``1 / sqrt(u' P_s u)``.
+The conflict test stays factor by factor. How much of the correlations is used is
+``covariance.JOINT_WEIGHT``, which eval E11 sets; at 0 every step is the
+factor-by-factor version above.
 """
 
 from __future__ import annotations

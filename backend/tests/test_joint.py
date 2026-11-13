@@ -15,6 +15,14 @@ from redkeep.factors import NF, index
 EQ, VIX, CREDIT = index("eq"), index("vix"), index("credit")
 
 
+@pytest.fixture
+def joint_on(monkeypatch):
+    """The engine using all of the errors' correlations, whatever E11 last set."""
+    from redkeep.engine import covariance
+
+    monkeypatch.setattr(covariance, "JOINT_WEIGHT", 1.0)
+
+
 def corr_world_R() -> np.ndarray:
     R = np.eye(NF)
     for (a, b), r in {(EQ, VIX): -0.8, (EQ, CREDIT): -0.5, (CREDIT, VIX): 0.45}.items():
@@ -96,7 +104,7 @@ def test_jump_window_covariance_matches_the_spread_of_the_estimates():
     assert np.var(err) < 0.5 * np.mean([b ** 2 @ np.diag(c) for c in covs])
 
 
-def test_a_factor_with_fewer_windows_keeps_a_valid_covariance():
+def test_a_factor_with_fewer_windows_keeps_a_valid_covariance(joint_on):
     hist, fd, _ = window_world(np.random.default_rng(3))
     X = fd.X.copy()
     X[:120, index("gold")] = np.nan
@@ -122,7 +130,7 @@ def test_fusion_with_independent_errors_is_the_per_factor_average():
     assert f.dof == NF and f.chi2 == pytest.approx(NF * ((1.0 - f.delta[0]) ** 2 + (3.0 - f.delta[0]) ** 2 / 4))
 
 
-def test_fusion_borrows_across_correlated_factors():
+def test_fusion_borrows_across_correlated_factors(joint_on):
     """A second reading of stocks alone moves the fused VIX through the first reading's stock–VIX correlation."""
     C = np.eye(NF)
     C[EQ, VIX] = C[VIX, EQ] = -0.8
@@ -214,8 +222,10 @@ def test_e11_settles_an_inconclusive_result_by_the_power_fixed_in_advance():
 def test_the_engine_uses_the_correlations_at_the_weight_e11_set(monkeypatch):
     from redkeep.engine import covariance
 
+    assert covariance.JOINT_WEIGHT in joint.WEIGHTS.values()
     C = corr_world_R()
     r = reading("etf", np.zeros(NF), C)
+    monkeypatch.setattr(covariance, "JOINT_WEIGHT", 1.0)
     assert np.allclose(r.covariance(), C)
     monkeypatch.setattr(covariance, "JOINT_WEIGHT", 0.5)
     half = r.covariance()

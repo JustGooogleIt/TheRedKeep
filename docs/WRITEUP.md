@@ -37,24 +37,24 @@ The engine ranks events by that two-way swing, not by how frightening the headli
 | Data checks (M0) | Built: reports each source, the perps Hyperliquid lists and what the Massive key includes | `redkeep check` |
 | Point-in-time store (M1) | Built and run live by hand; three bugs its first live runs found are fixed. Running it on a schedule waits for your OK | `redkeep record`, PR #10 |
 | Exposures (M2) | Built and live: a factor regression on Massive's prices, looked through to ETF Global's holdings since the paid key (November 10) | `redkeep analyze` |
-| Vertical slice (M3) | Runs on live data: about 66,000 markets searched, 7 of 10 events priced from markets | `redkeep refresh`, merged |
+| Vertical slice (M3) | Runs on live data: about 71,000 markets searched, 6 of the 9 open events priced from markets | `redkeep refresh`, merged |
 | Funnel (M4) | Built and run live: Claude labeled 2,000 markets, and the screen they taught finds 96% of the material ones while Claude reads 38% (E0) | `redkeep funnel`, PR #13 |
 | Calibration and jumps (M5) | Both have run live (E2, E3 to E5) | `redkeep calibrate`, `redkeep jumps`, PR #12 |
 | Options (M6) | Not built yet. The paid Massive key includes the option chains, with implied volatility and open interest | |
 | Event graph and coherence (M7) | Built and live: knock-on links checked against odds histories, related prices checked against the rules of probability | merged |
 | App (M8) | A playable prototype with the live event library and an April 2025 replay screen | [`prototype/`](../prototype/) |
-| Evals (M9) | E8 (replay, now also in portfolio terms), E9 ("just ask an AI") and E10 (lead and lag, Granger causality) have run live | `redkeep replay`, `redkeep baseline`, `redkeep granger`, PRs #11 and #14 |
+| Evals (M9) | E8 (replay, now also in portfolio terms), E9 ("just ask an AI"), E10 (lead and lag, Granger causality) and E11 (joint error bars) have run live | `redkeep replay`, `redkeep baseline`, `redkeep granger`, `redkeep jumps`, PRs #11 and #14 |
 
-203 offline tests cover the backend with recorded response shapes, synthetic prices and stand-ins for Claude. None of them needs a key or the network.
+218 offline tests cover the backend with recorded response shapes, synthetic prices and stand-ins for Claude. None of them needs a key or the network.
 
 ## What the evals found
 
 Each finding below is from live runs between November 8 and 13, 2026. Where a result is weak, it says so.
 
-**The live library.** The refresh of November 10 searched about 69,500 Polymarket and Kalshi markets and priced 7 of the 10 events from them (the recession only as a bound).
+**The live library.** The refresh of November 13 searched about 71,000 Polymarket and Kalshi markets and priced 6 of the 9 open events from them (the recession only as a bound). The tenth, a hot October CPI print, was decided on November 10, so the refresh leaves it out.
 
-- Hormuz reached tier A: the ETF jump windows and the weekend perps were both precise, and they agreed.
-- The December Fed hike is tier B, contested twice over. On fear, its jump windows say the VIX falls 4.6 typical moves while the AI prior says it rises 1.2, further apart than their error bars allow, so on fear and stocks the jump rests on the prior. And Kalshi's December decision ladder sums to the edge of what its quotes allow, which the coherence check flags. On November 8 the same check made the Bank of Japan hike tier B.
+- Hormuz sits on the quorum's line. Its ETF jump windows and weekend perps are both precise. On November 10 they agreed (a χ² of 7.5 against the 7.8 line), which made it tier A; three days of data later they disagree just past the line (7.9), so it is contested (tier B).
+- The December Fed hike is tier B, contested twice over. On fear, its jump windows say the VIX falls 4.4 typical moves while the AI prior says it rises 1.2, further apart than their error bars allow, so on fear and stocks the jump rests on the prior. And Kalshi's December decision ladder sums to the edge of what its quotes allow, which the coherence check flags. On November 8 the same check made the Bank of Japan hike tier B.
 - Israel–Iran and a Ukraine ceasefire stay at C: their market readings are too vague to confirm the jump.
 
 **Calibration (E2): market odds are good enough as they are.** On 2,907 resolved markets, long shots did look overpriced (fitted slopes from 1.01 at one day out to 1.33 at 180 days). But no correction beat raw prices reliably on later markets: every gain's 95% range includes zero. So the engine keeps market odds, and reruns will pick up a bias if one firms up. A second run, on 2,929 markets, found the same.
@@ -94,6 +94,13 @@ Each finding below is from live runs between November 8 and 13, 2026. Where a re
 - **No factor trails the odds.** On 133 of the funnel's material markets, no factor kept moving the day after an odds change, so the jump windows stay one day long. Odds on the S&P 500's and the Nasdaq's own levels do trail stocks by a day, most likely a stale price at 4 p.m., but pooled across the stock-linked markets that isn't significant.
 - **Knock-on slopes last; links found by the data alone don't.** Same-day slopes between markets keep three quarters of their size over a week, but slopes picked by the data alone predict later data worse than no link, the fragility other work found on Kalshi. That backs the engine's rule that a link needs a mechanism and the data.
 
+**Joint error bars (E11): measured, drawn, and not yet trusted.** A portfolio feels every factor's error at once, so how the errors move together sets how wide its range is: a hedge's errors can cancel, a concentrated bet's pile up. The engine now measures that covariance for every reading (the [research note](research/uncertainty-ellipsoids.md) reviews the methods), can fuse readings with it, and the map draws each event's 80% zone as a bubble. E11, fixed before it ran, asked whether those covariances describe what happened on E3's 55 resolved markets better than the same error bars taken one by one:
+
+- **Better on most days, but not significantly.** Scored day by day, the joint error bars did better on 34 of 47 days, by a likelihood ratio of 1.5 a day on average. A few days where they were confidently wrong kept the gain short of significance (t = 1.53 against the 1.68 needed).
+- **Too sure of themselves.** The day's whole move landed inside the joint 80% zone on 64% of the days, against 77% with the factors one by one. The test had the power to see the gain the joint error bars promise, so the rule fixed in advance keeps each factor's error on its own for now, and the app says so beside each range.
+- **Half strength looked best, after the fact.** With the correlations halved, 79% of the days fell inside the zone, and the score beat the independent one clearly (t = 2.77). That becomes the next run's question, on markets that resolve after this one.
+- **The noise's own correlations matter most.** Scoring a day with its ordinary noise taken factor by factor, as E4 does for single factors, was far worse (t = 3.57), so any portfolio-level check needs the noise's correlations, whatever the jumps carry.
+
 ## What the findings change
 
 In order of what they would improve most:
@@ -104,13 +111,14 @@ In order of what they would improve most:
 4. **The matching set (E1)** and Laya, fine-tuned on Claude's labels, once its weights can be fetched. E0 sets the bar it has to clear.
 5. **Record on a schedule.** The store holds only what it has seen, so every day it doesn't run is history that can't be recovered.
 6. **Intraday jump windows.** E10's one clear lag was a clock: prices read at different times of day. Thirty-minute windows, which the design calls for, remove the clock, and would settle whether bond and oil markets move a day before the related odds, as E10's exploratory index hints.
+7. **Joint error bars at half strength.** E11's next run, on markets that resolve after November 7, 2026, should test the halved correlations against none, with that rule fixed before it runs. If they hold, hedged portfolios get narrower ranges and concentrated ones wider.
 
 ## A ten-minute demo
 
 1. **The question (1 minute).** The QQQ example above: the jump, what's priced in, the swing.
-2. **A portfolio (2 minutes).** Open [red-keep.vercel.app](https://red-keep.vercel.app), or [`prototype/index.html`](../prototype/index.html) from a clone. Scroll the dragon story, then pick All Weather. Events are ranked by swing. Open Hormuz: two market readings that agree make it tier A. Open the December Fed hike: its readings disagree, so it is contested (tier B). Open Tech-heavy's holdings: NVIDIA held directly and inside QQQ and SMH, looked through to ETF Global's files. Open an event that nothing fits, with the near-misses and why they were rejected.
+2. **A portfolio (2 minutes).** Open [red-keep.vercel.app](https://red-keep.vercel.app), or [`prototype/index.html`](../prototype/index.html) from a clone. Scroll the dragon story, then pick All Weather. Events are ranked by swing. Open Hormuz: its two market readings, the ETF jump windows and the weekend perps, disagree just past their error bars, so it is contested (tier B); on November 10 they agreed, for tier A. Hover an event on the map for its error bubble, where its jump could really sit 8 times in 10; its card gives the full move's 80% range for the portfolio. Open the December Fed hike: its readings disagree, so it is contested (tier B). Open Tech-heavy's holdings: NVIDIA held directly and inside QQQ and SMH, looked through to ETF Global's files. Open an event that nothing fits, with the near-misses and why they were rejected.
 3. **The replay (2 minutes).** Step through April 2025 one evening at a time: the pause call, what the events explain each day, and the two days no matched market priced, and why. Then pick QQQ and scroll to the portfolio as it stood on March 28, 2025: its exposures, fitted before the crash, explain 98% of its daily moves during it.
-4. **The evals (3 minutes).** E0 (the screen keeps 96% of what matters), E2 (market odds stand), E3 (honest error bars, vague point estimates, and the material split), E8 (a quarter of the moves explained, and exposures that held through April 2025), E9 (the markets beat Claude on odds; on jumps the engine ties it, and a single reading alone does far worse) and E10 (a jump is its first day's move, and the dollar's noon clock, found and fixed).
+4. **The evals (3 minutes).** E0 (the screen keeps 96% of what matters), E2 (market odds stand), E3 (honest error bars, vague point estimates, and the material split), E8 (a quarter of the moves explained, and exposures that held through April 2025), E9 (the markets beat Claude on odds; on jumps the engine ties it, and a single reading alone does far worse), E10 (a jump is its first day's move, and the dollar's noon clock, found and fixed) and E11 (the error bubbles, and a test fixed in advance that said "not yet" to their correlations).
 5. **What's next (2 minutes).** Options for the quorum's second reading (the paid Massive key already has the chains), and a prior that knows today's news.
 
 From a terminal, `cd backend && uv run pytest` runs the offline tests in about 15 seconds, and `uv run redkeep baseline --from <run>` rescores a saved E9 run without asking Claude anything.
@@ -120,4 +128,5 @@ From a terminal, `cd backend && uv run pytest` runs the offline tests in about 1
 - [System design](DESIGN.md): the math (section 4), each stage (6), where the AI is used (8), the evals and what they found (10), and the build plan (15).
 - [Backend](../backend/README.md): setup, keys, every command, and what doesn't work yet and why.
 - [Granger causality and The Red Keep](research/granger-causality.md): the literature review behind E10, how each idea maps onto the engine, and what the run found.
-- Saved runs: `backend/data/funnel/` (Claude's labels and E0), `backend/data/calibration.json` (E2), `backend/data/evals/` (E3 to E5, E9, E10 and the second E2 run), `backend/data/replays/` (E8).
+- [Uncertainty ellipsoids and The Red Keep](research/uncertainty-ellipsoids.md): the review behind E11 and the error bubbles, how each idea maps onto the engine, and what the run found.
+- Saved runs: `backend/data/funnel/` (Claude's labels and E0), `backend/data/calibration.json` (E2), `backend/data/evals/` (E3 to E5, E9, E10, E11 and the second E2 run), `backend/data/replays/` (E8).

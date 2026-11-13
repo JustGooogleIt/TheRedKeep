@@ -298,6 +298,7 @@ def build(snap: dict, analyses: list[dict], replay: dict | None = None) -> dict:
         "exposures": "backend" if analyses else "illustrative",
         "catalogue": snap["catalogue"], "windows": snap["windows"], "warnings": snap["warnings"],
         "calibration": snap.get("calibration"),
+        "jointWeight": snap.get("joint_weight"),  # None: a snapshot from before the engine kept joint error bars
         "factors": [{"k": f.key, "typical": by_key.get(f.key, {}).get("typical"),
                      "proxy": _proxy(by_key.get(f.key, {}).get("source"), f.name)} for f in FACTORS],
         "events": [_event(e, snap["today"], caps[e["id"]]) for e in snap["events"]],

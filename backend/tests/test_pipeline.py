@@ -19,6 +19,7 @@ from redkeep.factors import FACTORS, NF, index
 from redkeep.markets import from_kalshi_event, from_polymarket_event
 from redkeep.matching.judge import Verdict
 from redkeep.evidence import calibration, prior as prior_mod
+from redkeep.events import load_library, still_open
 from redkeep.pipeline import Clients, analyze, refresh
 
 from .synth import business_days, factor_levels, fund_closes
@@ -352,12 +353,26 @@ def test_without_massive_the_library_still_builds(keyless, tmp_path):
         analyze(Settings(cache_dir=tmp_path), c, snap, [("QQQ", 1_000_000, "usd")], today=TODAY)
 
 
+def test_events_past_their_deadline_are_left_out():
+    """A decided event is news, not a risk: refresh drops it, and the links that touch it."""
+    lib = load_library()
+    first = min(e.deadline for e in lib.events)
+    kept, gone = still_open(lib, first + timedelta(days=1))
+    assert gone and all(e.deadline == first for e in gone)
+    assert len(kept.events) + len(gone) == len(lib.events)
+    out = {e.id for e in gone}
+    assert not any({ln.parent, ln.child} & out for ln in kept.links)
+    same, none = still_open(lib, first)  # due today: still open
+    assert none == [] and same.events == lib.events and same.links == lib.links
+
+
 def test_the_app_takes_the_events_alone(keyless, tmp_path):
     """Without analyses the export carries the events, and the app keeps its illustrative portfolios."""
     _, snap = keyless
     data = build(snap, [])
     assert data["exposures"] == "illustrative"
     assert data["tickers"] == {} and data["samples"] == [] and data["results"] == []
+    assert data["jointWeight"] == snap["joint_weight"]  # how much of the errors' correlations the jumps carry (E11)
     assert len(data["events"]) == 10 and data["warnings"] == snap["warnings"]
     # With no study yet, calibrated odds are market odds.
     assert data["calibration"]["markets"] == 0 and set(data["calibration"]["slopes"].values()) == {1.0}

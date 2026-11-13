@@ -86,6 +86,18 @@ def parse_links(raw: list[dict], ids: set[str]) -> list[LinkSpec]:
     return links
 
 
+def still_open(lib: Library, today: date) -> tuple[Library, list[EventSpec]]:
+    """The events whose deadline is today or later, with the links between them, and the ones left out.
+
+    An event past its deadline has been decided: it is news, not a risk, and its market has settled. Kept, it would
+    show as a live event with the AI prior's odds alone, since the venues no longer list it.
+    """
+    gone = [e for e in lib.events if e.deadline < today]
+    keep = {e.id for e in lib.events} - {e.id for e in gone}
+    return Library([e for e in lib.events if e.id in keep],
+                   [ln for ln in lib.links if ln.parent in keep and ln.child in keep]), gone
+
+
 def load_library(path: Path | None = None) -> Library:
     raw = tomllib.loads((path or DATA_DIR / "events.toml").read_text())
     events = [parse_event(e, i) for i, e in enumerate(raw.get("event", []))]

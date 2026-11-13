@@ -627,3 +627,4 @@ button.tile::after { content: "→"; position: absolute; top: 16px; right: 18px;
   .nav .btn-sm { padding: 7px 8px; }
 }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+.m-tests > .m-tile:last-child:nth-child(odd) { grid-column: 1 / -1; }

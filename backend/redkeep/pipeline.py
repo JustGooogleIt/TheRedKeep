@@ -30,11 +30,12 @@ from .data.kalshi import Kalshi
 from .data.massive import Massive
 from .data.polymarket import Polymarket
 from .engine import coherence
+from .engine import covariance
 from .engine.covariance import moves_corr
 from .engine.fusion import DeltaReading, OddsReading, Tier, assign_tier, fuse_delta, fuse_odds
 from .engine.impact import EngineEvent, Link, build_state
 from .engine.simulate import simulate
-from .events import EventSpec, Library, load_library
+from .events import EventSpec, Library, load_library, still_open
 from .evidence import analogs, calibration, odds as odds_mod, prior as prior_mod, weekend, windows
 from .factors import FACTORS, KEYS
 from .http import Http, HttpError
@@ -307,8 +308,11 @@ def refresh(s: Settings, c: Clients, *, today: date | None = None, progress: Pro
                            "the matcher needs Claude to judge candidates")
     now = datetime.now(timezone.utc)
     today = today or now.date()
-    lib = load_library()
+    lib, gone = still_open(load_library(), today)
     warnings: list[str] = []
+    if gone:
+        warnings.append("Left out, past their deadlines: " + ", ".join(f"{e.id} ({e.deadline.isoformat()})" for e in gone)
+                        + ". The library (data/events.toml) needs the next one.")
     cal = calibration.load(s.calibration_file)  # every slope 1 (raw odds) until `redkeep calibrate --write` has run
 
     markets = catalogue(lib, c, today, progress)
@@ -427,6 +431,7 @@ def refresh(s: Settings, c: Clients, *, today: date | None = None, progress: Pro
                         "coins": perps.coins, "used": {f: len(v) for f, v in wk.used.items()},
                         "censored": [[d.isoformat(), f] for d, f in wk.censored]}},
         "calibration": cal.summary(),
+        "joint_weight": covariance.JOINT_WEIGHT,  # how much of the errors' correlations the jumps carry (E11)
         "events": events, "links": links, "warnings": warnings,
     }
     return finite(snap)

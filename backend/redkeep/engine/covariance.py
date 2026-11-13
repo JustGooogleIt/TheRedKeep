@@ -21,8 +21,10 @@ import numpy as np
 
 MIN_EIG = 1e-6  # smallest eigenvalue kept in a correlation matrix, so every one can be inverted
 # How much of the errors' correlations the engine uses: 1 all of them, 0.5 half, 0 none (factor by factor, as before
-# E11). Each factor's own error bar is the same at any weight. Set by E11's rule, fixed before its run (joint.py).
-JOINT_WEIGHT = 1.0
+# E11). Each factor's own error bar is the same at any weight. Set by E11's rule, fixed before its run (joint.py):
+# its first run (November 13, 2026, 55 resolved markets on 47 days, data/evals/jumps-2026-11-13.json) was
+# inconclusive with a design power of 1.00, so none for now, and the ranges are marked as not yet validated.
+JOINT_WEIGHT = 0.0
 SIZE_SHARED = 0.5  # of a size error (a share of the estimated move): the part that is one error for the whole jump
 
 

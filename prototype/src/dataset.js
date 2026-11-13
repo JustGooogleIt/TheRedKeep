@@ -27,6 +27,7 @@ let UNMEASURED = [];     // factors the snapshot has no price data on, so no typ
 let WEEKENDS = null;     // the snapshot's Hyperliquid weekend windows, when it ran them
 let PERP_FACTORS = [];   // keys of the factors those windows measured
 let MEASURED_FIT = {};   // the engine's out-of-sample fit for each portfolio it analyzed, by holdingsKey (model.js)
+let JOINT_WEIGHT = null; // how much of the jump errors' correlations the snapshot carries (eval E11): 1, 0.5 or 0
 
 function refill(target, src) {
   if (Array.isArray(target)) { target.length = 0; src.forEach(x => target.push(x)); return; }
@@ -63,6 +64,7 @@ function applyDataset(id) {
   DATASET = L ? 'live' : 'demo';
   EXPOSURES = LP ? 'live' : 'demo';
   CALIBRATION = L && L.calibration && L.calibration.markets > 0 ? L.calibration : null;
+  JOINT_WEIGHT = L && typeof L.jointWeight === 'number' ? L.jointWeight : null;
   return DATASET;
 }
 
