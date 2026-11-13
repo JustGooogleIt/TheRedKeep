@@ -9,9 +9,11 @@
 // The worked example in DESIGN.md section 3, with its illustrative numbers: $1M of QQQ, tariffs on China at 40%.
 const M_EXAMPLE = { V: 1e6, direct: -6.0, knock: -2.5, q: 0.4 };
 // Results of the saved eval runs (WRITEUP.md, "What the evals found"): E9's odds and E0's screen from Nov 8,
-// 2026, and E4's coverage over E3's 55 resolved markets from the ten-factor rerun of Nov 10. Update them when
-// those evals rerun. The replay's numbers are not here: they come with the snapshot (REPLAY.metrics).
-const M_EVALS = { brierMarket: 0.110, brierAI: 0.191, oddsMarkets: 250, covered: 0.84, jumpMarkets: 55, screenFinds: 0.96, screenSends: 0.38 };
+// 2026, E4's coverage over E3's 55 resolved markets from the ten-factor rerun of Nov 10, and E10's dollar clock
+// (the share of a 4 p.m. move the series shows a day late) from Nov 13. Update them when those evals rerun. The
+// replay's numbers are not here: they come with the snapshot (REPLAY.metrics).
+const M_EVALS = { brierMarket: 0.110, brierAI: 0.191, oddsMarkets: 250, covered: 0.84, jumpMarkets: 55, screenFinds: 0.96, screenSends: 0.38,
+  lateNoon: 0.23, lateCarried: 0.06 };
 
 function MethodExample({ P, top, onOpen }) {
   const { V, direct, knock, q } = M_EXAMPLE, dT = direct + knock;
@@ -76,6 +78,8 @@ function MethodTests({ goTab }) {
             <div className="tile-s">The engine replays the April 2025 tariff shock one evening at a time, seeing only the odds known at each close.</div></button>`}
       <div className="tile m-tile"><span className="label">Error bars · resolved markets</span><div className="tile-v">${pct0(M_EVALS.covered)}</div>
         <div className="tile-s">of the jumps on ${M_EVALS.jumpMarkets} resolved markets landed inside the engine’s 80% ranges. One market’s reading alone was too vague to act on, which is why a jump needs two that agree.</div></div>
+      <div className="tile m-tile"><span className="label">Timing · lead and lag</span><div className="tile-v">${pct0(M_EVALS.lateNoon)} <small>→</small> ${pct0(M_EVALS.lateCarried)}</div>
+        <div className="tile-s">of each day’s dollar move showed up a day late, read at the Fed’s noon fixing and then carried to the 4 p.m. close like every other factor. The same tests found that yesterday’s moves forecast today’s worse than no move, so an event’s jump is its first day’s move.</div></div>
     </div>
     <span className="label m-sub-l">What it doesn’t do yet</span>
     <ul className="m-limits">

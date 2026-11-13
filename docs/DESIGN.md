@@ -196,6 +196,16 @@ Events also get an "odds cross-checked" badge when Polymarket and Kalshi, or a p
 - Under market odds the average simulated move is zero by construction; under calibrated odds it is our view. We report the median, the 5th and 95th percentiles, expected shortfall, the events that drive the left tail, and the events that would help.
 - Horizon: events that resolve within a chosen window, six months by default.
 
+### 4.8 Lead and lag: why a jump is its first day's move
+
+An event's jump `δ` is how the factors move on the day its odds move (4.5): a same-day relation. Granger causality asks a different, time-ordered question: does one series' past help forecast another's next move, beyond what the other's own past and everything else known already give (Granger 1969)? Granger called same-day relations "instantaneous causality" and showed that timing can't orient them: when two series move together on the day, either could be driving the other. So it can't give an event's direction. The jump windows do that by tying each day's moves to the odds changes of named events, the identification that monetary economics gets from narrow windows around news (4.5).
+
+What timing can tell the engine is whether that same-day reading is the whole story. Eval E10 (`redkeep granger`, [section 10](#10-how-we-prove-it-works)) asks three questions, and the research note [`docs/research/granger-causality.md`](research/granger-causality.md) reviews the methods and their pitfalls, starting from Shojaie and Fox's (2022) review.
+
+- **Does a jump keep travelling after its first day?** If yesterday's move in one factor predicted today's move in another, an event's vector would keep turning, and the engine would carry it forward with a vector autoregression (VAR), `z_t = c + A z_{t−1} + u_t`: the move `k` days after a first-day jump `δ` is `Ψ_k δ`, with `Ψ_0 = I` and `Ψ_k = A Ψ_{k−1}`. The first-day jump is measured, so the VAR never has to order the same-day relations, as with an outside instrument (Stock and Watson 2018). The rule, fixed before the first run: carry jumps forward only if the VAR forecasts next-day factor moves better than "no move" out of sample, across the whole 95% range. Since 2008 it forecasts them worse, on every stretch of the data, so a jump stays its first day's move.
+- **Are all ten factors on one clock?** A daily change spans two closes. A series whose closes come earlier than the others' shows part of each day's news on its next day's change: it seems to lag the markets that close later (a clock, not a lead), and every same-day reading of it shrinks, a fund's exposure as much as an event's jump. This is the nonsynchronous-trading bias of Scholes and Williams (1977), Dimson (1979) and Lo and MacKinlay (1990). The Fed's broad dollar index is fixed at noon New York time (the H.10 release's noon buying rates), four hours before the 4 p.m. close the odds and stocks are read at, and measured there 23% of each day's dollar move landed a day late. The engine therefore carries it to the close with a dollar fund that trades then (UUP): `level × (close / noon price)^β`, where `β`, about 0.57, is the index's move per unit of the fund's from one noon to the next, so the broad basket is kept and only the last four hours borrow the fund's move (`factordata.carry_to_close`). The late share falls to 6%. Days before the fund's noon prices begin (2007), and keys without hourly prices, keep the noon fixing.
+- **Do markets react late?** If factors kept moving the day after an odds change, or odds the day after the factors, the same-day regression would miss part of the jump; and if a child market followed its parent a day late, the knock-on slope of 4.4 would be too small. On the funnel's material markets, no factor passed the test fixed in advance for a next-day move. The other way round, the odds of markets on the S&P 500's or the Nasdaq's own level trail stocks by a day, most likely a price that is hours old at 4 p.m.; across all the stock-linked markets the effect isn't significant. Children don't follow their parents a day late, and same-day knock-on slopes keep three quarters of their size over a week. Slopes found by the data alone fail on later data, as Kim et al. (2026) found for lead-lag pairs on Kalshi, which is why a link also needs a mechanism (6.6). The jump windows and the link check stay as they are.
+
 ---
 
 ## 5. Architecture
@@ -526,6 +536,7 @@ Ground rules: time-based splits only (fit on the past, test on the future), poin
 | E7 | Factor fit | How well do the factors describe each portfolio? | Sample portfolios | Out-of-sample R², residual check on news days | Market-only model |
 | E8 | Historical replay | Would the system have helped on real days? | April 2025 tariffs and the pause; other episodes | Predicted vs. realized portfolio moves; ranking of the events that mattered | AI-only |
 | E9 | "Just ask an AI" | Is the system better than a strong model with no tools? | Markets that resolved after the model's training data; the same portfolios and dates once exposures run | E2, E3 and E8 metrics | Claude with no tools |
+| E10 | Lead and lag | Is an event's jump its first day's move, with every factor on one clock? | Daily factor moves since 2008; 4 p.m. fund closes; hourly odds of the funnel's material markets | Out-of-sample forecast score; Granger tests under a false-discovery control; late share against a 4 p.m. fund; sign tests on next-day and day-before moves | "No move"; the same tests on 4 p.m. fund closes |
 
 **How E0 runs.** `redkeep funnel e0` splits Claude's labels of the even sample 70/30 by a hash of each market's group, so a ladder's rungs never sit on both sides. The screen's two lines are set on the training markets alone, from 5-fold predictions with folds by group:
 
@@ -637,6 +648,20 @@ E8's metric, portfolio moves on the same dates, isn't run on these markets yet; 
 
 So the markets earn their place on odds, which is why the AI never sets a probability where a market exists ([section 8](#8-where-the-ai-is-used-and-where-it-isnt)). On jumps, a single market's reading is too noisy to act on alone, even where it looks resolved, and fusing it with the prior is what makes it safe. A reading that resolves a factor isn't evidence on its own either: 14 of the 287 pairs here resolve one at two standard errors, about what chance alone would give (13), as E3's 12 of 378 were (17). That is the case for the quorum: a jump counts once two market readings agree, which options (M6) make possible on every factor. The run is saved, with every answer, in `backend/data/evals/baseline-2026-11-08.json`, and `redkeep baseline --from` rescores it without asking Claude.
 
+**How E10 runs.** `redkeep granger` asks the three timing questions of [4.8](#48-lead-and-lag-why-a-jump-is-its-first-days-move), with the rules fixed in `backend/redkeep/granger.py` before the first run:
+
+- **Factors against factors.** A VAR on daily moves in typical moves, since 2008 and over 2008 to 2012, 2013 to 2019 and 2020 on, three ways: the engine's measures, the same with the dollar at its noon fixing, and 4 p.m. fund closes standing in for each factor. Lag order by BIC beside AIC; Granger tests with White's robust covariance under a 5% false-discovery control (Benjamini and Hochberg); and the pooled out-of-sample score of a VAR refitted monthly on the two years before each day, `1 − Σ(y − ŷ)² / Σy²`, with a 95% range from blocks of 20 days. A jump would be carried past its first day only if that range were above zero.
+- **Clocks.** Each factor not read at 4 p.m. against a fund that closes then, by its late share `b₁ / (b₀ + b₁)` from `series_t = a + b₀·fund_t + b₁·fund_{t−1}`; then the exposure fit (E7's score) of 25 funds with the dollar carried and at noon, on windows ending every quarter.
+- **Propagation.** The April 2025 replay's explained moves, carried forward through a VAR fitted on the two years before the episode.
+- **Odds.** On the funnel's material markets with hourly odds for 60 of the last 200 days: sign tests on whether each factor's move the day after, or the day before, an odds change points the same way as the same-day one; and over every pair of markets from different families, late slopes, slopes over two to five days, and slopes fitted on one half of the days and tried on the other.
+
+**What the first run found.** On November 13, 2026 (the [research note](research/granger-causality.md) has the detail; the run is saved in `backend/data/evals/granger-2026-11-13.json`):
+
+- **Jumps don't travel.** The VAR's pooled out-of-sample score since 2008 is −0.082 (95% range −0.148 to −0.023): yesterday's factor moves forecast today's worse than "no move", and the score is below zero on every stretch and every clock. On the April 2025 replay, carrying the explained moves forward leaves their share of the daily factor moves at 26.0%.
+- **The dollar was on a noon clock.** Against UUP, 23% of a 4 p.m. dollar move showed up in the Fed's index a day late; carried to the close, 6%. At noon, five factors seemed to lead the dollar; carried, one does, by a third less. 19 of 25 funds' exposures fit held-out days better, the euro fund's from 0.40 to 0.59, and none worse by more than 0.003. On the replay, run both ways with the same matches, the dollar's explained share rises from −20% to −13% and the overall share moves from 40.5% to 40.1%, because the pause's dollar call, right at noon, was wrong at the close. (Those two runs priced the May cut from another, equivalent Polymarket market than the saved run, which lifts both overall shares above its 26%: the judge's pick between equivalent markets can change between runs.)
+- **No factor trails the odds.** On 133 material markets (95 Kalshi, 38 Polymarket), no factor's next-day move passed the sign test, so the windows stay one day long. Stocks' day-before move did pass (10 of 10 markets, p 0.002): the odds of markets on the S&P 500's and the Nasdaq's own levels trail the index by a day. Pooled over all 84 stock-linked markets it isn't significant; bonds and oil show an exploratory day-before term.
+- **Knock-on slopes hold; links found by the data alone don't.** Of 17,258 pairs, 350 have a clear same-day slope. Their next-day slopes mostly reverse (114 of 350 point the same way), and no parent's past predicts its child after the false-discovery control. The slopes keep 92%, 84% and 76% of their size over two, three and five days. Fitted on the first half of the days, the 190 pairs clear there predict the second half worse than no link at all (23% more squared error).
+
 **Ground truth for jumps.** When a market resolves, its odds jump to 0 or 1, so the realized jump is the factor move in the resolution window divided by the odds change (`1 − q` or `−q`). The same data sets each source's weight (6.5): weights are fitted on an earlier period and evaluated on a later one, so the evals stay honest.
 
 ---
@@ -649,7 +674,7 @@ So the markets earn their place on odds, which is why the AI never sets a probab
 | Polymarket | Market list, prices, price history, resolutions | Public APIs | |
 | Kalshi | Market list, prices, price history, resolutions | Public API | CFTC-regulated venue |
 | Hyperliquid (trade[XYZ] markets) | Weekend and holiday prices for stocks, oil, chips and gold | Public API, read-only | Keeps only the latest 5,000 candles, so `redkeep record` stores them from day one; Tardis or 0xArchive for older history ([6.4](#64-evidence)) |
-| FRED | Yields, breakevens, credit spreads, VIX (daily) | Public | Factor proxies and long history |
+| FRED | Yields, breakevens, credit spreads, the VIX, oil and the broad dollar (daily) | Public | Factor proxies and long history. The dollar index is fixed at noon New York time and is carried to the 4 p.m. close with Massive's hourly UUP prices ([4.8](#48-lead-and-lag-why-a-jump-is-its-first-days-move)) |
 | Claude API | AI steps | Personal key | |
 | Laya (planned) | Funnel screening | Open weights on Hugging Face (Apache 2.0), not reachable from the build environment yet | To be fine-tuned on Claude's labels, with Jev as the alternative; until then a words model taught by the same labels screens ([section 8](#8-where-the-ai-is-used-and-where-it-isnt)) |
 
@@ -695,6 +720,8 @@ The store is DuckDB over append-only Parquet segments, one per write, so a recor
 | The factor set describes the portfolio | Macro factors capture the channels events travel through | E7 fit score | Automatic extras; the direct channel |
 | Graph links are stable over the horizon | Links change slowly relative to six months | Rolling re-estimation | Shorter windows; wider errors |
 | Links are predictive, not causal | That is what "if this happens, what do markets learn" needs | n/a | Stated in the UI |
+| A jump is its first day's move | Daily factor moves don't forecast each other out of sample, and no factor keeps moving the day after an odds change | E10 | Carry jumps forward with the VAR's impulse responses, or widen the windows |
+| Every factor is read on one clock | All are 4 p.m. closes or carried there; the dollar, fixed at noon, is carried with UUP | E10's late shares | Carry the series to the close, as the dollar is |
 | Past analogs resemble today | Used only as a prior | E6 ablation | Their weight shrinks automatically |
 | Weekend perp prices anticipate Monday's open | Studies find they cut the error in predicting Monday's gap by about half: strongly for oil, weakly for gold | Compare weekend jumps with the next ETF open, by factor | Lower that factor's weight, or drop its weekend windows |
 
@@ -717,7 +744,7 @@ TheRedKeep/
 │   ├── DESIGN.md
 │   ├── assets/                # hero image
 │   ├── diagrams/              # Mermaid sources, rendered SVG/PNG, concept figure
-│   └── research/              # research notes, such as Hyperliquid's non-crypto perps
+│   └── research/              # research notes: Hyperliquid's non-crypto perps, Granger causality (E10)
 ├── prototype/                 # playable single-page prototype: illustrative data, or a backend snapshot
 │   ├── src/                   # data.js, model.js, dataset.js, ui-*.js, styles.css (and live.js from the backend)
 │   ├── build.py               # writes index.html
@@ -736,10 +763,11 @@ TheRedKeep/
 │   │   ├── funnel/            # labels.py (Claude's labels), screen.py (the fast screen), e0.py, run.py (M4, E0)
 │   │   ├── replay.py          # the historical replay (E8); jumps.py, jump accuracy (E3 to E5)
 │   │   ├── baseline.py        # Claude with no tools against the engine (E9)
+│   │   ├── granger.py         # lead and lag: VARs, Granger tests, clocks (E10); leadlag.py runs it
 │   │   └── api.py, cli.py     # FastAPI routes and the `redkeep` command
 │   └── tests/
 │   # planned: Laya in funnel/, graph/ (learned links), hedging/, jobs/ (backtests, scheduled reruns of E2)
-├── evals/                     # planned: one harness for E0 to E9; today each eval is a `redkeep` command
+├── evals/                     # planned: one harness for E0 to E10; today each eval is a `redkeep` command
 └── frontend/                  # planned: the Next.js app
 ```
 
@@ -775,6 +803,8 @@ Build a thin vertical slice first, then widen it.
 
 **The AI baseline (E9)** is built and has run ([section 10](#10-how-we-prove-it-works)): `redkeep baseline` scores Claude with no tools against the market's own readings and the engine's fusion of both, on resolved markets the model can't know the outcome of, by E3's metrics for jumps and E2's for odds. On the first run, market odds beat Claude's by 0.081 in Brier score, and on jumps the engine tied Claude while a single market's reading alone did far worse. It is tested offline with a stand-in for Claude.
 
+**Lead and lag (E10)** is built and has run ([4.8](#48-lead-and-lag-why-a-jump-is-its-first-days-move), [section 10](#10-how-we-prove-it-works)): `redkeep granger` tests whether an event's jump keeps travelling after its first day, whether every factor is on the 4 p.m. clock, and whether markets react a day late. Jumps don't travel and no factor trails the odds, so neither the jumps nor the windows changed; the dollar was on a noon clock, and is now carried to the close.
+
 **The funnel (M4)** is built and has run ([6.2](#62-event-discovery-funnel)): Claude labels an even sample of the live catalogue, a words model learns from the labels, and `redkeep funnel screen` reads every market, sending only the band the screen is unsure about to Claude. E0 scores the screen against Claude's labels on markets it never saw. On the first run it found 96% of the material markets while sending 38% of them to Claude ([section 10](#10-how-we-prove-it-works)). Laya and Jev wait for access. The labels also split the jump study, so the jumps of events that matter are scored apart (`redkeep jumps --label`).
 
 **Point-in-time storage (M1)** is built ([section 11](#11-data-sources)): the data clients record every market list, odds history, candle, close and holdings file they read, so each run adds to the store. `redkeep record` keeps it current between runs, for example hourly. It adds Hyperliquid candles for every trade[XYZ] perp from the last one stored, both venues' catalogues with their quotes, the matched markets' odds and the factor series. Older candles than the API keeps, and past quotes, exist only in the store. The store runs wherever the backend runs, so it records from the day it is first scheduled on a machine that stays up.
@@ -794,6 +824,8 @@ Build a thin vertical slice first, then widen it.
 | When does a market reading count toward the quorum? | When it could confirm the jump on its own: its error bar on the jump's size is at most half the jump. Vaguer readings can contest a jump but not confirm it ([4.6](#46-fusion-and-the-market-quorum)) |
 | Which sample portfolios? | Famous published allocations: All Weather, Buffett's 90/10, the Permanent Portfolio and a Yale-style mix ([9.2](#92-screens)) |
 | Default horizon? | Six months, adjustable |
+| Should a jump keep travelling after its first day? | No. A VAR of the factors' daily moves forecasts the next day worse than "no move" out of sample since 2008, so a jump is its first day's move; `redkeep granger` reruns the test as the data grows ([4.8](#48-lead-and-lag-why-a-jump-is-its-first-days-move)) |
+| Which clock are the factors on? | The 4 p.m. New York close. The Fed's dollar index, fixed at noon, is carried there by UUP's move since noon, scaled by the index's measured response to it ([4.8](#48-lead-and-lag-why-a-jump-is-its-first-days-move)) |
 | How much of Protect and Track to build? | Optional. Single-event hedge sizing is in the prototype; the optimizer and tracking are described, not built ([section 7](#7-optional-extension-hedging-with-event-contracts)) |
 | How are market odds calibrated? | One slope in log-odds per horizon, fitted on resolved Polymarket and Kalshi markets and used only where it reliably beats raw prices out of sample. None does yet, so the engine uses market odds ([6.4](#64-evidence), E2) |
 
@@ -803,6 +835,7 @@ Build a thin vertical slice first, then widen it.
 - Confirm Hyperliquid coin names and live depth on a live run. The engine looks for both `xyz:CL` and `xyz:WTIOIL`, and `redkeep check` lists what the `meta` endpoint returns, with each perp's maximum leverage, which sets its discovery-bound step.
 - Does fine-tuned Laya beat the words model, and Jev, on E0?
 - Can we get CME futures data for weeknight windows?
+- Do bond and oil markets move a day before the related odds, and do index-level odds keep trailing stocks? E10's pooled index will say as the odds history grows; intraday windows would settle it.
 
 ---
 
@@ -845,6 +878,17 @@ Build a thin vertical slice first, then widen it.
 30. Swensen, D. F. (2005). *Unconventional Success: A Fundamental Approach to Personal Investment*. Free Press. Secondary: [My Money Blog](https://mymoneyblog.com/model-portfolio-7-unconventional-success-by-david-swensen.html)
 31. trade.xyz documentation: specification index, oracle price and discovery bounds. [docs.trade.xyz](https://docs.trade.xyz/perpetuals/specifications-and-schedules/specification-index.md)
 
+**Lead and lag ([4.8](#48-lead-and-lag-why-a-jump-is-its-first-days-move) and E10).** Checked on November 13, 2026; the [research note](research/granger-causality.md#references) lists the rest of its review.
+
+32. Dimson, E. (1979). Risk Measurement When Shares Are Subject to Infrequent Trading. *Journal of Financial Economics*, 7(2), 197–226. [doi:10.1016/0304-405X(79)90013-8](https://doi.org/10.1016/0304-405X(79)90013-8)
+33. Federal Reserve Board. Foreign Exchange Rates (H.10), About the release: noon buying rates in New York. [federalreserve.gov](https://www.federalreserve.gov/releases/h10/about.htm)
+34. Granger, C. W. J. (1969). Investigating Causal Relations by Econometric Models and Cross-spectral Methods. *Econometrica*, 37(3), 424–438. [doi:10.2307/1912791](https://doi.org/10.2307/1912791)
+35. Kim, S., Kim, M., Kwon, J., et al. (2026). LLM as a Risk Manager: LLM Semantic Filtering for Lead–Lag Trading in Prediction Markets. [arXiv:2602.07048](https://arxiv.org/abs/2602.07048)
+36. Lo, A. W., and MacKinlay, A. C. (1990). An Econometric Analysis of Nonsynchronous Trading. *Journal of Econometrics*, 45(1–2), 181–211. [RePEc](https://econpapers.repec.org/RePEc:eee:econom:v:45:y:1990:i:1-2:p:181-211)
+37. Scholes, M., and Williams, J. (1977). Estimating Betas from Nonsynchronous Data. *Journal of Financial Economics*, 5(3), 309–327. [doi:10.1016/0304-405X(77)90041-1](https://doi.org/10.1016/0304-405X(77)90041-1)
+38. Shojaie, A., and Fox, E. B. (2022). Granger Causality: A Review and Recent Advances. *Annual Review of Statistics and Its Application*, 9, 289–319. [doi:10.1146/annurev-statistics-040120-010930](https://doi.org/10.1146/annurev-statistics-040120-010930)
+39. Stock, J. H., and Watson, M. W. (2018). Identification and Estimation of Dynamic Causal Effects in Macroeconomics Using External Instruments. *Economic Journal*, 128(610), 917–948. [doi:10.1111/ecoj.12593](https://doi.org/10.1111/ecoj.12593)
+
 ---
 
 ## 18. Glossary
@@ -870,3 +914,5 @@ Build a thin vertical slice first, then widen it.
 | Decision model | A small model that returns a typed answer (a choice, a score or a yes/no) with a probability in one pass, instead of writing text. Laya and Jev are examples |
 | HIP-3 perp | A perpetual futures market that a third party deploys on Hyperliquid, such as trade[XYZ]'s S&P 500 and oil perps |
 | Discovery bound | A cap on how far a HIP-3 perp can move while its reference market is closed; a move that hits it is censored |
+| Granger causality | One series' past helping to forecast another's next move: a matter of timing, not of cause |
+| Late share | The part of a 4 p.m. move that a series read earlier in the day shows only the next day |

@@ -10,11 +10,20 @@ of prices) or ends early (FRED publishes the dollar index about a week behind)
 costs its own factor those days, not every factor. Where a factor has two
 proxies (stocks: SPY, then the S&P 500 index), each day uses the first that has
 both closes.
+
+Every change spans two 4 p.m. closes. The Fed's dollar index is fixed at noon,
+four hours before the others, and measured there about a fifth of each day's
+dollar move lands on the next day's change (eval E10, DESIGN.md 4.8). That
+shows up as stocks and yields "leading" the dollar by a day, and it shrinks
+every dollar reading that pairs a same-day dollar move with a 4 p.m. price: a
+fund's exposure, an event's jump. So ``load`` carries the index from noon to the
+close with a dollar fund that trades there (``carry_to_close``).
 """
 
 from __future__ import annotations
 
 import logging
+import math
 from bisect import bisect_left, bisect_right
 from dataclasses import dataclass, field
 from datetime import date
@@ -41,6 +50,7 @@ def change(f: Factor, a: dict[str, float], b: dict[str, float]) -> float:
     return ((b[x] / a[x]) - (b[y] / a[y])) * 100
 
 
+CARRY_MIN = 120  # day pairs it takes to measure how far the carrying fund's moves carry a series
 CALENDAR = ("SPY", "SP500")  # the stock market's proxies: their trading days are the calendar
 COVER = 0.9  # typical moves come from the preferred proxy if it covers this share of the window
 MAX_WEEK = 14  # calendar days: five closes further apart than two weeks span a gap in the series, not a week
@@ -173,6 +183,30 @@ def build(levels: dict[str, Series], *, typical_window: int = 520) -> FactorData
     return FactorData(levels=levels, dates=days[1:], X=X, typical=typical, sources=sources)
 
 
+def carry_to_close(series: Series, close: Series, fixing: Series) -> tuple[Series, float] | None:
+    """A series fixed before the 4 p.m. close, carried to the close by a fund that trades there.
+
+    ``series`` is fixed at some hour (the Fed's dollar index, at noon), ``fixing`` is the fund's price at that hour
+    and ``close`` its 4 p.m. close. The carried level is ``level × (close / fixing) ** β``: the series as fixed, plus
+    the fund's move over the rest of the day scaled by ``β``, the series' move per unit of the fund's, both measured
+    from one fixing to the next so they share a clock (a broad dollar index moves about 0.57 for each 1 of a dollar
+    fund weighted to the euro). Days before the fund's fixing prices begin keep the series as it was, so a long
+    history isn't cut short; after that, a day without them is left out, so no day's change mixes the clocks. None
+    when the series and the fund share too few days to measure ``β``."""
+    days = sorted(d for d in set(series) & set(close) & set(fixing) if series[d] > 0 and close[d] > 0 and fixing[d] > 0)
+    pairs = [(a, b) for a, b in zip(days, days[1:]) if (b - a).days <= 5]
+    if len(pairs) < CARRY_MIN:
+        return None
+    x = np.array([math.log(fixing[b] / fixing[a]) for a, b in pairs])
+    y = np.array([math.log(series[b] / series[a]) for a, b in pairs])
+    if float(x @ x) <= 0:
+        return None
+    beta = float(x @ y) / float(x @ x)
+    out = {d: v for d, v in series.items() if d < days[0]}
+    out.update({d: series[d] * (close[d] / fixing[d]) ** beta for d in days})
+    return out, beta
+
+
 def load(fred: Fred, massive: Massive | None, start: date, end: date) -> FactorData:
     levels: dict[str, Series] = {}
     for i in (f.fred for f in FACTORS if f.fred):  # one at a time, so one bad series doesn't cost the rest
@@ -180,13 +214,31 @@ def load(fred: Fred, massive: Massive | None, start: date, end: date) -> FactorD
             levels.update(fred.series([i], start, end))
         except (HttpError, ValueError) as e:
             log.warning("FRED %s unavailable: %s", i, e)
+    carried: dict[str, str] = {}
     if massive is not None and massive.available:
-        for t in sorted({t for f in FACTORS for t in f.massive}):
+        for t in sorted({t for f in FACTORS for t in (*f.massive, *([f.carry] if f.carry else []))}):
             try:
                 levels[t] = massive.closes(t, start, end)
             except HttpError as e:  # for example, history beyond the plan's limit
                 log.warning("Massive %s unavailable from %s: %s", t, start, e)
-    return build(levels)
+        for f in FACTORS:
+            if not (f.carry and f.fixed and levels.get(f.fred) and levels.get(f.carry)):
+                continue
+            try:
+                fixing = massive.at_hour(f.carry, start, end, hour=f.fixed)
+            except HttpError as e:  # intraday bars can be outside the plan
+                log.warning("Massive %s at %d:00 unavailable, so %s stays at its fixing time: %s", f.carry, f.fixed, f.fred, e)
+                continue
+            got = carry_to_close(levels[f.fred], levels[f.carry], fixing)
+            if got is None:
+                log.warning("Too few days of %s at %d:00 to carry %s to the close", f.carry, f.fixed, f.fred)
+                continue
+            levels[f.fred], beta = got
+            carried[f.key] = f", carried from its {f.fixed}:00 fixing to the 4 p.m. close with Massive {f.carry} (β {beta:.2f})"
+    fd = build(levels)
+    for key, note in carried.items():
+        fd.sources[key] = fd.sources.get(key, "") + note
+    return fd
 
 
 def window_bounds(dates: list[date], day: date, days: int) -> tuple[date, date] | None:

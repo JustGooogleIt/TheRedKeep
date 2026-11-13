@@ -190,3 +190,24 @@ def test_pages_that_come_round_again_stop_with_an_error():
     m = Massive(Http(transport=httpx.MockTransport(handler), sleep=lambda s: None), "key", ttl=None)
     with pytest.raises(HttpError, match="came round again"):
         m.closes("SPY", date(2026, 1, 1), date(2026, 1, 31))
+
+
+def test_at_hour_reads_the_last_regular_session_bar_before_the_fixing_time():
+    from datetime import datetime, timezone
+    from zoneinfo import ZoneInfo
+
+    ny = ZoneInfo("America/New_York")
+
+    def bar(y, m, d, h, c):
+        return {"t": int(datetime(y, m, d, h, tzinfo=ny).astimezone(timezone.utc).timestamp() * 1000), "c": c}
+
+    rows = [bar(2025, 4, 9, 8, 27.0), bar(2025, 4, 9, 10, 28.1), bar(2025, 4, 9, 11, 28.2), bar(2025, 4, 9, 13, 28.6),
+            bar(2025, 1, 6, 9, 30.0), bar(2025, 1, 6, 15, 30.5), bar(2025, 1, 7, 7, 31.0)]
+
+    def handler(request):
+        assert "/range/1/hour/" in request.url.path
+        return httpx.Response(200, json={"results": rows})
+
+    m = Massive(Http(transport=httpx.MockTransport(handler)), "key")
+    got = m.at_hour("UUP", date(2025, 1, 1), date(2025, 4, 30))
+    assert got == {date(2025, 4, 9): 28.2, date(2025, 1, 6): 30.0}  # summer and winter time; pre-market bars don't count

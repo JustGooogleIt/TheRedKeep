@@ -134,3 +134,85 @@ def test_without_a_stock_proxy_the_days_are_the_ones_every_series_shares(lv):
     assert fd.dates[0] == DAYS[DAYS.index(LATE) + 1] and fd.dates[-1] == STALE and HOLIDAY not in fd.dates
     assert np.isfinite(fd.X[:, fd.available]).all()
     assert not fd.available[EQ] and not fd.available[index("chips")]
+
+
+# -- a series fixed before the close (the Fed's dollar index, at noon) ---------------------------------------------------
+
+
+def carry_world(seed: int = 3, beta: float = 0.6, n: int = 400):
+    """A dollar fund whose day splits at noon, and a broad index that moves ``beta`` times the fund plus its own basket
+    moves (which come in the morning), fixed at noon. Its true 4 p.m. level is known."""
+    rng = np.random.default_rng(seed)
+    ds = business_days(date(2024, 1, 1), date(2026, 12, 31))[:n]
+    morning, afternoon, basket = rng.normal(0, 0.003, n), rng.normal(0, 0.002, n), rng.normal(0, 0.002, n)
+    f_noon = np.log(28) + np.cumsum(morning) + np.concatenate([[0], np.cumsum(afternoon)[:-1]])
+    f_close = f_noon + afternoon
+    e = np.cumsum(basket)
+    index_noon = {d: float(np.exp(np.log(120) + beta * fn + b)) for d, fn, b in zip(ds, f_noon, e)}
+    index_close = {d: float(np.exp(np.log(120) + beta * fc + b)) for d, fc, b in zip(ds, f_close, e)}
+    fund_close = {d: float(np.exp(v)) for d, v in zip(ds, f_close)}
+    fund_noon = {d: float(np.exp(v)) for d, v in zip(ds, f_noon)}
+    return ds, index_noon, index_close, fund_close, fund_noon
+
+
+def test_carrying_a_noon_fixing_to_the_close_recovers_the_close():
+    ds, index_noon, index_close, fund_close, fund_noon = carry_world()
+    carried, beta = factordata.carry_to_close(index_noon, fund_close, fund_noon)
+    assert beta == pytest.approx(0.6, abs=0.05)  # measured from noon to noon, where the two share a clock
+    true = np.diff(np.log([index_close[d] for d in ds]))
+    got = np.diff(np.log([carried[d] for d in ds]))
+    noon = np.diff(np.log([index_noon[d] for d in ds]))
+    assert np.corrcoef(true, got)[0, 1] > 0.99
+    assert np.corrcoef(true, noon)[0, 1] < 0.95  # the fixing alone misses the afternoon
+
+
+def test_carrying_keeps_the_history_before_the_fund_and_drops_its_gaps_after():
+    ds, index_noon, _, fund_close, fund_noon = carry_world()
+    early = {d: 100.0 for d in business_days(date(2023, 6, 1), date(2023, 12, 29))}
+    gap = ds[200]
+    fixing = {d: v for d, v in fund_noon.items() if d != gap}
+    carried, _ = factordata.carry_to_close({**early, **index_noon}, fund_close, fixing)
+    assert all(carried[d] == 100.0 for d in early)  # before the fund's noon prices begin: as fixed
+    assert gap not in carried  # after: a day without them is left out rather than mixing the clocks
+    assert factordata.carry_to_close(index_noon, fund_close, dict(list(fund_noon.items())[:50])) is None  # too few days
+
+
+class CarryFred:
+    def __init__(self, levels):
+        self.levels = levels
+
+    def series(self, ids, start, end):
+        return {i: {d: v for d, v in self.levels[i].items() if start <= d <= end} for i in ids if i in self.levels}
+
+
+class CarryMassive:
+    available = True
+
+    def __init__(self, levels, noon, fail=False):
+        self.levels, self.noon, self.fail = levels, noon, fail
+
+    def closes(self, t, start, end):
+        return {d: v for d, v in self.levels.get(t, {}).items() if start <= d <= end}
+
+    def at_hour(self, t, start, end, *, hour=12):
+        if self.fail:
+            from redkeep.http import HttpError
+            raise HttpError("https://api.massive.com/v2/aggs", 403, "not in the plan")
+        return {d: v for d, v in self.noon.items() if start <= d <= end}
+
+
+def test_load_carries_the_dollar_and_says_so_or_leaves_it_at_noon():
+    ds, index_noon, index_close, fund_close, fund_noon = carry_world(n=600)
+    lv = factor_levels(ds)
+    lv["DTWEXBGS"] = index_noon
+    fred = CarryFred({k: v for k, v in lv.items() if k in {"SP500", "DGS10", "T10YIE", "DTWEXBGS", "DCOILWTICO", "BAMLH0A0HYM2", "VIXCLS"}})
+    massive = CarryMassive({**{t: lv[t] for t in ("SPY", "FXI", "SMH", "GLD")}, "UUP": fund_close}, fund_noon)
+    fd = factordata.load(fred, massive, ds[0], ds[-1])
+    usd = index("usd")
+    assert "carried from its 12:00 fixing to the 4 p.m. close with Massive UUP" in fd.sources["usd"]
+    true = np.diff(np.log([index_close[d] for d in ds]))
+    assert np.corrcoef(fd.X[:, usd], true * 100)[0, 1] > 0.99
+    plain = factordata.load(fred, CarryMassive(massive.levels, fund_noon, fail=True), ds[0], ds[-1])
+    assert plain.sources["usd"] == "FRED DTWEXBGS"
+    v = np.array([index_noon[d] for d in ds])
+    assert np.allclose(plain.X[:, usd], (v[1:] / v[:-1] - 1) * 100)
