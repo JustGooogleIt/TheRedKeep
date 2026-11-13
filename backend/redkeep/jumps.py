@@ -171,7 +171,7 @@ def case_for(r: Resolved, points: Sequence[tuple[datetime, float]], granularity:
     z = fd.Z[i]
     noise = calm_noise(past, set(wf.windows))
     ok = np.isfinite(rd.sigma) & np.isfinite(rd.delta)
-    C = rd.covariance()
+    C = rd.covariance(1.0)  # as measured, whatever weight the engine uses: E11 compares that with factor by factor
     R = moves_corr(calm_days(past, set(wf.windows)))
     return Case(
         key=r.key, venue=r.venue, event=r.event, title=r.title, category=r.category, y=r.y,

@@ -1,4 +1,4 @@
-"""Joint error bars (DESIGN.md 4.6, eval E11): covariances across factors, from the jump windows to fusion and E11."""
+"""Joint error bars (DESIGN.md 4.9, eval E11): covariances across factors, from the jump windows to fusion and E11."""
 
 from datetime import date, timedelta
 from types import SimpleNamespace
@@ -148,6 +148,44 @@ def test_fusion_borrows_across_correlated_factors(joint_on):
     assert f.dof == 1 and np.allclose(f.cov, np.linalg.inv(W + Wb))
 
 
+def test_a_contested_factor_rests_on_the_other_evidence_alone(joint_on):
+    """The market and the past events point opposite ways on stocks, and agree on the VIX. The fused stocks are the
+    past events' alone: the market's VIX can't reach them through the past events' own stock–VIX correlation."""
+    C = np.zeros((NF, NF))
+    C[EQ, EQ] = C[VIX, VIX] = 0.09
+    C[EQ, VIX] = C[VIX, EQ] = -0.8 * 0.09
+    on = lambda eq, vix: np.where(np.arange(NF) == EQ, eq, np.where(np.arange(NF) == VIX, vix, 0.0))  # noqa: E731
+    f = fuse_delta([reading("etf", on(2.0, -1.0), C), reading("past", on(-2.0, -0.2), C)])
+    assert f.conflict is not None and f.conflict.factors == ["eq"]
+    assert f.delta[EQ] == pytest.approx(-2.0) and f.sigma[EQ] == pytest.approx(0.3)
+    assert f.cov[EQ, VIX] == pytest.approx(0.0)  # stocks' error now apart from the VIX's
+    assert -1.0 < f.delta[VIX] < -0.2  # both readings still count on the VIX
+
+
+def test_the_snapshot_keeps_each_readings_covariance_and_the_app_weighs_it_as_the_engine_did():
+    """A snapshot keeps each reading's covariance as measured, whatever weight the engine used; the app's "k times
+    the fused jump" weighs its correlations as the engine's quorum did (the snapshot's ``joint_weight``)."""
+    from redkeep import appdata
+    from redkeep.engine import covariance
+    from redkeep.pipeline import _reading_json
+
+    rng = np.random.default_rng(2)
+    C = corr_world_R() * 0.25
+    r = reading("etf", rng.normal(size=NF), C)
+    assert covariance.JOINT_WEIGHT == 0.0  # E11's first run
+    js = _reading_json(r)
+    assert js["cov"][EQ][VIX] == pytest.approx(C[EQ, VIX])
+    u = rng.normal(size=NF)
+    ks = []
+    for w in (0.0, 0.5, 1.0):
+        P = np.linalg.inv(covariance.weigh(C, w))
+        want = float(u @ P @ r.delta) / float(u @ P @ u)
+        got = appdata._project(js, u, w)
+        assert got[3] == pytest.approx(want, abs=1e-4) and got[4] == pytest.approx(1 / np.sqrt(u @ P @ u), abs=1e-4)
+        ks.append(got[3])
+    assert len(set(ks)) == 3
+
+
 def test_size_error_uses_the_whole_precision():
     u = np.zeros(NF)
     u[EQ], u[VIX] = -1.0, 1.0
@@ -158,13 +196,17 @@ def test_size_error_uses_the_whole_precision():
     assert size_error(P, u) > size_error(np.ones(NF), u)  # along this jump the errors are larger than independent
 
 
-def e11_cases(rng, *, truth: str, n_days: int = 60, pairs: int = 6) -> list:
+def e11_cases(rng, *, truth: str, n_days: int = 60, pairs: int = 6, noise_sd: float = 0.05,
+              noise_corr: np.ndarray | None = None) -> list:
     """Resolved markets whose readings carry the stock–VIX–credit covariance; the misses drawn from it (``truth``
-    "joint") or from its error bars alone ("independent"). The first ``pairs`` days have two markets each."""
+    "joint") or from its error bars alone ("independent"). The first ``pairs`` days have two markets each. The day's
+    noise has spread ``noise_sd`` on every factor, independent across factors unless ``noise_corr`` says otherwise."""
     S = corr_world_R() * 0.4
     sig = np.sqrt(np.diag(S))
     L = np.linalg.cholesky(S if truth == "joint" else np.diag(np.diag(S)))
-    noise = np.full(NF, 0.05)
+    noise = np.full(NF, noise_sd)
+    R = np.eye(NF) if noise_corr is None else noise_corr
+    Ln = np.linalg.cholesky(R * np.outer(noise, noise))
     cases = []
     for i in range(n_days):
         day = (date(2025, 1, 1) + timedelta(days=i)).isoformat()
@@ -173,10 +215,10 @@ def e11_cases(rng, *, truth: str, n_days: int = 60, pairs: int = 6) -> list:
             dq = rng.choice([-1, 1]) * rng.uniform(0.3, 0.9)
             pred = rng.normal(size=NF)
             markets.append((dq, pred, dq * (pred + L @ rng.normal(size=NF))))
-        z = sum(m[2] for m in markets) + noise * rng.normal(size=NF)
+        z = sum(m[2] for m in markets) + Ln @ rng.normal(size=NF)
         for dq, pred, _ in markets:
             cases.append(SimpleNamespace(day=day, dq=dq, pred=pred.tolist(), sigma=sig.tolist(), z=z.tolist(),
-                                         noise=noise.tolist(), cov=S.tolist(), noise_corr=np.eye(NF).tolist()))
+                                         noise=noise.tolist(), cov=S.tolist(), noise_corr=R.tolist()))
     return cases
 
 
@@ -216,7 +258,38 @@ def test_e11_settles_an_inconclusive_result_by_the_power_fixed_in_advance():
     assert joint.decide("neither", True, True, False, 0.4)[0] == "half"
     assert joint.decide("joint", False, True, True, 0.9)[0] == "half"
     assert joint.decide("joint", False, True, False, 0.9)[0] == "none"
+    assert joint.decide("joint", True, False, False, 0.4)[0] == "none"  # amendment 2: not halfway, which just failed
     assert joint.decide("independent", True, True, True, 0.2)[0] == "none"
+
+
+def test_e11_distance_guard_allows_for_what_a_right_joint_forecast_gives():
+    """Amendment 1. With day noise whose correlations share the jumps' signs, even a right joint forecast is farther
+    off than the independent one, by ``k − tr(S_i⁻¹ S_j)`` a day on average; the guard tests the excess over that,
+    and so fails about one run in twenty when the joint forecasts are right, where uncentred it failed most."""
+    rng = np.random.default_rng(9)
+    ds = joint.days(e11_cases(rng, truth="joint", n_days=40, pairs=0, noise_sd=0.5, noise_corr=corr_world_R()))
+    K, sims = len(ds), 3000
+    crit = float(joint.student.ppf(1 - joint.ALPHA, K - 1))
+    raw, centred = np.zeros((sims, K)), np.zeros((sims, K))
+    for k, d in enumerate(ds):
+        Sj, Si = d.S("joint"), d.S("independent")
+        E = rng.standard_normal((sims, len(d.idx))) @ np.linalg.cholesky(Sj).T
+        gap = np.einsum("si,ij,sj->s", E, np.linalg.inv(Sj), E) - np.einsum("si,ij,sj->s", E, np.linalg.inv(Si), E)
+        expected = len(d.idx) - np.trace(np.linalg.solve(Si, Sj))
+        assert expected > 0.05  # the same sign as the correlations the two share
+        raw[:, k], centred[:, k] = gap, gap - expected
+    assert abs(centred.mean()) < 0.02 and raw.mean() > 0.1
+    fails = lambda D: float(np.mean(D.mean(1) / (D.std(1, ddof=1) / np.sqrt(K)) > crit))  # noqa: E731
+    assert 0.02 < fails(centred) < 0.09 and fails(raw) > 0.5
+
+
+def test_e11_reports_the_distance_guard_both_ways():
+    out = joint.study(e11_cases(np.random.default_rng(4), truth="joint", noise_sd=0.5, noise_corr=corr_world_R()),
+                      replay=None)
+    g = out["guards"]
+    assert g["d2"]["raw_mean"] > g["d2"]["mean"] and g["d2"]["raw_t"] > g["d2"]["t"]  # centring takes the bias out
+    assert g["d2"]["ok"] == (g["d2"]["t"] <= float(joint.student.ppf(1 - joint.ALPHA, out["days"] - 1)))
+    assert set(g["d2_half"]) == {"t", "mean"}
 
 
 def test_the_engine_uses_the_correlations_at_the_weight_e11_set(monkeypatch):

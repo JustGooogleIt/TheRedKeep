@@ -135,11 +135,13 @@ class AIPrior:
 
 
 def delta_reading(p: Prior, corr: np.ndarray | None = None) -> DeltaReading:
-    """The prior's jump. Its error bars, joint across factors (DESIGN.md 4.6), in two parts, as Black and Litterman
-    size a view's uncertainty from the market's own covariance (He and Litterman 1999):
+    """The prior's jump. Its error bars, joint across factors (DESIGN.md 4.9), in two parts:
 
     * ``τ²`` on each factor, correlated as the factors' daily moves are (``corr``, the identity when not given): a
-      prior that misjudges how risk-off an event is misjudges stocks, credit and the VIX together;
+      prior that misjudges how risk-off an event is misjudges stocks, credit and the VIX together. Black–Litterman's
+      uncertainty about expected returns, ``τΣ``, is the market's own covariance scaled down the same way (He and
+      Litterman 1999, who size each view's error from ``Σ`` too, one variance per view; the full form across the
+      ten factors is the engine's own choice);
     * a size error, ``TAU_SHARE`` of the move, half of it one error for the whole jump (a big estimate is uncertain
       in size as a whole) and half factor by factor, since the prior's shape can be off too (``covariance.size_cov``).
 

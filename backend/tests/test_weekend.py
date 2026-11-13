@@ -108,8 +108,9 @@ def test_moves_near_the_discovery_cap_are_flagged():
     assert not at_bound(oil, cs, starts, a, b, 70.0 * 1.10)
 
 
-def synthetic_weekends(true: dict[str, np.ndarray], seed: int = 3, cap_week: int | None = None):
-    """Odds and perp candles over 26 weekends, with perp moves set by ``true`` jumps plus noise."""
+def synthetic_weekends(true: dict[str, np.ndarray], seed: int = 3, cap_week: int | None = None, rho: float = 0.0):
+    """Odds and perp candles over 26 weekends, with perp moves set by ``true`` jumps plus noise; the stock and gold
+    perps' noise correlated ``rho`` (the weekend's other news moving both)."""
     rng = np.random.default_rng(seed)
     start, end = datetime(2026, 5, 11, tzinfo=UTC), datetime(2026, 11, 9, tzinfo=UTC)
     W = weekends(start, end)
@@ -125,9 +126,13 @@ def synthetic_weekends(true: dict[str, np.ndarray], seed: int = 3, cap_week: int
             legs[e].append((a - timedelta(minutes=30), q[e]))
             q[e] = float(np.clip(q[e] + dq[e], 0.02, 0.98))
             legs[e].append((b - timedelta(minutes=30), q[e]))
+        news = rng.normal(0, 0.04) if rho else 0.0
         for f in level:
             k = index(f)
-            z = sum(true[e][k] * dq[e] for e in ids) + rng.normal(0, 0.04)
+            eps = rng.normal(0, 0.04)
+            if rho and f in ("eq", "gold"):
+                eps = (1 if f == "eq" else np.sign(rho)) * np.sqrt(abs(rho)) * news + np.sqrt(1 - abs(rho)) * eps
+            z = sum(true[e][k] * dq[e] for e in ids) + eps
             p0 = level[f]
             p1 = p0 * (1 + z * TYPICAL[k] / 100)
             if f == "oil" and w == cap_week:
@@ -158,6 +163,25 @@ def test_weekend_windows_recover_the_jump_on_the_covered_factors():
         others = [k for k in range(NF) if FACTORS[k].key not in ("eq", "oil", "gold")]
         assert np.isinf(r.sigma[others]).all()
     assert len(fit.used["oil"]) == len(fit.used["eq"]) - 1 and date(2026, 7, 17) in fit.used["eq"]  # out of oil only
+
+
+def test_the_weekend_errors_lean_on_how_the_factors_move_on_ordinary_days():
+    """Half a year holds too few calm weekends for a correlation of their own, so the few windows' residual
+    correlations are shrunk toward the one the refresh measures on every day (``target``), not toward none."""
+    true = {e: np.zeros(NF) for e in ("cpi-hot", "fed-hike-dec", "israel-iran")}
+    true["fed-hike-dec"][[index("eq"), index("oil"), index("gold")]] = [-2.0, 0.3, -0.8]
+    legs, perps, start, end = synthetic_weekends(true, rho=-0.8)
+    EQ, GOLD = index("eq"), index("gold")
+    T = np.eye(NF)
+    T[EQ, GOLD] = T[GOLD, EQ] = -0.8  # how stocks and gold move together on ordinary days, here as on weekends
+
+    def corr(fit):
+        C = fit.readings["fed-hike-dec"].cov
+        return C[EQ, GOLD] / np.sqrt(C[EQ, EQ] * C[GOLD, GOLD])
+
+    alone = corr(weekend_windows(legs, perps, TYPICAL, start, end))
+    leaned = corr(weekend_windows(legs, perps, TYPICAL, start, end, target=T))
+    assert abs(leaned + 0.8) < abs(alone + 0.8) and leaned < -0.6
 
 
 def test_two_market_readings_that_agree_make_tier_a():

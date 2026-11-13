@@ -245,6 +245,25 @@ def test_no_prediction_sees_the_resolution_day(world):
     assert a.pred == b.pred and a.sigma == b.sigma and a.z != b.z
 
 
+def test_e11_reads_the_covariance_as_measured_whatever_weight_the_engine_uses(world, monkeypatch):
+    """E11 compares the readings' measured correlations with none; with the engine set to none, the cases must still
+    carry them, or the next run would compare the independent error bars with themselves."""
+    from redkeep.engine import covariance
+
+    levels, markets = world
+    m = next(x for x in markets if x["venue"] == "polymarket" and x["delta"])
+    r = Resolved("polymarket", f"pm{m['i']}", "polymarket:e", "e", "Economics", "t", None,
+                 closed_at(m), closed_at(m), m["y"], 1e5, token="tok")
+    fd = jumps.factor_data(clients(levels, markets), START, END)
+    got = {}
+    for w in (0.0, 1.0):
+        monkeypatch.setattr(covariance, "JOINT_WEIGHT", w)
+        got[w] = jumps.case_for(r, hourly(m["path"]), "hourly", fd, fd.calendar()).cov
+    assert got[0.0] == got[1.0]
+    off = [v for f, row in enumerate(got[0.0]) for g, v in enumerate(row) if f != g and v is not None]
+    assert off and max(abs(v) for v in off) > 1e-6
+
+
 def case(day, dq, pred, sigma, z, noise=0.4, key=None):
     pad = lambda v: [v] + [None] * (NF - 1)  # noqa: E731
     return jumps.Case(key or f"x:{day}", "kalshi", f"e:{day}", "t", "Economics", 1, day, day, 0.5, dq, "hourly", 4, 9,

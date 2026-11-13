@@ -1,4 +1,5 @@
-"""Joint error bars on resolved markets (DESIGN.md section 10, eval E11), with the method fixed here, before any run.
+"""Joint error bars on resolved markets (DESIGN.md section 10, eval E11), with the method fixed here before the first
+run, and two amendments made after it and before any other (at the end of this note).
 
 Each jump comes with error bars on every factor, and E4 checks them one factor at a time. A portfolio feels them all
 at once, ``b · δ``, and how far that is off depends on how the factors' errors move together: a jump window that
@@ -29,7 +30,7 @@ bars taken as independent, on the markets of E3 and E4. The design is the resear
   correlation, each factor scaled by one over its average error bar), the spread of ``t = b·(z − m) / √(b'Sb)``
   over the days, the bias statistic risk models are tested with, stays within ``1 + √(2/K)``. (iii) The joint
   forecasts' squared Mahalanobis distance, ``(z − m)'S⁻¹(z − m)``, is not significantly larger than the
-  independent ones' (paired, one-sided at 5%).
+  independent ones' (paired, one-sided at 5%), less what a right joint forecast would give (amendment 1).
 * **Also reported, not deciding.** The half and E4's-way candidates; the share of days inside each forecast's 80%
   region (χ² with as many degrees of freedom as factors); the spread along the largest eigenvector, where the joint
   error bars widen most; the 80% coverage and spread along the six sample portfolios of the April 2025 replay (its
@@ -50,6 +51,22 @@ The decision, fixed before the first run, sets how much of the correlations the 
   test should have seen the gain the joint error bars promise, and didn't), with portfolio ranges marked as not yet
   validated; under 0.6, half, on theory (regressions on the same days have errors that move together as their
   residuals do), since the sample can't tell.
+
+Amended on November 13, 2026, after the first run and before any other, when a review of it found two flaws. Neither
+changes the first run's decision (its primary test favoured neither side, with power 1.00: none).
+
+1. **Guard (iii) is centred.** Both candidates carry the same noise ``N``, with its calm-day correlations, so even a
+   right joint forecast has larger distances than the independent one on average: ``k − tr(S_i⁻¹ S_j)`` a day,
+   positive when the jumps' error correlations share the noise's signs, as they do, since they are shrunk toward the
+   same calm-day ones. Uncentred, the guard failed in 89% of runs simulated from the first run's joint forecasts
+   themselves; centred, in 6%. The guard now tests the difference less that expectation (and the same for halfway,
+   less ``k − tr(S_i⁻¹ S_h)``); the uncentred statistic is still reported. On the first run: uncentred t = 4.88,
+   centred t = 2.64, both above 1.68.
+2. **A failed guard with halfway failing too keeps the error bars independent.** If the primary test favours the
+   joint error bars but they fail a guard and halfway doesn't pass, the rule fell through to the inconclusive
+   default (and, under 0.6 power, chose halfway though it had just failed its checks). It now keeps none.
+
+The design's power covers the primary test alone, not the whole rule.
 """
 
 from __future__ import annotations
@@ -330,11 +347,14 @@ def sensitivities(ds_: Sequence[Day], first: str) -> dict:
 
 
 def decide(first: str, hedge_ok: bool, m2_ok: bool, half_ok: bool, pw: float) -> tuple[str, str]:
-    """The rule fixed before the first run: how much of the correlations the engine uses, and why."""
+    """The rule fixed before the first run, with amendment 2: how much of the correlations the engine uses, and why."""
     if first == "joint" and hedge_ok and m2_ok:
         return "all", "the joint error bars scored better and passed both guards"
     if first == "joint" and half_ok:
         return "half", "the joint error bars scored better but failed a guard; halfway scored better and passed both"
+    if first == "joint":
+        return "none", ("the joint error bars scored better but failed a guard, and halfway didn't pass both: kept "
+                        "independent, not yet validated")
     if first == "independent":
         return "none", "the independent error bars scored better"
     if pw >= POWER_FOR_NONE:
@@ -359,8 +379,13 @@ def study(cases: Sequence, *, replay: Path | None = None) -> dict | None:
     prim = paired(sc["independent"][:, 0] - sc["joint"][:, 0])
     first = favours(prim)
     half = paired(sc["independent"][:, 0] - sc["half"][:, 0])
-    m2 = paired(sc["joint"][:, 1] - sc["independent"][:, 1])  # positive: the joint forecasts' misses look larger
-    m2_half = paired(sc["half"][:, 1] - sc["independent"][:, 1])
+    # Guard (iii), centred (amendment 1): a day's distance against the independent forecast's, less what it would
+    # be on average if the candidate were right, k − tr(S_i⁻¹ S_c). Positive: the candidate's misses look larger.
+    def expected(w: str) -> np.ndarray:
+        return np.array([len(d.idx) - float(np.trace(np.linalg.solve(d.S("independent"), d.S(w)))) for d in ds_])
+    m2_raw = paired(sc["joint"][:, 1] - sc["independent"][:, 1])
+    m2 = paired(sc["joint"][:, 1] - sc["independent"][:, 1] - expected("joint"))
+    m2_half = paired(sc["half"][:, 1] - sc["independent"][:, 1] - expected("half"))
     hb = hedges(cases)
     lines = {}
     if hb is not None:
@@ -401,7 +426,8 @@ def study(cases: Sequence, *, replay: Path | None = None) -> dict | None:
         "candidates": {w: {"score": float(sc[w][:, 0].mean()), "d2_over_k": float((sc[w][:, 1] / k).mean()),
                            "inside_80": float((chi2.cdf(sc[w][:, 1], k) <= 0.8).mean())} for w in WAYS},
         "guards": {"hedge": lines.get("hedge"), "pile": lines.get("pile"), "hedge_ok": hedge_ok,
-                   "d2": {"t": m2["t"], "mean": m2["mean"], "ok": m2_ok}, "half_ok": half_ok},
+                   "d2": {"t": m2["t"], "mean": m2["mean"], "ok": m2_ok, "raw_t": m2_raw["t"], "raw_mean": m2_raw["mean"]},
+                   "d2_half": {"t": m2_half["t"], "mean": m2_half["mean"]}, "half_ok": half_ok},
         "random": {"directions": len(rand),
                    "coverage": {w: float(np.mean([c for c in rcov[w] if c is not None])) for w in rcov},
                    "gap_from_80": gap,

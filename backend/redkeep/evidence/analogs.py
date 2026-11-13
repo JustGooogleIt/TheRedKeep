@@ -65,7 +65,7 @@ def analog_reading(spec: EventSpec, fd: FactorData, *, until: date | None = None
     detail = "; ".join(f"{a.note} ({a.date:%b %-d, %Y})" for a in used)
     ok = tot > 0
     m = np.where(ok, np.nan_to_num(mean), 0.0)
-    # The same error bars, joint across factors (DESIGN.md 4.6). The windows' noise moved the factors together as
+    # The same error bars, joint across factors (DESIGN.md 4.9). The windows' noise moved the factors together as
     # their daily moves did around the analogs (stocks and bonds have moved together in some decades and apart in
     # others); the floor, for how today differs from then, moves them as they move now; the size error is half one
     # error for the whole jump and half factor by factor (``covariance.size_cov``); the spread between analogs stays
@@ -76,9 +76,11 @@ def analog_reading(spec: EventSpec, fd: FactorData, *, until: date | None = None
     now = upto & np.array([(last - d).days <= NOW for d in fd.dates], dtype=bool)
     R_then = moves_corr(fd.Z[era] if era.sum() >= 60 else fd.Z[upto])
     R_now = moves_corr(fd.Z[now])
-    sd_noise = np.sqrt(np.where(ok, s2, 0.0))
+    # Each analog's noise is v_a·R_then across factors, and each factor averages the analogs it has data for, so two
+    # factors' averages share only their common analogs: Σ_both (1/v_a) / (tot_f·tot_g), whose diagonal is s2.
+    shared = np.where(np.outer(ok, ok), (w.T @ (w * v)) / np.outer(safe, safe), 0.0)
     floor = np.where(ok, MODEL_FLOOR, 0.0)
-    cov = (R_then * np.outer(sd_noise, sd_noise) + R_now * np.outer(floor, floor)
+    cov = (R_then * shared + R_now * np.outer(floor, floor)
            + np.diag(np.where(ok, spread, 0.0)) + size_cov(m, MODEL_SHARE))
     return DeltaReading(kind="past", name="Past events", detail=detail, delta=np.nan_to_num(mean), sigma=sigma, n=len(used),
                         cov=cov)

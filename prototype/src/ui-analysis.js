@@ -79,15 +79,17 @@ function MapLegend({ view, spread }) {
     <span>Size is swing</span>
     ${['A', 'B', 'C', 'D'].map(t => html`<span key=${t} className="lg-t"><${TierDot} t=${t} />${TIERS[t].name}</span>`)}
     ${view !== 'flat' && html`<span><i className="arrow"></i>Your portfolio</span>`}
-    ${view !== 'flat' && spread !== 'none' && html`<span><i className="sw bubble"></i>Where it could sit, 8 in 10</span>`}
+    ${view !== 'flat' && spread !== 'none' && html`<span><i className="sw bubble"></i>Where it could sit, 8 in 10 (in 3D)</span>`}
   </div>`;
 }
 
 /* ---------- the 3D map: a small canvas renderer with orbit, hover and pick ---------- */
 const VIEW0 = { yaw: -0.62, pitch: 0.36 };
-// The bubble is the outline of the event's 80% zone in all three dimensions: the ellipsoid (x − μ)'S⁻¹(x − μ) ≤ k²
-// with k = √χ²₃(0.8) ≈ 2.154 and S its covariance on the map. Its outline on screen is the projected covariance at the
-// same k, so it keeps one meaning as the map turns (a 2D 80% ellipse redrawn each frame would not).
+// The bubble is the shadow of the event's 80% zone in all three dimensions: the ellipsoid (x − μ)'S⁻¹(x − μ) ≤ k²
+// with k = √χ²₃(0.8) ≈ 2.154 and S its covariance on the map. An ellipsoid's outline on screen is the projected
+// covariance's ellipse at the same k, so the bubble stays that one zone, seen from wherever the map is turned to. On
+// the flat screen it holds more than 8 in 10 of the dot's places, 1 − e^(−k²/2) ≈ 9 in 10; the screen's own 80%
+// ellipse (k ≈ 1.794) would be the shadow of a smaller zone, the one that holds 64% in 3D.
 const SPREAD_K = 2.1544;
 const MAP_L = 1.15;
 function dotShape(ctx, x, y, r, tier, col, surf) {
@@ -215,8 +217,8 @@ function Map3D({ evs, geo, P, tw, hover, setHover, sel, onOpen, ripple }) {
         const JC = J.map(r => [0, 1, 2].map(j => r[0] * Cm[0][j] + r[1] * Cm[1][j] + r[2] * Cm[2][j]));
         const a = JC[0][0] * J[0][0] + JC[0][1] * J[0][1] + JC[0][2] * J[0][2];
         const b = JC[0][0] * J[1][0] + JC[0][1] * J[1][1] + JC[0][2] * J[1][2];
-        const c = JC[1][0] * J[1][0] + JC[1][1] * J[1][1] + JC[1][2] * J[1][2];
-        const el = ellipse2(a, b, c); let rx = SPREAD_K * el.rx, ry = SPREAD_K * el.ry;
+        const cc = JC[1][0] * J[1][0] + JC[1][1] * J[1][1] + JC[1][2] * J[1][2];
+        const el = ellipse2(a, b, cc); let rx = SPREAD_K * el.rx, ry = SPREAD_K * el.ry;
         if (!(rx > 0.5)) return;
         const big = rx > capR; if (big) { ry *= capR / rx; rx = capR; }
         const col = p.e.dT < 0 ? c.loss : c.gain; const on = p.e.id === hover || p.e.id === sel;
@@ -344,7 +346,7 @@ function Map3D({ evs, geo, P, tw, hover, setHover, sel, onOpen, ripple }) {
       <div className="row"><span>If it happens</span><span>${fmtUsd(hv.ifYes * V / 100, true)}</span></div>
       <div className="row"><span>If not</span><span>${fmtUsd(hv.ifNo * V / 100, true)}</span></div>
       <div className="row"><span>Swing</span><span>${swingUsd(hv.swingPct * V / 100)}</span></div>
-      ${hv.sdT != null && tw.spread !== 'none' && html`<p className="tip-note">The bubble: if this event came round 10 times, its dot would land inside about 8. Its size is how unsure the jump is, not how big.</p>`}<//>`}</div>
+      ${hv.sdT != null && tw.spread !== 'none' && html`<p className="tip-note">The bubble: if this event came round 10 times, its dot would land inside this zone about 8 times, counting all three dimensions (about 9 on the flat screen). Its size is how unsure the jump is, not how big.</p>`}<//>`}</div>
     <span className="map-hint">Drag to turn · click a dot</span>
     <div className="map-tools"><button className="btn-ghost" onClick=${() => stRef.current.reset && stRef.current.reset()}>Reset view</button></div>
   </div>`;

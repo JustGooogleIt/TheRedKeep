@@ -84,13 +84,14 @@ class DeltaReading:
     def informative(self) -> np.ndarray:
         return np.isfinite(self.sigma) & (self.sigma > 0)
 
-    def covariance(self) -> np.ndarray:
-        """The errors' covariance over the factors the reading informs, zero elsewhere, with its correlations at the
-        weight E11 set (``covariance.JOINT_WEIGHT``)."""
+    def covariance(self, w: float | None = None) -> np.ndarray:
+        """The errors' covariance over the factors the reading informs, zero elsewhere, with its correlations at
+        weight ``w``: by default the weight E11 set for the engine (``covariance.JOINT_WEIGHT``); 1 gives the
+        covariance as measured, which is what a study of the correlations (E11) and the snapshot keep."""
         ok = self.informative()
         s = np.where(ok, self.sigma, 0.0)
         C = np.diag(s ** 2) if self.cov is None else np.where(np.outer(ok, ok), np.nan_to_num(self.cov), 0.0)
-        return weigh((C + C.T) / 2)
+        return weigh((C + C.T) / 2, w)
 
 
 @dataclass
@@ -166,9 +167,14 @@ def fuse_delta(readings: Sequence[DeltaReading]) -> FusedDelta:
     conflict = _conflict(readings, P, X)
     W = list(P)  # the precision each reading gets in the average: none for the market on a contested factor
     if conflict:
+        # On the contested factors the jump rests on the other evidence alone. So that the market's readings of the
+        # other factors can't reach them through the errors' correlations either, every reading's errors on the
+        # contested factors are taken apart from its errors on the rest (a no-op at JOINT_WEIGHT = 0).
         cut = np.isin(np.array(KEYS), conflict.factors)
-        for i in mk:
-            W[i] = precision(C[i], ok[i] & ~cut)
+        split = np.outer(cut, ~cut) | np.outer(~cut, cut)
+        for i, r in enumerate(readings):
+            Ci = np.where(split, 0.0, C[i])
+            W[i] = precision(Ci, ok[i] & ~cut) if r.market else precision(Ci, ok[i])
     mean, cov = _gls(W, X)
     have = np.diag(sum(W)) > 0
     # What the joint error bars moved: the same readings averaged factor by factor, as if their errors were independent.

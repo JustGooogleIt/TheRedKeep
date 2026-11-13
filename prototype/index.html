@@ -1221,8 +1221,15 @@ function buildState(P, tw, live, whatIf) {
   [...order].reverse().forEach(e => {
     e.knock = e.children.map(c => { const ce = byId[c.id]; return { id: c.id, w: c.w, d: ce.resolved ? 0 : c.w * ce.dT }; });
     e.dT = e.dD + e.knock.reduce((s, k) => s + k.d, 0);
-    // Its variance: the knock-ons' add with their weights squared, each event's jump measured apart from the others'.
-    e.dTvar = e.dDvar == null ? null : e.dDvar + e.knock.reduce((s, k) => { const ce = byId[k.id]; return s + (ce.resolved || ce.dTvar == null ? 0 : k.w * k.w * ce.dTvar); }, 0);
+    // Its variance, each event's jump measured apart from the others': every event the knock-ons reach adds its own
+    // jump's variance times its weight squared, the weight summed over all the paths that reach it (two paths to one
+    // event carry the same error, so their weights add before squaring).
+    e.reach = { [e.id]: 1 };
+    e.knock.forEach(k => {
+      const ce = byId[k.id]; if (ce.resolved) return;
+      for (const id in ce.reach) e.reach[id] = (e.reach[id] || 0) + k.w * ce.reach[id];
+    });
+    e.dTvar = e.dDvar == null ? null : Object.entries(e.reach).reduce((s, [id, w]) => s + w * w * (byId[id].dDvar || 0), 0);
     e.sdT = e.dTvar == null ? null : Math.sqrt(e.dTvar);
   });
   const H = tw.horizon * 30.44;
@@ -1366,7 +1373,10 @@ function mapGeometry(evs, P, mode) {
     // residual's coordinates are δ's own).
     const G = [P.b.map(v => v / mx[0]), v1.map(v => v / mx[1]), v2.map(v => v / mx[2])];
     const lin = {}; evs.forEach(e => { lin[e.id] = G; });
-    return { pos, lin, arrow: [1, 0, 0], ends: { x: ['You lose', 'You gain'], y: axisLabel(v1), z: axisLabel(v2) } };
+    // Across, the dot is the whole move, knock-ons included, which the jump's own covariance leaves out: their
+    // variance adds there alone (the other events' jumps are measured apart from this one's).
+    const xVar = {}; evs.forEach(e => { xVar[e.id] = e.dTvar == null || e.dDvar == null ? 0 : Math.max(0, e.dTvar - e.dDvar) / mx[0] ** 2; });
+    return { pos, lin, xVar, arrow: [1, 0, 0], ends: { x: ['You lose', 'You gain'], y: axisLabel(v1), z: axisLabel(v2) } };
   }
   const raw = {}; evs.forEach(e => { raw[e.id] = AXES3.map(a => dot(a.w, e.d)); });
   const norms = evs.map(e => Math.hypot(...raw[e.id])).sort((a, b) => a - b);
@@ -1380,11 +1390,14 @@ function mapGeometry(evs, P, mode) {
   return { pos, lin, arrow: a.map(v => v / na), ends: { x: AXES3[0].ends, y: AXES3[1].ends, z: AXES3[2].ends } };
 }
 
-/* The covariance of an event's place on the map, G Σ G', from its jump's covariance; null without one. */
+/* The covariance of an event's place on the map, G Σ G', from its jump's covariance, plus the knock-ons' variance
+   across where the map puts the whole move there ("Your portfolio" view); null without a covariance. */
 function mapCov(e, geo) {
   const C = jumpCov(e), G = geo && geo.lin && geo.lin[e.id];
   if (!C || !G) return null;
-  return G.map(gi => G.map(gj => { let s = 0; for (let f = 0; f < gi.length; f++) { if (!gi[f]) continue; for (let h = 0; h < gj.length; h++) s += gi[f] * C[f][h] * gj[h]; } return s; }));
+  const M = G.map(gi => G.map(gj => { let s = 0; for (let f = 0; f < gi.length; f++) { if (!gi[f]) continue; for (let h = 0; h < gj.length; h++) s += gi[f] * C[f][h] * gj[h]; } return s; }));
+  if (geo.xVar && geo.xVar[e.id]) M[0][0] += geo.xVar[e.id];
+  return M;
 }
 /* An ellipse from a 2×2 covariance [[a, b], [b, c]]: its semi-axes at one standard deviation and its angle. */
 function ellipse2(a, b, c) {
@@ -1432,23 +1445,30 @@ function replayCompute(P, knock) {
   const linksAt = k => (knock ? (R.links || []).map(l => (Array.isArray(l) ? l : [l.p, l.c, l.w[k]])).filter(l => l[2] != null) : []);
   // At evening k: each event's jump on this portfolio, plus the knock-ons through its links to events still open (4.4),
   // along every path that doesn't revisit an event (the backend's total_jump does the same). Each comes with its
-  // variance, the knock-ons' scaled by their weights squared.
+  // variance: every event reached adds its own jump's variance times its weight squared, the weight summed over the
+  // paths that reach it (two paths to one event carry the same error); null if one of them has no error bars.
   const totals = k => {
     const L = linksAt(k);
     const tot = (id, path) => {
-      const e = R.events.find(z => z.id === id); let s = jumpAt(e, k), v = varAt(e, k);
+      const e = R.events.find(z => z.id === id); let s = jumpAt(e, k);
       if (s == null) return null;
+      const reach = new Map([[id, 1]]);
       const on = new Set(path).add(id);
       L.forEach(([p, c, w]) => {
         if (p !== id || on.has(c)) return;
         const ce = R.events.find(z => z.id === c), qc = ce ? qEve(ce, k) : null;
         if (qc == null || qc >= 1) return;
         const t = tot(c, on);
-        if (t != null) { s += w * t[0]; v = v == null || t[1] == null ? null : v + w * w * t[1]; }
+        if (t != null) { s += w * t[0]; t[1].forEach((wd, d) => reach.set(d, (reach.get(d) || 0) + w * wd)); }
       });
-      return [s, v];
+      return [s, reach];
     };
-    return id => tot(id, []);
+    return id => {
+      const t = tot(id, []); if (t == null) return null;
+      let v = 0;
+      for (const [d, w] of t[1]) { const x = varAt(R.events.find(z => z.id === d), k); if (x == null) { v = null; break; } v += w * w * x; }
+      return [t[0], v];
+    };
   };
   const sdOf = t => (t == null || t[1] == null ? null : Math.sqrt(t[1]));
   const states = R.days.map((day, i) => { const tot = totals(i + 1); return R.events.map(e => {
@@ -2035,15 +2055,17 @@ function MapLegend({ view, spread }) {
     <span>Size is swing</span>
     ${['A', 'B', 'C', 'D'].map(t => html`<span key=${t} className="lg-t"><${TierDot} t=${t} />${TIERS[t].name}</span>`)}
     ${view !== 'flat' && html`<span><i className="arrow"></i>Your portfolio</span>`}
-    ${view !== 'flat' && spread !== 'none' && html`<span><i className="sw bubble"></i>Where it could sit, 8 in 10</span>`}
+    ${view !== 'flat' && spread !== 'none' && html`<span><i className="sw bubble"></i>Where it could sit, 8 in 10 (in 3D)</span>`}
   </div>`;
 }
 
 /* ---------- the 3D map: a small canvas renderer with orbit, hover and pick ---------- */
 const VIEW0 = { yaw: -0.62, pitch: 0.36 };
-// The bubble is the outline of the event's 80% zone in all three dimensions: the ellipsoid (x − μ)'S⁻¹(x − μ) ≤ k²
-// with k = √χ²₃(0.8) ≈ 2.154 and S its covariance on the map. Its outline on screen is the projected covariance at the
-// same k, so it keeps one meaning as the map turns (a 2D 80% ellipse redrawn each frame would not).
+// The bubble is the shadow of the event's 80% zone in all three dimensions: the ellipsoid (x − μ)'S⁻¹(x − μ) ≤ k²
+// with k = √χ²₃(0.8) ≈ 2.154 and S its covariance on the map. An ellipsoid's outline on screen is the projected
+// covariance's ellipse at the same k, so the bubble stays that one zone, seen from wherever the map is turned to. On
+// the flat screen it holds more than 8 in 10 of the dot's places, 1 − e^(−k²/2) ≈ 9 in 10; the screen's own 80%
+// ellipse (k ≈ 1.794) would be the shadow of a smaller zone, the one that holds 64% in 3D.
 const SPREAD_K = 2.1544;
 const MAP_L = 1.15;
 function dotShape(ctx, x, y, r, tier, col, surf) {
@@ -2171,8 +2193,8 @@ function Map3D({ evs, geo, P, tw, hover, setHover, sel, onOpen, ripple }) {
         const JC = J.map(r => [0, 1, 2].map(j => r[0] * Cm[0][j] + r[1] * Cm[1][j] + r[2] * Cm[2][j]));
         const a = JC[0][0] * J[0][0] + JC[0][1] * J[0][1] + JC[0][2] * J[0][2];
         const b = JC[0][0] * J[1][0] + JC[0][1] * J[1][1] + JC[0][2] * J[1][2];
-        const c = JC[1][0] * J[1][0] + JC[1][1] * J[1][1] + JC[1][2] * J[1][2];
-        const el = ellipse2(a, b, c); let rx = SPREAD_K * el.rx, ry = SPREAD_K * el.ry;
+        const cc = JC[1][0] * J[1][0] + JC[1][1] * J[1][1] + JC[1][2] * J[1][2];
+        const el = ellipse2(a, b, cc); let rx = SPREAD_K * el.rx, ry = SPREAD_K * el.ry;
         if (!(rx > 0.5)) return;
         const big = rx > capR; if (big) { ry *= capR / rx; rx = capR; }
         const col = p.e.dT < 0 ? c.loss : c.gain; const on = p.e.id === hover || p.e.id === sel;
@@ -2300,7 +2322,7 @@ function Map3D({ evs, geo, P, tw, hover, setHover, sel, onOpen, ripple }) {
       <div className="row"><span>If it happens</span><span>${fmtUsd(hv.ifYes * V / 100, true)}</span></div>
       <div className="row"><span>If not</span><span>${fmtUsd(hv.ifNo * V / 100, true)}</span></div>
       <div className="row"><span>Swing</span><span>${swingUsd(hv.swingPct * V / 100)}</span></div>
-      ${hv.sdT != null && tw.spread !== 'none' && html`<p className="tip-note">The bubble: if this event came round 10 times, its dot would land inside about 8. Its size is how unsure the jump is, not how big.</p>`}<//>`}</div>
+      ${hv.sdT != null && tw.spread !== 'none' && html`<p className="tip-note">The bubble: if this event came round 10 times, its dot would land inside this zone about 8 times, counting all three dimensions (about 9 on the flat screen). Its size is how unsure the jump is, not how big.</p>`}<//>`}</div>
     <span className="map-hint">Drag to turn · click a dot</span>
     <div className="map-tools"><button className="btn-ghost" onClick=${() => stRef.current.reset && stRef.current.reset()}>Reset view</button></div>
   </div>`;
@@ -2837,11 +2859,11 @@ function DragonScene({ tw, rootRef: outerRef }) {
 // The worked example in DESIGN.md section 3, with its illustrative numbers: $1M of QQQ, tariffs on China at 40%.
 const M_EXAMPLE = { V: 1e6, direct: -6.0, knock: -2.5, q: 0.4 };
 // Results of the saved eval runs (WRITEUP.md, "What the evals found"): E9's odds and E0's screen from Nov 8,
-// 2026, E4's coverage over E3's 55 resolved markets from the ten-factor rerun of Nov 10, E10's dollar clock
+// 2026, E4's coverage over E3's 55 resolved markets from the jump study of Nov 13, E10's dollar clock
 // (the share of a 4 p.m. move the series shows a day late) from Nov 13, and E11's joint error bars from Nov 13
 // (the share of resolution days whose whole move landed inside each forecast's 80% zone). Update them when those
 // evals rerun. The replay's numbers are not here: they come with the snapshot (REPLAY.metrics).
-const M_EVALS = { brierMarket: 0.110, brierAI: 0.191, oddsMarkets: 250, covered: 0.84, jumpMarkets: 55, screenFinds: 0.96, screenSends: 0.38,
+const M_EVALS = { brierMarket: 0.110, brierAI: 0.191, oddsMarkets: 250, covered: 0.83, jumpMarkets: 55, screenFinds: 0.96, screenSends: 0.38,
   lateNoon: 0.23, lateCarried: 0.06, jointDays: 47, insideJoint: 0.64, insideApart: 0.77, insideHalf: 0.79 };
 
 function MethodExample({ P, top, onOpen }) {
@@ -2910,7 +2932,7 @@ function MethodTests({ goTab }) {
       <div className="tile m-tile"><span className="label">Timing · lead and lag</span><div className="tile-v">${pct0(M_EVALS.lateNoon)} <small>→</small> ${pct0(M_EVALS.lateCarried)}</div>
         <div className="tile-s">of each day’s dollar move showed up a day late, read at the Fed’s noon fixing and then carried to the 4 p.m. close like every other factor. The same tests found that yesterday’s moves forecast today’s worse than no move, so an event’s jump is its first day’s move.</div></div>
       <div className="tile m-tile"><span className="label">Error bubbles · errors together</span><div className="tile-v">${pct0(M_EVALS.insideJoint)} <small>vs</small> ${pct0(M_EVALS.insideApart)}</div>
-        <div className="tile-s">of ${M_EVALS.jointDays} resolution days landed inside the 80% zone with the factors’ errors moving together as measured, against one by one. The measured links were too strong, so ranges count each factor’s error on its own for now. At half strength the zone held ${pct0(M_EVALS.insideHalf)}, the next thing to test on new markets.</div></div>
+        <div className="tile-s">of ${M_EVALS.jointDays} resolution days landed inside the 80% zone with the factors’ errors moving together as measured, against one by one. The measured links were too strong, so ranges count each factor’s error on its own for now. At half strength the zone held ${pct0(M_EVALS.insideHalf)}; how strong they really are is the next thing to test on new markets.</div></div>
     </div>
     <span className="label m-sub-l">What it doesn’t do yet</span>
     <ul className="m-limits">
@@ -3122,7 +3144,7 @@ function Drawer({ e, S, P, tw, sampleId, whatIf, setWhatIf, onOpen, onClose, aiO
             <div>if it doesn’t: ${MINUS}${q.toFixed(2)} × ${fmtPct(e.dT, 2)} = ${fmtPct(ifNo, 2)}</div>
           </div>
           ${e.sdT != null && html`<${Frag}><${ImpactRange} dT=${e.dT} sd=${e.sdT} />
-            <p className="sub">How sure is the full move? ${rangeNote()}${Math.abs(e.dT) < 1.2816 * e.sdT ? ' The range crosses zero, so the data can’t yet tell this jump from no effect.' : ''}</p><//>`}
+            <p className="sub">How sure is the full move? ${rangeNote()}${Math.abs(e.dT) < 2 * e.sdT ? ' Within noise: the full move is less than two error bars from none, so the data can’t yet tell it from no effect.' : ''}</p><//>`}
           ${sampleId === 'qqq' && e.id === 'tariff' && html`<p className="note">This is the worked example in DESIGN.md section 3: a −8.5% full move, −5.1% if it happens and +3.4% if it doesn’t.</p>`}
           <div className="btnrow">
             <button className=${cls('btn-ghost', wi === 'yes' && 'on')} aria-pressed=${wi === 'yes'} onClick=${() => setWI(wi === 'yes' ? null : 'yes')}>What if it happens?</button>
@@ -3337,7 +3359,7 @@ function ReplayView({ P, tw, sampleId }) {
           <span>${s.t}<small>${live ? 'If it happens ' + fmtPct(s.ifYes) + plusMinus(s.ifYesErr) + ' · if not ' + fmtPct(s.ifNo) + plusMinus(s.ifNoErr) + (withinNoise(s) ? ' · within noise' : '') : s.status === 'happened' ? 'Happened ' + fmtDate(s.on, false) : replayGap(s, byId[s.id], R.days[day].d)}</small></span>
           <span className="mono" style=${{ textAlign: 'right' }}>${s.status === 'open' ? fmtOdds(s.q) : ''}</span>
           <span className="cell">${live ? swingUsd(s.swing * V / 100) : ''}${live && html`<small>${swingPct(s.swing)}</small>`}</span></li>`; })}</ul>
-        ${rows.some(s => s.ifYesErr != null) && html`<p className="sub" style=${{ margin: '10px 0 0' }}>± is one standard deviation, from the error bars of the readings behind each jump, taken factor by factor${JOINT_WEIGHT > 0 ? ': this replay was saved before the engine kept how the factors’ errors move together' : ''}. “Within noise” marks a jump less than two of them from no move: the data can’t yet tell it from no effect.</p>`}
+        ${rows.some(s => s.ifYesErr != null) && html`<p className="sub" style=${{ margin: '10px 0 0' }}>± is one standard deviation, from the error bars of the readings behind each jump, taken factor by factor${JOINT_WEIGHT > 0 ? ': the replay keeps each factor’s error bar only' : ''}. “Within noise” marks a jump less than two of them from no move: the data can’t yet tell it from no effect.</p>`}
       </section>
     </div>
     <section className="card"><div className="card-head"><div><span className="kicker">Calls against outcomes</span><h3 className="h3" style=${{ marginTop: 6 }}>Did the engine get it right?</h3></div></div>
@@ -3415,7 +3437,7 @@ function TweaksSheet({ tw, setTw, onClose }) {
           ${Row('View', null, 'view', [['macro', 'Macro'], ['mine', 'Mine'], ['flat', '2D']])}
           ${Row('Auto-rotate', null, 'rotate', [[true, 'On'], [false, 'Off']])}
           ${Row('Labels', null, 'labels', [['top', 'Top 5'], ['all', 'All'], ['none', 'None']])}
-          ${Row('Error bubbles', 'Where each event could really sit, 8 times in 10', 'spread', [['hover', 'On hover'], ['all', 'All'], ['none', 'None']])}
+          ${Row('Error bubbles', 'Where each event could really sit: 8 times in 10 in 3D, about 9 in 10 on screen', 'spread', [['hover', 'On hover'], ['all', 'All'], ['none', 'None']])}
           ${Row('Knock-on links', null, 'links', [[true, 'On'], [false, 'Off']])}
         </div>
         <div className="tw-group"><span className="label">Keep these settings</span>

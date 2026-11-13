@@ -133,7 +133,8 @@ class Fit:
     resid_ok: bool  # enough windows left over to read the residuals
 
 
-def covariances(fits: dict[int, Fit], n_events: int, calm: np.ndarray) -> tuple[np.ndarray, float | None, int]:
+def covariances(fits: dict[int, Fit], n_events: int, calm: np.ndarray,
+                target: np.ndarray | None = None) -> tuple[np.ndarray, float | None, int]:
     """Each event's covariance of its jump across factors, from the regressions' residuals.
 
     Each factor's jumps are an ordinary least squares fit on its own windows. Two factors' fits share the windows
@@ -147,7 +148,8 @@ def covariances(fits: dict[int, Fit], n_events: int, calm: np.ndarray) -> tuple[
     equation, where fitting each factor alone loses nothing (Zellner 1962). ``σ_fg`` is ``ρ_fg s_f s_g``: each
     factor's residual spread as in its error bars, and the residuals' correlation over the windows every factor
     has, shrunk toward the factors' correlation on calm days (``covariance.shrink_corr``), with the noise of those
-    correlations counted over the residuals' own degrees of freedom (the windows less the fitted jumps)."""
+    correlations counted over the residuals' own degrees of freedom (the windows less the fitted jumps). ``target``:
+    a correlation across all factors to shrink toward instead, for fits with too few calm rows of their own."""
     cov = np.full((n_events, NF, NF), np.nan)
     F = sorted(fits)
     if not F:
@@ -155,7 +157,7 @@ def covariances(fits: dict[int, Fit], n_events: int, calm: np.ndarray) -> tuple[
     common = fits[F[0]].rows
     for f in F[1:]:
         common = np.intersect1d(common, fits[f].rows)
-    target = moves_corr(calm[:, F])
+    target = moves_corr(calm[:, F]) if target is None else np.asarray(target, dtype=float)[np.ix_(F, F)]
     if all(fits[f].resid_ok for f in F) and len(common) >= 3:
         at = {f: np.searchsorted(fits[f].rows, common) for f in F}
         U = np.column_stack([fits[f].resid[at[f]] for f in F])

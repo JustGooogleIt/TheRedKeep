@@ -10,7 +10,7 @@ from redkeep import factordata
 from redkeep.events import Analog
 from redkeep.evidence import analogs
 from redkeep.exposure import fit_line, returns_on
-from redkeep.factors import index
+from redkeep.factors import NF, index
 
 from .synth import business_days, factor_levels, fund_closes
 
@@ -216,3 +216,22 @@ def test_load_carries_the_dollar_and_says_so_or_leaves_it_at_noon():
     assert plain.sources["usd"] == "FRED DTWEXBGS"
     v = np.array([index_noon[d] for d in ds])
     assert np.allclose(plain.X[:, usd], (v[1:] / v[:-1] - 1) * 100)
+
+
+def test_two_factors_share_the_noise_of_only_the_past_events_both_read(fd, monkeypatch):
+    """Stocks are read on both past events, China only on the later one (FXI's prices start after the first): the
+    two averages share that one event's noise, ``Σ_both (1/v_a) / (tot_f · tot_g)``, not their whole error bars."""
+    R = np.full((NF, NF), 0.5)
+    np.fill_diagonal(R, 1.0)
+    monkeypatch.setattr(analogs, "moves_corr", lambda Z: R)
+    monkeypatch.setattr(analogs, "MODEL_FLOOR", 0.0)  # leave the analogs' own noise and spread alone
+    monkeypatch.setattr(analogs, "MODEL_SHARE", 0.0)
+    first, later = Analog(date(2024, 4, 3), 1, 0.5, "before FXI's prices"), Analog(date(2025, 4, 3), 1, 0.8, "after")
+    r = analogs.analog_reading(SimpleNamespace(analogs=(first, later)), fd)
+    CN = index("china")
+    v1, v2 = 0.2 / 0.5 ** 2, 0.2 / 0.8 ** 2  # each one-day window's noise, per unit of surprise
+    tot_eq, tot_cn = 1 / v1 + 1 / v2, 1 / v2
+    assert r.cov[EQ, CN] == pytest.approx(0.5 * (1 / v2) / (tot_eq * tot_cn))
+    assert r.cov[EQ, CN] < 0.5 * np.sqrt((1 / tot_eq) * (1 / tot_cn))  # what taking the error bars whole would give
+    ok = np.isfinite(r.sigma)
+    assert np.allclose(np.diag(r.cov)[ok], r.sigma[ok] ** 2)

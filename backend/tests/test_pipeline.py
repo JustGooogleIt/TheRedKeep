@@ -396,7 +396,8 @@ def test_the_app_takes_the_events_alone(keyless, tmp_path):
     assert out.returncode == 0, out.stdout + out.stderr
     assert out.stdout.count("keep their size per unit of each factor") == 6
     assert out.stdout.count("the April 2025 replay is unchanged") == 6
-    assert out.stdout.count("snapshot · ") == 6 * 5 and "matches the engine" not in out.stdout
+    assert out.stdout.count("snapshot · ") == 6 * 6 and "matches the engine" not in out.stdout
+    assert "knock-ons: two paths to one event count its error once" in out.stdout
 
 
 def test_the_app_shows_the_engines_replay(keyless, tmp_path):

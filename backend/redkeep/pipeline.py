@@ -137,8 +137,10 @@ def _market_json(c: Candidate) -> dict:
 
 
 def _reading_json(r: DeltaReading) -> dict:
+    """A jump reading for the snapshot, with its covariance as measured (the engine weighs its correlations by the
+    snapshot's ``joint_weight``; the fused jump's covariance is already at that weight)."""
     return {"kind": r.kind, "name": r.name, "detail": r.detail, "market": r.market, "n": r.n,
-            "delta": finite(r.delta), "sigma": finite(r.sigma), "cov": cov_json(r.covariance(), r.informative())}
+            "delta": finite(r.delta), "sigma": finite(r.sigma), "cov": cov_json(r.covariance(1.0), r.informative())}
 
 
 def cov_json(C: np.ndarray, ok: np.ndarray) -> list:
@@ -352,12 +354,13 @@ def refresh(s: Settings, c: Clients, *, today: date | None = None, progress: Pro
     # Weekend windows on Hyperliquid's perps, a second market reading of the jump (DESIGN.md 6.4). They go first:
     # Monday's daily ETF window spans the weekend, so on the perps' factors the ETF windows leave those days out.
     wk, perps, skip = None, None, {}
+    now_corr = moves_corr(fd.Z)  # how the factors move together now: the weekend fits' target and the AI prior's errors
     if c.hyperliquid is not None:
         perps = weekend.load(c.hyperliquid, start, end)
         warnings += perps.warnings
         typical = np.array([t if np.isfinite(t) else f.typical_default for t, f in zip(fd.typical, FACTORS)])
         wk = weekend.weekend_windows({k: v for k, v in legs.items() if v}, perps, typical, start, end,
-                                     move=s.window_move, min_moves=s.weekend_min_moves)
+                                     move=s.window_move, min_moves=s.weekend_min_moves, target=now_corr)
         skip = weekend.overlap(wk, fd.dates)
         progress(f"Weekend windows: {len(wk.windows)} of {wk.weekends} weekends with sharp odds moves; "
                  f"readings for {len(wk.readings)} events ({', '.join(perps.coins.values()) or 'no perps'})")
@@ -366,7 +369,6 @@ def refresh(s: Settings, c: Clients, *, today: date | None = None, progress: Pro
     progress(f"Jump windows: {len(wf.windows)} days with sharp odds moves; readings for {len(wf.readings)} events"
              + (f"; {wf.left_out} that span a measured weekend left to the perps" if wf.left_out else ""))
 
-    now_corr = moves_corr(fd.Z)  # how the factors move together now, for the AI prior's errors (DESIGN.md 4.6)
     events = []
     for (spec, cands, d), pr in zip(matched, priors):
         readings: list[DeltaReading] = []

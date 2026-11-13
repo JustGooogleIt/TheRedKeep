@@ -180,7 +180,7 @@ function Drawer({ e, S, P, tw, sampleId, whatIf, setWhatIf, onOpen, onClose, aiO
             <div>if it doesn’t: ${MINUS}${q.toFixed(2)} × ${fmtPct(e.dT, 2)} = ${fmtPct(ifNo, 2)}</div>
           </div>
           ${e.sdT != null && html`<${Frag}><${ImpactRange} dT=${e.dT} sd=${e.sdT} />
-            <p className="sub">How sure is the full move? ${rangeNote()}${Math.abs(e.dT) < 1.2816 * e.sdT ? ' The range crosses zero, so the data can’t yet tell this jump from no effect.' : ''}</p><//>`}
+            <p className="sub">How sure is the full move? ${rangeNote()}${Math.abs(e.dT) < 2 * e.sdT ? ' Within noise: the full move is less than two error bars from none, so the data can’t yet tell it from no effect.' : ''}</p><//>`}
           ${sampleId === 'qqq' && e.id === 'tariff' && html`<p className="note">This is the worked example in DESIGN.md section 3: a −8.5% full move, −5.1% if it happens and +3.4% if it doesn’t.</p>`}
           <div className="btnrow">
             <button className=${cls('btn-ghost', wi === 'yes' && 'on')} aria-pressed=${wi === 'yes'} onClick=${() => setWI(wi === 'yes' ? null : 'yes')}>What if it happens?</button>
@@ -395,7 +395,7 @@ function ReplayView({ P, tw, sampleId }) {
           <span>${s.t}<small>${live ? 'If it happens ' + fmtPct(s.ifYes) + plusMinus(s.ifYesErr) + ' · if not ' + fmtPct(s.ifNo) + plusMinus(s.ifNoErr) + (withinNoise(s) ? ' · within noise' : '') : s.status === 'happened' ? 'Happened ' + fmtDate(s.on, false) : replayGap(s, byId[s.id], R.days[day].d)}</small></span>
           <span className="mono" style=${{ textAlign: 'right' }}>${s.status === 'open' ? fmtOdds(s.q) : ''}</span>
           <span className="cell">${live ? swingUsd(s.swing * V / 100) : ''}${live && html`<small>${swingPct(s.swing)}</small>`}</span></li>`; })}</ul>
-        ${rows.some(s => s.ifYesErr != null) && html`<p className="sub" style=${{ margin: '10px 0 0' }}>± is one standard deviation, from the error bars of the readings behind each jump, taken factor by factor${JOINT_WEIGHT > 0 ? ': this replay was saved before the engine kept how the factors’ errors move together' : ''}. “Within noise” marks a jump less than two of them from no move: the data can’t yet tell it from no effect.</p>`}
+        ${rows.some(s => s.ifYesErr != null) && html`<p className="sub" style=${{ margin: '10px 0 0' }}>± is one standard deviation, from the error bars of the readings behind each jump, taken factor by factor${JOINT_WEIGHT > 0 ? ': the replay keeps each factor’s error bar only' : ''}. “Within noise” marks a jump less than two of them from no move: the data can’t yet tell it from no effect.</p>`}
       </section>
     </div>
     <section className="card"><div className="card-head"><div><span className="kicker">Calls against outcomes</span><h3 className="h3" style=${{ marginTop: 6 }}>Did the engine get it right?</h3></div></div>
@@ -473,7 +473,7 @@ function TweaksSheet({ tw, setTw, onClose }) {
           ${Row('View', null, 'view', [['macro', 'Macro'], ['mine', 'Mine'], ['flat', '2D']])}
           ${Row('Auto-rotate', null, 'rotate', [[true, 'On'], [false, 'Off']])}
           ${Row('Labels', null, 'labels', [['top', 'Top 5'], ['all', 'All'], ['none', 'None']])}
-          ${Row('Error bubbles', 'Where each event could really sit, 8 times in 10', 'spread', [['hover', 'On hover'], ['all', 'All'], ['none', 'None']])}
+          ${Row('Error bubbles', 'Where each event could really sit: 8 times in 10 in 3D, about 9 in 10 on screen', 'spread', [['hover', 'On hover'], ['all', 'All'], ['none', 'None']])}
           ${Row('Knock-on links', null, 'links', [[true, 'On'], [false, 'Off']])}
         </div>
         <div className="tw-group"><span className="label">Keep these settings</span>

@@ -1,4 +1,4 @@
-"""Joint error bars: how a jump reading's errors move together across the factors (DESIGN.md 4.6).
+"""Joint error bars: how a jump reading's errors move together across the factors (DESIGN.md 4.9).
 
 A reading's error bars say how far each factor's jump could be off. Their covariance says how the misses go
 together: a jump window that overstates the fall in stocks on a day of other bad news most likely overstates the rise

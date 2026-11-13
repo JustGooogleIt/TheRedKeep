@@ -45,7 +45,7 @@ The engine ranks events by that two-way swing, not by how frightening the headli
 | App (M8) | A playable prototype with the live event library and an April 2025 replay screen | [`prototype/`](../prototype/) |
 | Evals (M9) | E8 (replay, now also in portfolio terms), E9 ("just ask an AI"), E10 (lead and lag, Granger causality) and E11 (joint error bars) have run live | `redkeep replay`, `redkeep baseline`, `redkeep granger`, `redkeep jumps`, PRs #11 and #14 |
 
-218 offline tests cover the backend with recorded response shapes, synthetic prices and stand-ins for Claude. None of them needs a key or the network.
+225 offline tests cover the backend with recorded response shapes, synthetic prices and stand-ins for Claude. None of them needs a key or the network.
 
 ## What the evals found
 
@@ -61,7 +61,7 @@ Each finding below is from live runs between November 8 and 13, 2026. Where a re
 
 **Jump accuracy (E3 to E5): honest error bars, vague point estimates.** On 55 resolved markets, each scored on the day it resolved, on all ten factors (the November 10 rerun; the first run, on FRED's seven, found the same):
 
-- The error bars are honest: 84% of realized jumps fall inside the 80% intervals.
+- The error bars are honest: 84% of realized jumps fall inside the 80% intervals (83% on the November 13 run, with the dollar carried to the 4 p.m. close).
 - As point estimates, single-market readings fail: they explain −303% of the resolution-day moves, worse than predicting no move, and their signs are right 25 times in 48. One vague reading, on October's ISM survey, accounts for much of that; without it the share is −249%.
 - The sample explains much of it: most were events no factor notices (cabinet confirmations, a rocket launch, what a CEO would say on a call). Claude's funnel label calls 11 of the 55 material. On those, acting only on the factors a reading resolves does about as well as predicting no move (−0.3%), where the rest lose 42%.
 - The lesson is the quorum rule the design already had: act on a jump only where the readings resolve it. E9, below, shows that one reading isn't enough.
@@ -97,8 +97,8 @@ Each finding below is from live runs between November 8 and 13, 2026. Where a re
 **Joint error bars (E11): measured, drawn, and not yet trusted.** A portfolio feels every factor's error at once, so how the errors move together sets how wide its range is: a hedge's errors can cancel, a concentrated bet's pile up. The engine now measures that covariance for every reading (the [research note](research/uncertainty-ellipsoids.md) reviews the methods), can fuse readings with it, and the map draws each event's 80% zone as a bubble. E11, fixed before it ran, asked whether those covariances describe what happened on E3's 55 resolved markets better than the same error bars taken one by one:
 
 - **Better on most days, but not significantly.** Scored day by day, the joint error bars did better on 34 of 47 days, by a likelihood ratio of 1.5 a day on average. A few days where they were confidently wrong kept the gain short of significance (t = 1.53 against the 1.68 needed).
-- **Too sure of themselves.** The day's whole move landed inside the joint 80% zone on 64% of the days, against 77% with the factors one by one. The test had the power to see the gain the joint error bars promise, so the rule fixed in advance keeps each factor's error on its own for now, and the app says so beside each range.
-- **Half strength looked best, after the fact.** With the correlations halved, 79% of the days fell inside the zone, and the score beat the independent one clearly (t = 2.77). That becomes the next run's question, on markets that resolve after this one.
+- **Too sure of themselves.** The day's whole move landed inside the joint 80% zone on 30 of the 47 days, 64%, against 77% with the factors one by one. The test had the power to see the gain the joint error bars promise, so the rule fixed in advance keeps each factor's error on its own for now, and the app says so beside each range.
+- **Half strength was the best calibrated, after the fact.** With the correlations halved, 79% of the days fell inside the zone, and the score beat the independent one clearly (t = 2.77), though the full correlations scored best on average. So the measured correlations are too strong, but the data can't yet say by how much. Halfway against none becomes the next run's question, on markets that resolve after this one.
 - **The noise's own correlations matter most.** Scoring a day with its ordinary noise taken factor by factor, as E4 does for single factors, was far worse (t = 3.57), so any portfolio-level check needs the noise's correlations, whatever the jumps carry.
 
 ## What the findings change
