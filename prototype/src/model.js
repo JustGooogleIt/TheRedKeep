@@ -103,6 +103,15 @@ function contributions(ev, P) {
   if (ev.dir) for (const st in ev.dir) { const w = P.stockW[st] || 0; if (w > 0) out.push({ key: 'dir:' + st, name: (NAMES[st] || st) + ' (own line)', move: ev.dir[st], exp: w, c: w * ev.dir[st], direct: true }); }
   return out.sort((a, c) => Math.abs(c.c) - Math.abs(a.c));
 }
+// The jump's error bars, joint across factors: the backend's covariance of the fused jump (dc, in typical moves²,
+// null on a factor with no reading). On a portfolio the error is √(b'Σb), the factors' errors added with how they
+// move together, so a hedge's errors can cancel and a bet on co-moving factors piles them up.
+function jumpCov(ev) { return ev.dc ? ev.dc.map(row => row.map(v => (v == null ? 0 : v))) : null; }
+function quadForm(b, C) {
+  let s = 0;
+  for (let i = 0; i < b.length; i++) { if (!b[i]) continue; for (let j = 0; j < b.length; j++) s += b[i] * C[i][j] * b[j]; }
+  return Math.max(0, s);
+}
 // The exact direct move. contributions() leaves out negligible terms, which only matters for display.
 function eventDirect(ev, P) {
   let s = dot(P.b, ev.d);
@@ -132,10 +141,13 @@ function buildState(P, tw, live, whatIf) {
     }
     e.phEff = e.resolved ? e.qEff : clamp(e.ph0 + e.shift, 0.005, 0.995);
   });
-  evs.forEach(e => { e.contrib = contributions(e, P); e.dD = eventDirect(e, P); });
+  evs.forEach(e => { e.contrib = contributions(e, P); e.dD = eventDirect(e, P); const C = jumpCov(e); e.dDvar = C ? quadForm(P.b, C) : null; });
   [...order].reverse().forEach(e => {
     e.knock = e.children.map(c => { const ce = byId[c.id]; return { id: c.id, w: c.w, d: ce.resolved ? 0 : c.w * ce.dT }; });
     e.dT = e.dD + e.knock.reduce((s, k) => s + k.d, 0);
+    // Its variance: the knock-ons' add with their weights squared, each event's jump measured apart from the others'.
+    e.dTvar = e.dDvar == null ? null : e.dDvar + e.knock.reduce((s, k) => { const ce = byId[k.id]; return s + (ce.resolved || ce.dTvar == null ? 0 : k.w * k.w * ce.dTvar); }, 0);
+    e.sdT = e.dTvar == null ? null : Math.sqrt(e.dTvar);
   });
   const H = tw.horizon * 30.44;
   evs.forEach(e => {
@@ -274,15 +286,34 @@ function mapGeometry(evs, P, mode) {
     const raw = {}; evs.forEach(e => { raw[e.id] = [e.dT, dot(res[e.id], v1), dot(res[e.id], v2)]; });
     const mx = [0, 1, 2].map(i => Math.max(0.01, ...evs.map(e => Math.abs(raw[e.id][i]))));
     const pos = {}; evs.forEach(e => { const r = raw[e.id]; pos[e.id] = [r[0] / mx[0], r[1] / mx[1], r[2] / mx[2]]; });
-    return { pos, arrow: [1, 0, 0], ends: { x: ['You lose', 'You gain'], y: axisLabel(v1), z: axisLabel(v2) } };
+    // The map is linear in the jump: rows that take δ to a position (v1 and v2 are square to the arrow, so the
+    // residual's coordinates are δ's own).
+    const G = [P.b.map(v => v / mx[0]), v1.map(v => v / mx[1]), v2.map(v => v / mx[2])];
+    const lin = {}; evs.forEach(e => { lin[e.id] = G; });
+    return { pos, lin, arrow: [1, 0, 0], ends: { x: ['You lose', 'You gain'], y: axisLabel(v1), z: axisLabel(v2) } };
   }
   const raw = {}; evs.forEach(e => { raw[e.id] = AXES3.map(a => dot(a.w, e.d)); });
   const norms = evs.map(e => Math.hypot(...raw[e.id])).sort((a, b) => a - b);
   const ref = Math.max(0.6, norms[Math.floor(norms.length * 0.85)] || 1);
-  const pos = {};
-  evs.forEach(e => { let p = raw[e.id].map(v => v / ref); const nm = Math.hypot(...p); if (nm > 1.2) p = p.map(v => v * 1.2 / nm); pos[e.id] = p; });
+  const pos = {}, lin = {};
+  evs.forEach(e => {
+    let p = raw[e.id].map(v => v / ref); const nm = Math.hypot(...p); const k = nm > 1.2 ? 1.2 / nm : 1;
+    pos[e.id] = p.map(v => v * k); lin[e.id] = AXES3.map(ax => ax.w.map(v => v * k / ref));
+  });
   const a = AXES3.map(ax => dot(ax.w, P.b)); const na = Math.hypot(...a) || 1;
-  return { pos, arrow: a.map(v => v / na), ends: { x: AXES3[0].ends, y: AXES3[1].ends, z: AXES3[2].ends } };
+  return { pos, lin, arrow: a.map(v => v / na), ends: { x: AXES3[0].ends, y: AXES3[1].ends, z: AXES3[2].ends } };
+}
+
+/* The covariance of an event's place on the map, G Σ G', from its jump's covariance; null without one. */
+function mapCov(e, geo) {
+  const C = jumpCov(e), G = geo && geo.lin && geo.lin[e.id];
+  if (!C || !G) return null;
+  return G.map(gi => G.map(gj => { let s = 0; for (let f = 0; f < gi.length; f++) { if (!gi[f]) continue; for (let h = 0; h < gj.length; h++) s += gi[f] * C[f][h] * gj[h]; } return s; }));
+}
+/* An ellipse from a 2×2 covariance [[a, b], [b, c]]: its semi-axes at one standard deviation and its angle. */
+function ellipse2(a, b, c) {
+  const m = (a + c) / 2, d = Math.sqrt(Math.max(0, ((a - c) / 2) ** 2 + b * b));
+  return { rx: Math.sqrt(Math.max(0, m + d)), ry: Math.sqrt(Math.max(0, m - d)), angle: 0.5 * Math.atan2(2 * b, a - c) };
 }
 
 /* ---------- Odds history: the snapshot's daily closes, or an illustrative bridge in log-odds space ---------- */

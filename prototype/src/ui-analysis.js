@@ -72,18 +72,23 @@ function TierDot({ t, color = 'var(--ink-2)' }) {
   </svg>`;
 }
 
-function MapLegend({ view }) {
+function MapLegend({ view, spread }) {
   return html`<div className="legend">
     <span><i className="sw" style=${{ background: 'var(--loss)' }}></i>Hurts you</span>
     <span><i className="sw" style=${{ background: 'var(--gain)' }}></i>Helps you</span>
     <span>Size is swing</span>
     ${['A', 'B', 'C', 'D'].map(t => html`<span key=${t} className="lg-t"><${TierDot} t=${t} />${TIERS[t].name}</span>`)}
     ${view !== 'flat' && html`<span><i className="arrow"></i>Your portfolio</span>`}
+    ${view !== 'flat' && spread !== 'none' && html`<span><i className="sw bubble"></i>Where it could sit, 8 in 10</span>`}
   </div>`;
 }
 
 /* ---------- the 3D map: a small canvas renderer with orbit, hover and pick ---------- */
 const VIEW0 = { yaw: -0.62, pitch: 0.36 };
+// The bubble is the outline of the event's 80% zone in all three dimensions: the ellipsoid (x − μ)'S⁻¹(x − μ) ≤ k²
+// with k = √χ²₃(0.8) ≈ 2.154 and S its covariance on the map. Its outline on screen is the projected covariance at the
+// same k, so it keeps one meaning as the map turns (a 2D 80% ellipse redrawn each frame would not).
+const SPREAD_K = 2.1544;
 const MAP_L = 1.15;
 function dotShape(ctx, x, y, r, tier, col, surf) {
   ctx.setLineDash([]);
@@ -102,7 +107,7 @@ function Map3D({ evs, geo, P, tw, hover, setHover, sel, onOpen, ripple }) {
   const wrapRef = useRef(null), cvRef = useRef(null), tipRef = useRef(null), stRef = useRef(null);
   if (!stRef.current) stRef.current = { yaw: VIEW0.yaw, pitch: VIEW0.pitch, drag: null, last: -1e9, cur: {}, arrow: null, pts: [], dirty: true, w: 0, h: 0, dpr: 1, col: null, frame: 0, hoverFromMap: false };
   const live = useRef({}); live.current = { evs, geo, tw, hover, sel, ripple, setHover, onOpen };
-  useEffect(() => { stRef.current.dirty = true; }, [evs, geo, hover, sel, tw.labels, tw.links, tw.rotate, ripple]);
+  useEffect(() => { stRef.current.dirty = true; }, [evs, geo, hover, sel, tw.labels, tw.links, tw.rotate, tw.spread, ripple]);
 
   useEffect(() => {
     const st = stRef.current, cv = cvRef.current, wrap = wrapRef.current, ctx = cv.getContext('2d');
@@ -126,6 +131,17 @@ function Map3D({ evs, geo, P, tw, hover, setHover, sel, onOpen, ripple }) {
       const Y2 = y * cp + Z * sp, Z2 = -y * sp + Z * cp;
       const f = 8 / (8 + Z2); const base = Math.min(st.w * 0.28, st.h * 0.26);
       return [st.w / 2 + X * base * f, st.h * 0.45 - Y2 * base * f, Z2, f];
+    };
+    // How the projection stretches a small step around a point (its Jacobian, 2 by 3), to carry a covariance on the
+    // map to the screen: Σ_screen = J Σ_map J', as in elliptical-weighted-average splatting.
+    const jac = (x, y, z) => {
+      const cy = Math.cos(st.yaw), sy = Math.sin(st.yaw), cp = Math.cos(st.pitch), sp = Math.sin(st.pitch);
+      const X = x * cy - z * sy, Z = x * sy + z * cy;
+      const Y2 = y * cp + Z * sp, Z2 = -y * sp + Z * cp;
+      const f = 8 / (8 + Z2), base = Math.min(st.w * 0.28, st.h * 0.26);
+      const dX = [cy, 0, -sy], dY2 = [sp * sy, cp, sp * cy], dZ2 = [cp * sy, -sp, cp * cy];
+      const df = dZ2.map(v => -f * f / 8 * v);
+      return [dX.map((v, i) => base * (f * v + X * df[i])), dY2.map((v, i) => -base * (f * v + Y2 * df[i]))];
     };
     const label = (text, x, y, color, halo, font) => {
       ctx.font = font; ctx.lineJoin = 'round'; ctx.lineWidth = 3; ctx.strokeStyle = halo; ctx.strokeText(text, x, y); ctx.fillStyle = color; ctx.fillText(text, x, y);
@@ -190,6 +206,25 @@ function Map3D({ evs, geo, P, tw, hover, setHover, sel, onOpen, ripple }) {
       ctx.fillStyle = c.accent; ctx.beginPath(); ctx.moveTo(tip[0] + Math.cos(ang) * 5, tip[1] + Math.sin(ang) * 5);
       ctx.lineTo(tip[0] - Math.cos(ang - 0.45) * 11, tip[1] - Math.sin(ang - 0.45) * 11); ctx.lineTo(tip[0] - Math.cos(ang + 0.45) * 11, tip[1] - Math.sin(ang + 0.45) * 11); ctx.closePath(); ctx.fill();
       ctx.beginPath(); ctx.arc(o[0], o[1], 3, 0, 6.2832); ctx.fill();
+      // error bubbles: where the event's dot could really sit, 8 times in 10, from its jump's covariance
+      const spreadIds = tw.spread === 'none' ? [] : tw.spread === 'all' ? pts.map(p => p.e.id) : [hover, sel].filter(Boolean);
+      const capR = Math.min(W, H) * 0.42;
+      pts.filter(p => spreadIds.includes(p.e.id)).forEach(p => {
+        const Cm = mapCov(p.e, geo); if (!Cm) return;
+        const cu = st.cur[p.e.id] || geo.pos[p.e.id]; const J = jac(cu[0], cu[1], cu[2]);
+        const JC = J.map(r => [0, 1, 2].map(j => r[0] * Cm[0][j] + r[1] * Cm[1][j] + r[2] * Cm[2][j]));
+        const a = JC[0][0] * J[0][0] + JC[0][1] * J[0][1] + JC[0][2] * J[0][2];
+        const b = JC[0][0] * J[1][0] + JC[0][1] * J[1][1] + JC[0][2] * J[1][2];
+        const c = JC[1][0] * J[1][0] + JC[1][1] * J[1][1] + JC[1][2] * J[1][2];
+        const el = ellipse2(a, b, c); let rx = SPREAD_K * el.rx, ry = SPREAD_K * el.ry;
+        if (!(rx > 0.5)) return;
+        const big = rx > capR; if (big) { ry *= capR / rx; rx = capR; }
+        const col = p.e.dT < 0 ? c.loss : c.gain; const on = p.e.id === hover || p.e.id === sel;
+        ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(el.angle);
+        ctx.fillStyle = rgba(col, on ? 0.13 : 0.07); ctx.beginPath(); ctx.ellipse(0, 0, rx, Math.max(ry, 0.5), 0, 0, 6.2832); ctx.fill();
+        ctx.strokeStyle = rgba(col, on ? 0.75 : 0.35); ctx.lineWidth = on ? 1.4 : 1; ctx.setLineDash(big ? [5, 4] : []);
+        ctx.stroke(); ctx.setLineDash([]); ctx.restore();
+      });
       // dots, far to near
       const zs = pts.map(p => p.z); const zMin = Math.min(...zs, 0), zMax = Math.max(...zs, 0.0001);
       pts.slice().sort((a, b) => b.z - a.z).forEach(p => {
@@ -308,7 +343,8 @@ function Map3D({ evs, geo, P, tw, hover, setHover, sel, onOpen, ripple }) {
       <div className="row"><span>Odds</span><span>${fmtOdds(hv.qEff)}</span></div>
       <div className="row"><span>If it happens</span><span>${fmtUsd(hv.ifYes * V / 100, true)}</span></div>
       <div className="row"><span>If not</span><span>${fmtUsd(hv.ifNo * V / 100, true)}</span></div>
-      <div className="row"><span>Swing</span><span>${swingUsd(hv.swingPct * V / 100)}</span></div><//>`}</div>
+      <div className="row"><span>Swing</span><span>${swingUsd(hv.swingPct * V / 100)}</span></div>
+      ${hv.sdT != null && tw.spread !== 'none' && html`<p className="tip-note">The bubble: if this event came round 10 times, its dot would land inside about 8. Its size is how unsure the jump is, not how big.</p>`}<//>`}</div>
     <span className="map-hint">Drag to turn · click a dot</span>
     <div className="map-tools"><button className="btn-ghost" onClick=${() => stRef.current.reset && stRef.current.reset()}>Reset view</button></div>
   </div>`;
@@ -371,7 +407,7 @@ function MapCard({ shown, P, tw, setTw, hover, setHover, sel, onOpen, ripple }) 
     </div>
     ${view === 'flat' ? html`<${Scatter2D} evs=${shown} hover=${hover} setHover=${setHover} sel=${sel} onOpen=${onOpen} tw=${tw} />`
       : html`<${Map3D} evs=${shown} geo=${geo} P=${P} tw=${tw} hover=${hover} setHover=${setHover} sel=${sel} onOpen=${onOpen} ripple=${ripple} />`}
-    <${MapLegend} view=${view} />
+    <${MapLegend} view=${view} spread=${EVENTS.some(e => e.dc) ? tw.spread : 'none'} />
   </section>`;
 }
 

@@ -367,7 +367,10 @@ def test_the_app_takes_the_events_alone(keyless, tmp_path):
     for e, x in zip(snap["events"], data["events"]):  # with no prices, only the AI prior moves China, chips and gold
         ai = [r for r in e["delta"]["readings"] if r["kind"] == "ai"]
         assert all(r["sigma"][k] is None for r in e["delta"]["readings"] if r["kind"] != "ai" for k in (7, 8, 9))  # no information
-        assert x["d"][7:] == pytest.approx(ai[0]["delta"][7:] if ai else [0.0] * 3, abs=1e-6)
+        # The prior's own jump there, moved only as far as its errors' correlations carry what the other readings
+        # say about the factors they share (``borrowed``).
+        want = [a + b for a, b in zip(ai[0]["delta"][7:], e["delta"]["borrowed"][7:])] if ai else [0.0] * 3
+        assert x["d"][7:] == pytest.approx(want, abs=1e-6)
 
     node = shutil.which("node")
     if not node:

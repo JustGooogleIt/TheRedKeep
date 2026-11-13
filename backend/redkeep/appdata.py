@@ -35,6 +35,7 @@ from datetime import date
 import numpy as np
 from scipy.stats import chi2
 
+from .engine.covariance import precision
 from .engine.impact import validate_links
 from .factors import FACTORS
 from .pipeline import engine_inputs, finite
@@ -133,14 +134,33 @@ def _vec(xs: list, missing: float) -> np.ndarray:
     return np.array([missing if v is None else float(v) for v in xs])
 
 
+def _round_cov(c: list | None) -> list | None:
+    """The fused jump's covariance for the app, to five decimals (typical moves²); None in older snapshots."""
+    return None if c is None else [[None if v is None else round(float(v), 5) for v in row] for row in c]
+
+
+def _cov(r: dict, ok: np.ndarray) -> np.ndarray:
+    """A reading's covariance over the factors ``ok``, from a snapshot: its own, or its error bars taken as
+    independent in snapshots from before covariances were kept."""
+    c = r.get("cov")
+    s = _vec(r["sigma"], math.inf)
+    if c is None:
+        return np.diag(np.where(ok, s, 0.0) ** 2)
+    C = np.array([[0.0 if v is None else float(v) for v in row] for row in c])
+    return np.where(np.outer(ok, ok), C, 0.0)
+
+
 def _project(r: dict, fused: np.ndarray) -> list | None:
-    """A jump reading as a multiple of the fused jump: k with its error bar, by weighted least squares."""
+    """A jump reading as a multiple of the fused jump: k with its error bar, by generalized least squares,
+    ``k = u'Px / u'Pu`` and ``se = 1/sqrt(u'Pu)`` with ``u`` the fused jump and ``P`` the reading's precision."""
     d, s = _vec(r["delta"], math.nan), _vec(r["sigma"], math.inf)
-    ok = np.isfinite(d) & np.isfinite(s) & (s > 0) & (fused != 0)
-    info = float(np.sum(fused[ok] ** 2 / s[ok] ** 2))
+    ok = np.isfinite(d) & np.isfinite(s) & (s > 0)
+    P = precision(_cov(r, ok), ok)
+    u = np.where(ok, fused, 0.0)
+    info = float(u @ P @ u)
     if info <= 0:
         return None
-    k = float(np.sum(d[ok] * fused[ok] / s[ok] ** 2)) / info
+    k = float(u @ P @ np.where(ok, d, 0.0)) / info
     return [r["kind"], r["name"], r["detail"], round(k, 4), round(1 / math.sqrt(info), 4)]
 
 
@@ -161,6 +181,7 @@ def _event(e: dict, today: str, caps: dict[str, str]) -> dict:
         "id": e["id"], "t": e["title"], "s": e["short"], "cat": e["category"], "date": e["resolves"],
         "q": odds["q"], "ph": odds["p_hat"], "tier": e["tier"]["tier"], "qErr": odds["sigma"],
         "d": [round(float(x), 6) for x in fused],
+        "dc": _round_cov(dl.get("cov")),
         "m": _market(e),
         "miss": [[VENUES.get(c["venue"], c["venue"]), _title(c), c["reason"]] for c in e["match"]["near_misses"]] or None,
         "odds": [[r["source"], r["q"], r["sigma"]] for r in odds["readings"]],
