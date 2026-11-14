@@ -498,7 +498,7 @@ The UI borrows Castle's component layer so it would sit comfortably next to thei
    - Pick a date or a preset episode, such as the April 2, 2025 tariff announcement and the pause a week later. Everything is rebuilt as of that date from snapshots and point-in-time data only.
    - Press play to step forward day by day and compare what the system predicted with what actually happened.
    - Works for the current portfolio or for a historical one built as of that date.
-6. **Methodology.** A short tab in plain words: the priced-in example from section 3, the seven steps of the engine (the same seven as the strip above the analysis), how it's tested, with the replay's scorecard and the saved eval results, and what it doesn't do yet.
+6. **Methodology.** A short tab in plain words: the priced-in example from section 3, the seven steps of the engine (the same seven as the strip above the analysis), how it's tested (five tests, each tied to the claim it checks: what was done, what the number means, how it backs the engine, where it falls short, and how strongly it backs the claim; the timing test adds what Granger causality could and couldn't do), with the replay's scorecard and the saved eval results, and what it doesn't do yet.
 7. **Protect** (optional, [section 7](#7-optional-extension-hedging-with-event-contracts)). Pick events to hedge and set a budget; see the suggested legs, their cost, basis risk, and a before-and-after outcome chart ("raw event risk" vs. "hedged", Castle's own framing).
 8. **Track** (optional). Live P&L of the portfolio and hedges, with alerts.
 
