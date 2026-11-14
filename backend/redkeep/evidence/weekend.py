@@ -37,6 +37,7 @@ import numpy as np
 
 from ..data.hyperliquid import Candle, Hyperliquid
 from ..engine.fusion import DeltaReading
+from .windows import Fit, covariances
 from ..factors import NF, index
 
 NY = ZoneInfo("America/New_York")
@@ -175,7 +176,10 @@ class WeekendFit:
 
 
 def weekend_windows(legs: dict[str, Legs], perps: PerpData, typical: np.ndarray, start: datetime, end: datetime, *,
-                    move: float = 0.05, min_moves: int = 2) -> WeekendFit:
+                    move: float = 0.05, min_moves: int = 2, target: np.ndarray | None = None) -> WeekendFit:
+    """``target``: how the factors move together on ordinary days (a correlation across all factors), which the few
+    windows' residual correlations are shrunk toward; the calm weekends themselves when None, though a few months
+    of weekends rarely hold the 30 calm ones a correlation needs, and then the target is no correlation."""
     W = weekends(start, end)
     ids = sorted(legs)
     dQ = np.zeros((len(W), len(ids)))
@@ -213,6 +217,7 @@ def weekend_windows(legs: dict[str, Legs], perps: PerpData, typical: np.ndarray,
     delta = {e: np.full(NF, np.nan) for e in ids}
     sigma = {e: np.full(NF, np.inf) for e in ids}
     used: dict[str, list[date]] = {}
+    fits: dict[int, Fit] = {}
     for p in PERPS:
         k = index(p.factor)
         r = rows[np.isfinite(Y[rows, k])]
@@ -236,6 +241,10 @@ def weekend_windows(legs: dict[str, Legs], perps: PerpData, typical: np.ndarray,
             if var[c] > 0:
                 delta[ids[j]][k], sigma[ids[j]][k] = coef[c], float(np.sqrt(var[c]))
         used[p.factor] = [fridays[w] for w in r]
+        fits[k] = Fit(r, cols, A, AtA_inv, resid, float(np.sqrt(s2)), dof >= 3)
+    # The perps' errors move together as the weekend's other news moved them, as in the weekday windows; the few
+    # windows' residual correlations are shrunk toward how the factors move together on ordinary days.
+    cov, _, _ = covariances(fits, len(ids), Y[calm], target=target)
 
     names = perp_names(used)
     cut = f"; {len(censored)} left out at a discovery bound" if censored else ""
@@ -246,7 +255,7 @@ def weekend_windows(legs: dict[str, Legs], perps: PerpData, typical: np.ndarray,
                 kind="hl", name="Hyperliquid windows",
                 detail=f"{names} perps: {moves[e]} weekends with odds moves of {move * 100:.0f}+ points, "
                        f"out of {len(rows)} windows in {len(W)} weekends{cut}",
-                delta=delta[e], sigma=sigma[e], n=moves[e],
+                delta=delta[e], sigma=sigma[e], n=moves[e], cov=cov[ids.index(e)],
             )
     return WeekendFit(readings, len(W), [fridays[w] for w in rows], moves, censored, used)
 

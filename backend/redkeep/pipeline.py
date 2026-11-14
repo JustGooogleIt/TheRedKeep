@@ -30,10 +30,12 @@ from .data.kalshi import Kalshi
 from .data.massive import Massive
 from .data.polymarket import Polymarket
 from .engine import coherence
+from .engine import covariance
+from .engine.covariance import moves_corr
 from .engine.fusion import DeltaReading, OddsReading, Tier, assign_tier, fuse_delta, fuse_odds
 from .engine.impact import EngineEvent, Link, build_state
 from .engine.simulate import simulate
-from .events import EventSpec, Library, load_library
+from .events import EventSpec, Library, load_library, still_open
 from .evidence import analogs, calibration, odds as odds_mod, prior as prior_mod, weekend, windows
 from .factors import FACTORS, KEYS
 from .http import Http, HttpError
@@ -135,8 +137,15 @@ def _market_json(c: Candidate) -> dict:
 
 
 def _reading_json(r: DeltaReading) -> dict:
+    """A jump reading for the snapshot, with its covariance as measured (the engine weighs its correlations by the
+    snapshot's ``joint_weight``; the fused jump's covariance is already at that weight)."""
     return {"kind": r.kind, "name": r.name, "detail": r.detail, "market": r.market, "n": r.n,
-            "delta": finite(r.delta), "sigma": finite(r.sigma)}
+            "delta": finite(r.delta), "sigma": finite(r.sigma), "cov": cov_json(r.covariance(1.0), r.informative())}
+
+
+def cov_json(C: np.ndarray, ok: np.ndarray) -> list:
+    """A covariance across factors for a snapshot: null on the rows and columns of factors with no reading."""
+    return [[float(C[f, g]) if ok[f] and ok[g] else None for g in range(len(ok))] for f in range(len(ok))]
 
 
 def _odds_json(o: OddsReading) -> dict:
@@ -301,8 +310,11 @@ def refresh(s: Settings, c: Clients, *, today: date | None = None, progress: Pro
                            "the matcher needs Claude to judge candidates")
     now = datetime.now(timezone.utc)
     today = today or now.date()
-    lib = load_library()
+    lib, gone = still_open(load_library(), today)
     warnings: list[str] = []
+    if gone:
+        warnings.append("Left out, past their deadlines: " + ", ".join(f"{e.id} ({e.deadline.isoformat()})" for e in gone)
+                        + ". The library (data/events.toml) needs the next one.")
     cal = calibration.load(s.calibration_file)  # every slope 1 (raw odds) until `redkeep calibrate --write` has run
 
     markets = catalogue(lib, c, today, progress)
@@ -342,12 +354,13 @@ def refresh(s: Settings, c: Clients, *, today: date | None = None, progress: Pro
     # Weekend windows on Hyperliquid's perps, a second market reading of the jump (DESIGN.md 6.4). They go first:
     # Monday's daily ETF window spans the weekend, so on the perps' factors the ETF windows leave those days out.
     wk, perps, skip = None, None, {}
+    now_corr = moves_corr(fd.Z)  # how the factors move together now: the weekend fits' target and the AI prior's errors
     if c.hyperliquid is not None:
         perps = weekend.load(c.hyperliquid, start, end)
         warnings += perps.warnings
         typical = np.array([t if np.isfinite(t) else f.typical_default for t, f in zip(fd.typical, FACTORS)])
         wk = weekend.weekend_windows({k: v for k, v in legs.items() if v}, perps, typical, start, end,
-                                     move=s.window_move, min_moves=s.weekend_min_moves)
+                                     move=s.window_move, min_moves=s.weekend_min_moves, target=now_corr)
         skip = weekend.overlap(wk, fd.dates)
         progress(f"Weekend windows: {len(wk.windows)} of {wk.weekends} weekends with sharp odds moves; "
                  f"readings for {len(wk.readings)} events ({', '.join(perps.coins.values()) or 'no perps'})")
@@ -367,7 +380,7 @@ def refresh(s: Settings, c: Clients, *, today: date | None = None, progress: Pro
         if a:
             readings.append(a)
         if pr:
-            readings.append(prior_mod.delta_reading(pr))
+            readings.append(prior_mod.delta_reading(pr, corr=now_corr))
         fused = fuse_delta(readings)
         odds_readings = list(d.readings) or ([prior_mod.odds_reading(pr, lo=d.lo, hi=d.hi)] if pr else [])
         if not odds_readings:
@@ -390,7 +403,9 @@ def refresh(s: Settings, c: Clients, *, today: date | None = None, progress: Pro
             "match": {"kind": d.kind, "note": d.note, "good": d.good, "liquid": liquid, "lo": d.lo, "hi": d.hi,
                       "candidates": len(cands), "used": [_market_json(x) for x in d.used],
                       "near_misses": [_market_json(x) for x in d.near_misses], "ladders": d.ladders},
-            "delta": {"value": fused.delta, "sigma": fused.sigma, "n_market": fused.n_market,
+            "delta": {"value": fused.delta, "sigma": fused.sigma, "cov": cov_json(fused.cov, np.isfinite(fused.sigma)),
+                      "borrowed": fused.borrowed,
+                      "n_market": fused.n_market,
                       "n_market_all": fused.n_market_all, "chi2": fused.chi2,
                       "dof": fused.dof, "p_value": fused.p_value, "agree": fused.agree,
                       "conflict": asdict(fused.conflict) if fused.conflict else None,
@@ -418,6 +433,7 @@ def refresh(s: Settings, c: Clients, *, today: date | None = None, progress: Pro
                         "coins": perps.coins, "used": {f: len(v) for f, v in wk.used.items()},
                         "censored": [[d.isoformat(), f] for d, f in wk.censored]}},
         "calibration": cal.summary(),
+        "joint_weight": covariance.JOINT_WEIGHT,  # how much of the errors' correlations the jumps carry (E11)
         "events": events, "links": links, "warnings": warnings,
     }
     return finite(snap)

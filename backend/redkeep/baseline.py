@@ -157,8 +157,9 @@ def gap(a: Pairs, b: Pairs) -> dict:
 
 def jump_readings(c: Case, answer: dict) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """Claude's jump and error bars; the engine's fusion of them with the market's own reading; and Claude's share
-    of the fused precision, per factor."""
-    ai = delta_reading(Prior.model_validate(answer))
+    of the fused precision, per factor. Factor by factor, as E9 was fixed before the engine kept how the errors move
+    together (E11), so a rerun gives its first numbers."""
+    ai = replace(delta_reading(Prior.model_validate(answer)), cov=None)
     market = DeltaReading("etf", "Jump windows", "", np.array([np.nan if v is None else v for v in c.pred], float),
                           np.array([np.inf if v is None else v for v in c.sigma], float))
     f = fuse_delta([market, ai])

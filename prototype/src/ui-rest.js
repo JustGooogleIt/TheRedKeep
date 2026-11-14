@@ -18,6 +18,32 @@ function SplitBar({ dT, q }) {
   </svg></div>`;
 }
 
+// Where the full move could land, from the jump's error bars across factors: the 80% range (darker inside: the
+// middle 50%), beside no move. Worded as frequencies, not standard deviations.
+const Z80 = 1.2816, Z50 = 0.6745;
+// How the range counts the factors' errors, as far as eval E11 has backed their correlations (JOINT_WEIGHT).
+function rangeNote() {
+  if (JOINT_WEIGHT >= 1) return 'The range adds each factor’s error with how the factors’ errors move together: a hedge’s errors can cancel, and a bet on factors that move together piles them up.';
+  if (JOINT_WEIGHT > 0) return 'The range adds each factor’s error with half of how the factors’ errors move together, as far as tests on resolved markets back it.';
+  return 'The range adds up each factor’s error on its own. The engine also measures how the factors’ errors move together, so that a hedge’s errors could cancel, but tests on resolved markets haven’t confirmed it yet.';
+}
+function ImpactRange({ dT, sd }) {
+  const ref = useRef(null);
+  const W = Math.max(280, useWidth(ref, 520)), a = 8, b = W - 8;
+  const lo = Math.min(0, dT - Z80 * sd), hi = Math.max(0, dT + Z80 * sd), pad = (hi - lo) * 0.06 || 1;
+  const X = v => a + (v - lo + pad) / (hi - lo + 2 * pad) * (b - a);
+  const col = dT < 0 ? 'var(--loss)' : 'var(--gain)';
+  const r80 = [dT - Z80 * sd, dT + Z80 * sd], r50 = [dT - Z50 * sd, dT + Z50 * sd];
+  return html`<div className="split" ref=${ref}><svg viewBox=${'0 0 ' + W + ' 62'} role="img" aria-label=${'8 times in 10 the full move would land between ' + fmtPct(r80[0]) + ' and ' + fmtPct(r80[1]) + '.'}>
+    <text x=${a} y="11" className="ax">8 times in 10 the full move lands in · ${fmtPct(r80[0])} to ${fmtPct(r80[1])}</text>
+    <rect x=${X(r80[0])} y="22" width=${Math.max(1, X(r80[1]) - X(r80[0]))} height="14" rx="2" style=${{ fill: col, opacity: 0.22 }} />
+    <rect x=${X(r50[0])} y="22" width=${Math.max(1, X(r50[1]) - X(r50[0]))} height="14" rx="2" style=${{ fill: col, opacity: 0.45 }} />
+    <line x1=${X(dT)} x2=${X(dT)} y1="18" y2="40" style=${{ stroke: col, strokeWidth: 2 }} />
+    <line x1=${X(0)} x2=${X(0)} y1="16" y2="42" style=${{ stroke: 'var(--ink-3)', strokeWidth: 1, strokeDasharray: '3 2' }} />
+    <text x=${X(0)} y="54" textAnchor=${X(0) < a + 40 ? 'start' : X(0) > b - 40 ? 'end' : 'middle'} className="ax">no move</text>
+  </svg></div>`;
+}
+
 function Spark({ h, now, from }) {
   const ref = useRef(null);
   const W = Math.max(280, useWidth(ref, 520)), H = 72, n = h.length; const lo = Math.min(...h, now), hi = Math.max(...h, now); const pad = Math.max(0.01, (hi - lo) * 0.15);
@@ -153,6 +179,8 @@ function Drawer({ e, S, P, tw, sampleId, whatIf, setWhatIf, onOpen, onClose, aiO
             <div>if it happens: (1 − ${q.toFixed(2)}) × ${fmtPct(e.dT, 2)} = ${fmtPct(ifYes, 2)}</div>
             <div>if it doesn’t: ${MINUS}${q.toFixed(2)} × ${fmtPct(e.dT, 2)} = ${fmtPct(ifNo, 2)}</div>
           </div>
+          ${e.sdT != null && html`<${Frag}><${ImpactRange} dT=${e.dT} sd=${e.sdT} />
+            <p className="sub">How sure is the full move? ${rangeNote()}${Math.abs(e.dT) < 2 * e.sdT ? ' Within noise: the full move is less than two error bars from none, so the data can’t yet tell it from no effect.' : ''}</p><//>`}
           ${sampleId === 'qqq' && e.id === 'tariff' && html`<p className="note">This is the worked example in DESIGN.md section 3: a −8.5% full move, −5.1% if it happens and +3.4% if it doesn’t.</p>`}
           <div className="btnrow">
             <button className=${cls('btn-ghost', wi === 'yes' && 'on')} aria-pressed=${wi === 'yes'} onClick=${() => setWI(wi === 'yes' ? null : 'yes')}>What if it happens?</button>
@@ -367,7 +395,7 @@ function ReplayView({ P, tw, sampleId }) {
           <span>${s.t}<small>${live ? 'If it happens ' + fmtPct(s.ifYes) + plusMinus(s.ifYesErr) + ' · if not ' + fmtPct(s.ifNo) + plusMinus(s.ifNoErr) + (withinNoise(s) ? ' · within noise' : '') : s.status === 'happened' ? 'Happened ' + fmtDate(s.on, false) : replayGap(s, byId[s.id], R.days[day].d)}</small></span>
           <span className="mono" style=${{ textAlign: 'right' }}>${s.status === 'open' ? fmtOdds(s.q) : ''}</span>
           <span className="cell">${live ? swingUsd(s.swing * V / 100) : ''}${live && html`<small>${swingPct(s.swing)}</small>`}</span></li>`; })}</ul>
-        ${rows.some(s => s.ifYesErr != null) && html`<p className="sub" style=${{ margin: '10px 0 0' }}>± is one standard deviation, from the error bars of the readings behind each jump. “Within noise” marks a jump less than two of them from no move: the data can’t yet tell it from no effect.</p>`}
+        ${rows.some(s => s.ifYesErr != null) && html`<p className="sub" style=${{ margin: '10px 0 0' }}>± is one standard deviation, from the error bars of the readings behind each jump, taken factor by factor${JOINT_WEIGHT > 0 ? ': the replay keeps each factor’s error bar only' : ''}. “Within noise” marks a jump less than two of them from no move: the data can’t yet tell it from no effect.</p>`}
       </section>
     </div>
     <section className="card"><div className="card-head"><div><span className="kicker">Calls against outcomes</span><h3 className="h3" style=${{ marginTop: 6 }}>Did the engine get it right?</h3></div></div>
@@ -392,11 +420,11 @@ function ReplayView({ P, tw, sampleId }) {
 }
 
 /* ---------- tweaks ---------- */
-const DEFAULT_TWEAKS = { odds: 'market', knock: true, horizon: 6, tiers: 'ABCD', topN: 12, sims: 4000, noise: false, theme: 'auto', accent: 'dragon', heading: 'serif', density: 'comfortable', hero: true, dragon: true, glow: 'normal', citadel: true, view: 'macro', rotate: true, labels: 'top', links: true };
+const DEFAULT_TWEAKS = { odds: 'market', knock: true, horizon: 6, tiers: 'ABCD', topN: 12, sims: 4000, noise: false, theme: 'auto', accent: 'dragon', heading: 'serif', density: 'comfortable', hero: true, dragon: true, glow: 'normal', citadel: true, view: 'macro', rotate: true, labels: 'top', links: true, spread: 'hover' };
 const TWEAK_OPTS = {
   odds: ['market', 'calibrated'], knock: [true, false], horizon: [3, 6, 12], tiers: ['ABCD', 'ABC', 'AB'], topN: [8, 12, 'all'], sims: [2000, 4000, 10000], noise: [false, true],
   theme: ['auto', 'light', 'dark'], accent: ['dragon', 'ember', 'teal', 'steel'], heading: ['serif', 'sans'], density: ['comfortable', 'compact'], hero: [true, false], dragon: [true, false], glow: ['normal', 'bright'], citadel: [true, false],
-  view: ['macro', 'mine', 'flat'], rotate: [true, false], labels: ['top', 'all', 'none'], links: [true, false],
+  view: ['macro', 'mine', 'flat'], rotate: [true, false], labels: ['top', 'all', 'none'], links: [true, false], spread: ['hover', 'all', 'none'],
 };
 function cleanTweaks(t) {
   const o = {}; if (!t || typeof t !== 'object') return o;
@@ -445,6 +473,7 @@ function TweaksSheet({ tw, setTw, onClose }) {
           ${Row('View', null, 'view', [['macro', 'Macro'], ['mine', 'Mine'], ['flat', '2D']])}
           ${Row('Auto-rotate', null, 'rotate', [[true, 'On'], [false, 'Off']])}
           ${Row('Labels', null, 'labels', [['top', 'Top 5'], ['all', 'All'], ['none', 'None']])}
+          ${Row('Error bubbles', 'Where each event could really sit: 8 times in 10 in 3D, about 9 in 10 on screen', 'spread', [['hover', 'On hover'], ['all', 'All'], ['none', 'None']])}
           ${Row('Knock-on links', null, 'links', [[true, 'On'], [false, 'Off']])}
         </div>
         <div className="tw-group"><span className="label">Keep these settings</span>

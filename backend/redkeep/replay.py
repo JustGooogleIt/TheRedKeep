@@ -465,7 +465,7 @@ def run(s: Settings, c: Clients, ep: Episode, *, progress: Progress = print) -> 
         elif mt.decision.kind != "none" and not odds[eid]:
             warnings.append(f"{eid}: matched, but its market has no prices in the episode")
 
-    past = {e.spec.id: analogs.analog_reading(e.spec, fd) for e in ep.events}
+    past = {e.spec.id: analogs.analog_reading(e.spec, fd, until=base) for e in ep.events}
     evenings = [evening(T, ep, odds, fd, past, s) for T in [base] + days]
     progress(f"Evenings: {len(evenings)}, from {base} to {days[-1]}")
     rep = assemble(ep, s, c, base, days, fd, typical, matched, odds, sources, evenings, warnings, cat.counts)

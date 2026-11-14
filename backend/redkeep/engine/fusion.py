@@ -36,6 +36,17 @@ of the jump (the same projection as the app's jump chart). At ``QUORUM_SE`` or l
 the reading alone tells the jump from no jump at two standard errors. A vaguer
 reading still enters the average and the χ² check, so it can contest a jump, but
 it can't help confirm one: two vague readings agree with anything.
+
+Joint error bars (DESIGN.md 4.9). A reading can also carry its errors' covariance
+across factors. The average is then its information form,
+``x̂ = (Σ P_s)⁻¹ Σ P_s x_s`` with ``Cov(x̂) = (Σ P_s)⁻¹``, where ``P_s`` inverts reading
+``s``'s covariance on the factors it informs and is zero elsewhere, so a reading of
+one factor can move another through the correlations (``FusedDelta.borrowed``). The
+χ² check becomes ``Σ (x_s − x̂)' P_s (x_s − x̂)`` with ``Σ rank P_s − rank Σ P_s``
+degrees of freedom, and a reading's error bar on the jump's size ``1 / sqrt(u' P_s u)``.
+The conflict test stays factor by factor. How much of the correlations is used is
+``covariance.JOINT_WEIGHT``, which eval E11 sets; at 0 every step is the
+factor-by-factor version above.
 """
 
 from __future__ import annotations
@@ -48,6 +59,7 @@ from scipy.stats import chi2 as chi2_dist
 from scipy.stats import norm
 
 from ..factors import BY_KEY, KEYS, NF
+from .covariance import precision, weigh
 
 DeltaKind = Literal["etf", "hl", "opt", "past", "ai"]
 MARKET_DELTA_KINDS = {"etf", "hl", "opt"}
@@ -63,6 +75,7 @@ class DeltaReading:
     delta: np.ndarray  # typical moves per factor
     sigma: np.ndarray  # standard error per factor; inf where the reading says nothing
     n: int = 0  # windows or analogs behind the reading
+    cov: np.ndarray | None = None  # the errors' covariance across factors (its diagonal is sigma²); None: independent
 
     @property
     def market(self) -> bool:
@@ -70,6 +83,15 @@ class DeltaReading:
 
     def informative(self) -> np.ndarray:
         return np.isfinite(self.sigma) & (self.sigma > 0)
+
+    def covariance(self, w: float | None = None) -> np.ndarray:
+        """The errors' covariance over the factors the reading informs, zero elsewhere, with its correlations at
+        weight ``w``: by default the weight E11 set for the engine (``covariance.JOINT_WEIGHT``); 1 gives the
+        covariance as measured, which is what a study of the correlations (E11) and the snapshot keep."""
+        ok = self.informative()
+        s = np.where(ok, self.sigma, 0.0)
+        C = np.diag(s ** 2) if self.cov is None else np.where(np.outer(ok, ok), np.nan_to_num(self.cov), 0.0)
+        return weigh((C + C.T) / 2, w)
 
 
 @dataclass
@@ -96,6 +118,8 @@ class FusedDelta:
     agree: bool | None  # over all market readings; None when no two of them share a factor
     n_market_all: int = 0  # market readings of any precision
     conflict: Conflict | None = None  # the market against the past events and the AI
+    cov: np.ndarray | None = None  # the fused jump's covariance across factors; zero on factors with no reading
+    borrowed: np.ndarray | None = None  # how far the errors' correlations moved each factor, against fusing factor by factor
 
 
 @dataclass
@@ -134,62 +158,85 @@ class Tier:
 def fuse_delta(readings: Sequence[DeltaReading]) -> FusedDelta:
     if not readings:
         z = np.zeros(NF)
-        return FusedDelta(z, np.full(NF, np.inf), {}, 0, 0.0, 0, None, None)
+        return FusedDelta(z, np.full(NF, np.inf), {}, 0, 0.0, 0, None, None, cov=np.zeros((NF, NF)))
     X = np.nan_to_num(np.array([r.delta for r in readings], dtype=float))
-    S = np.array([r.sigma for r in readings], dtype=float)
-    finite = np.isfinite(S) & (S > 0)
-    P = np.zeros_like(S)
-    P[finite] = 1.0 / S[finite] ** 2
+    C = [r.covariance() for r in readings]
+    ok = [r.informative() for r in readings]
+    P = [precision(c, m) for c, m in zip(C, ok)]
     mk = [i for i, r in enumerate(readings) if r.market]
     conflict = _conflict(readings, P, X)
-    W = P.copy()  # the precision each reading gets in the average: none for the market on a contested factor
+    W = list(P)  # the precision each reading gets in the average: none for the market on a contested factor
     if conflict:
-        W[np.ix_(mk, [KEYS.index(k) for k in conflict.factors])] = 0.0
-    tot = W.sum(axis=0)
-    safe = np.where(tot > 0, tot, 1.0)
-    mean = np.where(tot > 0, (W * X).sum(axis=0) / safe, 0.0)
-    sigma = np.where(tot > 0, 1.0 / np.sqrt(safe), np.inf)
-    weights = {r.name: np.where(tot > 0, W[i] / safe, 0.0) for i, r in enumerate(readings)}
+        # On the contested factors the jump rests on the other evidence alone. So that the market's readings of the
+        # other factors can't reach them through the errors' correlations either, every reading's errors on the
+        # contested factors are taken apart from its errors on the rest (a no-op at JOINT_WEIGHT = 0).
+        cut = np.isin(np.array(KEYS), conflict.factors)
+        split = np.outer(cut, ~cut) | np.outer(~cut, cut)
+        for i, r in enumerate(readings):
+            Ci = np.where(split, 0.0, C[i])
+            W[i] = precision(Ci, ok[i] & ~cut) if r.market else precision(Ci, ok[i])
+    mean, cov = _gls(W, X)
+    have = np.diag(sum(W)) > 0
+    # What the joint error bars moved: the same readings averaged factor by factor, as if their errors were independent.
+    alone, _ = _gls([np.diag(1 / np.where(np.diag(w) > 0, np.diag(np.linalg.pinv(w, hermitian=True)), np.inf)) for w in W], X)
+    sigma = np.where(have, np.sqrt(np.clip(np.diag(cov), 0, None)), np.inf)
+    Wsum_inv = np.linalg.pinv(sum(W), hermitian=True)
+    weights = {r.name: np.where(have, np.diag(Wsum_inv @ W[i]), 0.0) for i, r in enumerate(readings)}
 
-    # Consistency among market readings only, factor by factor. Every market reading takes part, vague or not.
+    # Consistency among market readings only, over the factors two or more of them inform. Every market reading
+    # takes part, vague or not. With correlated errors a reading's miss on one factor tells on the others, so the
+    # statistic is each reading's squared distance from the market readings' own average, in its precision.
     chi2, dof = 0.0, 0
-    for f in range(NF):
-        rows = [i for i in mk if P[i, f] > 0]
-        if len(rows) < 2:
-            continue
-        w = P[rows, f]
-        m = (w * X[rows, f]).sum() / w.sum()
-        chi2 += float((w * (X[rows, f] - m) ** 2).sum())
-        dof += len(rows) - 1
-    n_all = sum(1 for i in mk if P[i].sum() > 0)
+    if len(mk) >= 2:
+        m_mean, _ = _gls([P[i] for i in mk], X[mk])
+        chi2 = float(sum((X[i] - m_mean) @ P[i] @ (X[i] - m_mean) for i in mk))
+        dof = int(sum(_rank(P[i]) for i in mk) - _rank(sum(P[i] for i in mk)))
+    n_all = sum(1 for i in mk if np.trace(P[i]) > 0)
     n_market = sum(1 for i in mk if size_error(P[i], mean) <= QUORUM_SE)
     p_value = float(chi2_dist.sf(chi2, dof)) if dof else None
     agree = None if p_value is None else p_value >= ALPHA
-    return FusedDelta(mean, sigma, weights, n_market, chi2, dof, p_value, agree, n_all, conflict)
+    return FusedDelta(mean, sigma, weights, n_market, chi2, dof, p_value, agree, n_all, conflict, cov,
+                      np.where(have, mean - alone, 0.0))
 
 
-def _conflict(readings: Sequence[DeltaReading], P: np.ndarray, X: np.ndarray) -> Conflict | None:
+def _rank(P: np.ndarray) -> int:
+    return int(np.linalg.matrix_rank(P, hermitian=True)) if np.any(P) else 0
+
+
+def _gls(W: Sequence[np.ndarray], X: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    """The readings' average in information form, ``x̂ = (Σ W_s)⁻¹ Σ W_s x_s``, and its covariance ``(Σ W_s)⁻¹``,
+    over the factors any reading informs; zero (no move, no error) on the rest, where the caller marks them."""
+    tot = sum(W)
+    inv = np.linalg.pinv(tot, hermitian=True)
+    mean = inv @ sum(w @ x for w, x in zip(W, X))
+    have = np.diag(tot) > 0
+    return np.where(have, mean, 0.0), inv
+
+
+def _conflict(readings: Sequence[DeltaReading], P: Sequence[np.ndarray], X: np.ndarray) -> Conflict | None:
     """The factors where the market readings and the other evidence point opposite ways beyond their error bars, if
-    any: ``|z| > z_crit`` with ``z_crit`` the two-sided ``ALPHA`` point over the factors tested. The furthest apart
-    is the one named."""
+    any: ``|z| > z_crit`` with ``z_crit`` the two-sided ``ALPHA`` point over the factors tested. Each side is its
+    readings' average in information form, and ``z`` sets the two apart factor by factor, on their error bars there.
+    The furthest apart is the one named."""
     mk = [i for i, r in enumerate(readings) if r.market]
     other = [i for i, r in enumerate(readings) if not r.market]
     if not mk or not other:
         return None
-    p1, p2 = P[mk].sum(axis=0), P[other].sum(axis=0)
-    both = (p1 > 0) & (p2 > 0)
+    P1, P2 = sum(P[i] for i in mk), sum(P[i] for i in other)
+    both = (np.diag(P1) > 0) & (np.diag(P2) > 0)
     if not both.any():
         return None
-    s1, s2 = np.where(both, p1, 1.0), np.where(both, p2, 1.0)
-    m1, m2 = (P[mk] * X[mk]).sum(axis=0) / s1, (P[other] * X[other]).sum(axis=0) / s2
-    z = np.where(both, (m1 - m2) / np.sqrt(1 / s1 + 1 / s2), 0.0)
+    m1, V1 = _gls([P[i] for i in mk], X[mk])
+    m2, V2 = _gls([P[i] for i in other], X[other])
+    se = np.sqrt(np.clip(np.diag(V1) + np.diag(V2), 1e-300, None))
+    z = np.where(both, (m1 - m2) / se, 0.0)
     hit = both & (m1 * m2 < 0) & (np.abs(z) > norm.ppf(1 - ALPHA / (2 * both.sum())))
     if not hit.any():
         return None
     order = [int(f) for f in np.argsort(-np.abs(z)) if hit[f]]
     f = order[0]
     return Conflict(KEYS[f], float(m1[f]), float(m2[f]), float(z[f]),
-                    [readings[i].name for i in mk if P[i, f] > 0], [readings[i].name for i in other if P[i, f] > 0],
+                    [readings[i].name for i in mk if P[i][f, f] > 0], [readings[i].name for i in other if P[i][f, f] > 0],
                     [KEYS[k] for k in order])
 
 
@@ -207,11 +254,15 @@ def conflict_reason(c: Conflict) -> str:
 
 
 def size_error(precision: np.ndarray, fused: np.ndarray) -> float:
-    """A reading's error bar on the size of the fused jump, as a share of it, from its precision ``1/σ²`` per factor.
+    """A reading's error bar on the size of the fused jump, as a share of it, from its precision: a matrix (the
+    inverse of its covariance), or ``1/σ²`` per factor when its errors are independent.
 
-    Fitting the reading as ``k`` times the fused jump by weighted least squares gives ``se(k) = 1/sqrt(Σ_f δ̂_f²/σ_f²)``.
+    Fitting the reading as ``k`` times the fused jump by generalized least squares gives
+    ``se(k) = 1/sqrt(δ̂' P δ̂)``, which is ``1/sqrt(Σ_f δ̂_f²/σ_f²)`` with independent errors.
     """
-    info = float(np.sum(precision * np.asarray(fused, float) ** 2))
+    u = np.asarray(fused, float)
+    Pm = np.asarray(precision, float)
+    info = float(u @ Pm @ u) if Pm.ndim == 2 else float(np.sum(Pm * u ** 2))
     return 1 / np.sqrt(info) if info > 0 else np.inf
 
 

@@ -35,6 +35,7 @@ from datetime import date
 import numpy as np
 from scipy.stats import chi2
 
+from .engine.covariance import precision, weigh
 from .engine.impact import validate_links
 from .factors import FACTORS
 from .pipeline import engine_inputs, finite
@@ -133,14 +134,35 @@ def _vec(xs: list, missing: float) -> np.ndarray:
     return np.array([missing if v is None else float(v) for v in xs])
 
 
-def _project(r: dict, fused: np.ndarray) -> list | None:
-    """A jump reading as a multiple of the fused jump: k with its error bar, by weighted least squares."""
+def _round_cov(c: list | None) -> list | None:
+    """The fused jump's covariance for the app, to five decimals (typical moves²); None in older snapshots."""
+    return None if c is None else [[None if v is None else round(float(v), 5) for v in row] for row in c]
+
+
+def _cov(r: dict, ok: np.ndarray, w: float) -> np.ndarray:
+    """A reading's covariance over the factors ``ok``, from a snapshot, with its correlations at the weight ``w`` the
+    engine used (a snapshot keeps each reading's covariance as measured); its error bars taken as independent in
+    snapshots from before covariances were kept."""
+    c = r.get("cov")
+    s = _vec(r["sigma"], math.inf)
+    if c is None:
+        return np.diag(np.where(ok, s, 0.0) ** 2)
+    C = np.array([[0.0 if v is None else float(v) for v in row] for row in c])
+    return weigh(np.where(np.outer(ok, ok), C, 0.0), w)
+
+
+def _project(r: dict, fused: np.ndarray, w: float) -> list | None:
+    """A jump reading as a multiple of the fused jump: k with its error bar, by generalized least squares,
+    ``k = u'Px / u'Pu`` and ``se = 1/sqrt(u'Pu)`` with ``u`` the fused jump and ``P`` the reading's precision, as the
+    engine's quorum weighs it (correlations at weight ``w``)."""
     d, s = _vec(r["delta"], math.nan), _vec(r["sigma"], math.inf)
-    ok = np.isfinite(d) & np.isfinite(s) & (s > 0) & (fused != 0)
-    info = float(np.sum(fused[ok] ** 2 / s[ok] ** 2))
+    ok = np.isfinite(d) & np.isfinite(s) & (s > 0)
+    P = precision(_cov(r, ok, w), ok)
+    u = np.where(ok, fused, 0.0)
+    info = float(u @ P @ u)
     if info <= 0:
         return None
-    k = float(np.sum(d[ok] * fused[ok] / s[ok] ** 2)) / info
+    k = float(u @ P @ np.where(ok, d, 0.0)) / info
     return [r["kind"], r["name"], r["detail"], round(k, 4), round(1 / math.sqrt(info), 4)]
 
 
@@ -153,7 +175,7 @@ def _coherence(e: dict, caps: dict[str, str]) -> dict | None:
     return {"n": c["checks"], "contested": c["contested"], "flags": [f["note"] for f in c["findings"]], "caps": caps}
 
 
-def _event(e: dict, today: str, caps: dict[str, str]) -> dict:
+def _event(e: dict, today: str, caps: dict[str, str], w: float) -> dict:
     odds, dl = e["odds"], e["delta"]
     fused = _vec(dl["value"], 0.0)
     dof = dl.get("dof") or 0
@@ -161,10 +183,11 @@ def _event(e: dict, today: str, caps: dict[str, str]) -> dict:
         "id": e["id"], "t": e["title"], "s": e["short"], "cat": e["category"], "date": e["resolves"],
         "q": odds["q"], "ph": odds["p_hat"], "tier": e["tier"]["tier"], "qErr": odds["sigma"],
         "d": [round(float(x), 6) for x in fused],
+        "dc": _round_cov(dl.get("cov")),
         "m": _market(e),
         "miss": [[VENUES.get(c["venue"], c["venue"]), _title(c), c["reason"]] for c in e["match"]["near_misses"]] or None,
         "odds": [[r["source"], r["q"], r["sigma"]] for r in odds["readings"]],
-        "src": [p for p in (_project(r, fused) for r in dl["readings"]) if p],
+        "src": [p for p in (_project(r, fused, w) for r in dl["readings"]) if p],
         "fusion": {"nMarket": dl["n_market"], "nAll": dl.get("n_market_all", dl["n_market"]), "chi2": dl["chi2"],
                    "dof": dof, "crit": round(float(chi2.ppf(0.95, dof)), 2) if dof else None,
                    "agree": None if dl["agree"] is None else bool(dl["agree"])},
@@ -272,14 +295,16 @@ def build(snap: dict, analyses: list[dict], replay: dict | None = None) -> dict:
             caps[ln["parent"]][ln["child"]] = caps[ln["child"]][ln["parent"]] = ln["capped"]
     links, _ = validate_links({e.id: e for e in evs}, used)  # the links the engine itself applies
     by_key = {f["key"]: f for f in snap["factors"]}
+    jw = 1.0 if snap.get("joint_weight") is None else float(snap["joint_weight"])  # how the engine weighed readings
     data = {
         "kind": "redkeep.app", "version": 1, "asOf": snap["as_of"], "today": snap["today"],
         "exposures": "backend" if analyses else "illustrative",
         "catalogue": snap["catalogue"], "windows": snap["windows"], "warnings": snap["warnings"],
         "calibration": snap.get("calibration"),
+        "jointWeight": snap.get("joint_weight"),  # None: a snapshot from before the engine kept joint error bars
         "factors": [{"k": f.key, "typical": by_key.get(f.key, {}).get("typical"),
                      "proxy": _proxy(by_key.get(f.key, {}).get("source"), f.name)} for f in FACTORS],
-        "events": [_event(e, snap["today"], caps[e["id"]]) for e in snap["events"]],
+        "events": [_event(e, snap["today"], caps[e["id"]], jw) for e in snap["events"]],
         "links": [[ln.parent, ln.child, ln.w] for ln in links],
         "linkChecks": [{k: ln.get(k) for k in ("parent", "child", "status", "w_proposed", "w_data", "w", "t", "n", "note", "capped")}
                        for ln in snap["links"]],

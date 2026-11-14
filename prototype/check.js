@@ -11,7 +11,7 @@ const livePath = process.argv[2];
 const M = vm.runInNewContext(
   (livePath ? fs.readFileSync(livePath, 'utf8') : '') + '\n' + src('data.js') + '\n' + src('model.js') + '\n' + src('dataset.js') +
   '\n;({ SAMPLES, FACTORS, TICKERS, analyzePortfolio, buildState, simulate, replayCompute, applyDataset, HAS_LIVE, LIVE_PORTFOLIOS,' +
-  ' REPLAY, replaySource: () => REPLAY_SOURCE, LIVE: typeof RK_LIVE === "undefined" ? null : RK_LIVE })',
+  ' REPLAY, LINKS, EVENTS, replaySource: () => REPLAY_SOURCE, LIVE: typeof RK_LIVE === "undefined" ? null : RK_LIVE })',
   { console },
 );
 
@@ -41,15 +41,20 @@ function identities(label) {
   for (const s of M.SAMPLES) {
     const P = analyze(s.id);
     const S = M.buildState(P, tw, {}, {});
-    let pricedIn = 0, knock = 0, swing = 0;
+    let pricedIn = 0, knock = 0, swing = 0, kvar = 0;
+    // The variance of a whole move, path by path: each path's weight times the jump at its end, the jumps' errors
+    // apart from each other's, so Var = Σ over events reached of (Σ over the paths to it of their weights)² × its own.
+    const reached = (id, w, out) => { out[id] = (out[id] || 0) + w; S.byId[id].children.forEach(c => { if (!S.byId[c.id].resolved) reached(c.id, w * c.w, out); }); return out; };
     for (const e of S.evs) {
       pricedIn = Math.max(pricedIn, Math.abs(e.qEff * e.ifYes + (1 - e.qEff) * e.ifNo));
       const viaChildren = e.children.reduce((t, c) => t + c.w * S.byId[c.id].dT, 0);
       knock = Math.max(knock, Math.abs(e.dT - e.dD - viaChildren));
       swing = Math.max(swing, Math.abs(e.swingPct ** 2 - e.swing));
+      if (e.dDvar != null) kvar = Math.max(kvar, Math.abs(e.dTvar - Object.entries(reached(e.id, 1, {})).reduce((t, [id, w]) => t + w * w * (S.byId[id].dDvar || 0), 0)));
     }
     check(label + s.id + ': the priced-in moves net to zero at market odds (4.2)', pricedIn < 1e-9);
     check(label + s.id + ': knock-on jumps add up through the graph (4.4)', knock < 1e-9);
+    check(label + s.id + ': a whole move\'s variance counts each event it reaches once, its paths\' weights summed', kvar < 1e-9);
     check(label + s.id + ': the swing matches q(1-q) times the jump squared (4.3)', swing < 1e-9);
 
     // The simulator (4.7): zero mean at market odds, and seeded so a run repeats exactly.
@@ -83,6 +88,22 @@ if (livePath) {
   const before = Object.fromEntries(M.SAMPLES.map(s => { const P = analyze(s.id); return [s.id, { unit: perUnit(P), replay: M.replayCompute(P, true) }]; }));
   M.applyDataset('live');
   identities('snapshot · ');
+  // Two paths from one event to another (a → b → c and a → c, links made up for the check, on the snapshot's first
+  // three events with error bars): the whole move's variance counts c's error once, the two paths' weights summed
+  // before squaring, not each path's knock-on as if its error were its own.
+  const three = M.EVENTS.map((e, i) => [e, i]).filter(([e]) => e.dc)
+    .sort(([x, i], [y, j]) => x.date.localeCompare(y.date) || i - j).slice(0, 3).map(([e]) => e.id);
+  if (three.length === 3) {
+    const [a, b, c] = three, P0 = analyze(M.SAMPLES[0].id), kept = M.LINKS.splice(0);
+    M.LINKS.push([a, b, 0.4], [b, c, 0.5], [a, c, 0.3]);
+    const S = M.buildState(P0, tw, {}, {});
+    M.LINKS.splice(0, M.LINKS.length, ...kept);
+    const v = id => S.byId[id].dDvar;
+    const want = v(a) + 0.4 ** 2 * v(b) + (0.3 + 0.4 * 0.5) ** 2 * v(c);
+    const apart = v(a) + 0.4 ** 2 * S.byId[b].dTvar + 0.3 ** 2 * S.byId[c].dTvar;
+    check('knock-ons: two paths to one event count its error once', Math.abs(S.byId[a].dTvar - want) < 1e-12 && apart < want,
+      a + ' to ' + c + ': variance ' + S.byId[a].dTvar.toFixed(5) + ', with each path apart ' + apart.toFixed(5));
+  }
 
   // Events only: the illustrative portfolios stay, rescaled to the snapshot's typical moves.
   if (!M.LIVE_PORTFOLIOS) for (const s of M.SAMPLES) {

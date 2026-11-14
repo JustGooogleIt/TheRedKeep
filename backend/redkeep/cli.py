@@ -391,6 +391,59 @@ def print_jumps(rep: dict) -> None:
         print(f"  E5  {name:<7} readings: {x['markets']:>4} markets, explained {_share(x['explained_share']).strip()}, "
               f"signs {x['clear_signs_right']} of {x['clear_moves']}, 80% cover {cover}")
     print(f"  E6  {rep['e6']}")
+    j = rep.get("e11")
+    if j:
+        pr, g = j["primary"], j["guards"]
+        print(f"\n  E11 joint error bars, {j['markets']} markets on {j['days']} days ({j['several']} with several), "
+              f"{j['factors']:.1f} factors a day; the readings' share of the forecast's variance {100 * j['delta_share']:.0f}%, "
+              f"mean |correlation| of their errors {j['mean_abs_corr']:.2f}")
+        print(f"      design power (from the forecasts alone): {j['power']:.2f}")
+        print(f"      score gain, joint over independent, per day: {pr['mean']:+.3f} (90% {pr['range90'][0]:+.3f} to "
+              f"{pr['range90'][1]:+.3f}); t {pr['t']:+.2f} against {j['crit']:.2f}; sign flips p {pr['flip_joint']:.3f} "
+              f"/ {pr['flip_independent']:.3f}; likelihood ratio {pr['likelihood_ratio']:.2f}: favours {pr['favours']}")
+        h = j["half"]
+        print(f"      halfway over independent: {h['mean']:+.3f}, t {h['t']:+.2f}: favours "
+              f"{'halfway' if h['favours'] == 'joint' else h['favours']}")
+        print(f"      noise's correlations, over taking it factor by factor: {j['noise_corr']['mean']:+.3f}, "
+              f"t {j['noise_corr']['t']:+.2f}")
+        for w, c in j["candidates"].items():
+            print(f"      {w:<12} score {c['score']:7.2f}; whole day inside its 80% region {100 * c['inside_80']:.0f}%; "
+                  f"mean d²/k {c['d2_over_k']:.2f}")
+        for name, label in (("hedge", "the hedge it believes in most"), ("pile", "where it widens most")):
+            x = g.get(name)
+            if x:
+                print(f"      along {label}: spread of t joint {x['joint']['spread']:.2f}, independent "
+                      f"{x['independent']['spread']:.2f}, half {x['half']['spread']:.2f} (band to {j['band']:.2f}); "
+                      f"80% cover {100 * x['joint']['coverage']:.0f}% / {100 * x['independent']['coverage']:.0f}%")
+        raw = f"; uncentred t {g['d2']['raw_t']:+.2f}" if "raw_t" in g["d2"] else ""
+        print(f"      guards: hedge {'passed' if g['hedge_ok'] else 'FAILED'}; distances "
+              f"{'passed' if g['d2']['ok'] else 'FAILED'} (t {g['d2']['t']:+.2f}{raw})")
+        rd = j["random"]
+        print(f"      {rd['directions']} random portfolios inside their 80% interval: joint {100 * rd['coverage']['joint']:.0f}%, "
+              f"independent {100 * rd['coverage']['independent']:.0f}%, half {100 * rd['coverage']['half']:.0f}% "
+              f"(mean gap from 80%: {100 * rd['gap_from_80']['joint']:.1f} / {100 * rd['gap_from_80']['independent']:.1f} / "
+              f"{100 * rd['gap_from_80']['half']:.1f} points)")
+        for name, v in (j.get("samples") or {}).items():
+            jc, ic = v["joint"]["coverage"], v["independent"]["coverage"]
+            if jc is not None:
+                print(f"      {name:<20} 80% cover joint {100 * jc:.0f}%, independent {100 * ic:.0f}%; spread of t "
+                      f"{v['joint']['spread']:.2f} vs {v['independent']['spread']:.2f}")
+        if j.get("portfolio_score"):
+            ps = j["portfolio_score"]
+            print(f"      score along the sample portfolios: gain {ps['mean']:+.3f}, t {ps['t']:+.2f}")
+        print(f"      energy score gain: {j['energy']['mean']:+.4f}, t {j['energy']['t']:+.2f}")
+        se = j["sensitivity"]
+        for name in ("big_moves", "noise_x1.5", "rescaled", "student_t"):
+            x = se.get(name)
+            if x:
+                print(f"      sensitivity {name:<10} {x['days']:>3} days: gain {x['gain']:+.3f}, t {x['t']:+.2f}: favours {x['favours']}")
+        lo = se.get("leave_one_out")
+        if lo:
+            print(f"      each day left out: t {lo['t_min']:+.2f} to {lo['t_max']:+.2f}; the verdict "
+                  f"{'changes' if lo['flips'] else 'holds'}")
+        dec = j["decision"]
+        print(f"      decision (rule fixed in advance, amended after the first run): {dec['outcome']} of the correlations "
+              f"(weight {dec['weight']}): {dec['why']}")
     bm = rep.get("e3_by_material")
     if bm:
         print(f"\n  E3 by Claude's funnel label ({bm['labeled']} labeled, {bm['material_markets']} material; added after "

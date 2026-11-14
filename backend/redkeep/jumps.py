@@ -55,7 +55,8 @@ from typing import Callable, Sequence
 import numpy as np
 from scipy.stats import spearmanr
 
-from . import factordata
+from . import factordata, joint
+from .engine.covariance import moves_corr
 from .engine.fusion import QUORUM_SE, size_error
 from .evidence import resolved, windows
 from .evidence.resolved import Resolved
@@ -101,6 +102,8 @@ class Case:
     sigma: list
     z: list  # the day's factor moves, typical moves; None where there is no data
     noise: list  # each factor's calm-day standard deviation over the lookback
+    cov: list | None = None  # the reading's covariance across factors (E11); None in runs from before it
+    noise_corr: list | None = None  # the factors' correlation on calm days over the lookback (E11)
 
     @property
     def real(self) -> list:
@@ -127,6 +130,11 @@ def resolution(closes: dict[date, float], y: int, calendar: Sequence[date]) -> t
     if before is None or before not in closes or abs(closes[before] - y) < SURPRISE:
         return None
     return before, day, closes[before], closes[day] - closes[before]
+
+
+def calm_days(fd: FactorData, busy: set[date]) -> np.ndarray:
+    """The factor moves (typical moves) on days without a sharp odds move."""
+    return fd.Z[[i for i, d in enumerate(fd.dates) if d not in busy]]
 
 
 def calm_noise(fd: FactorData, busy: set[date]) -> np.ndarray:
@@ -163,6 +171,8 @@ def case_for(r: Resolved, points: Sequence[tuple[datetime, float]], granularity:
     z = fd.Z[i]
     noise = calm_noise(past, set(wf.windows))
     ok = np.isfinite(rd.sigma) & np.isfinite(rd.delta)
+    C = rd.covariance(1.0)  # as measured, whatever weight the engine uses: E11 compares that with factor by factor
+    R = moves_corr(calm_days(past, set(wf.windows)))
     return Case(
         key=r.key, venue=r.venue, event=r.event, title=r.title, category=r.category, y=r.y,
         day=day.isoformat(), before=before.isoformat(), q=float(q), dq=float(dq), granularity=granularity,
@@ -171,6 +181,8 @@ def case_for(r: Resolved, points: Sequence[tuple[datetime, float]], granularity:
         sigma=[float(v) if k else None for v, k in zip(rd.sigma, ok)],
         z=[float(v) if np.isfinite(v) else None for v in z],
         noise=[float(v) for v in noise],
+        cov=[[float(C[f, g]) if ok[f] and ok[g] else None for g in range(NF)] for f in range(NF)],
+        noise_corr=[[float(x) for x in row] for row in R],
     )
 
 
@@ -423,6 +435,7 @@ def study(cases: Sequence[Case], material: dict[str, bool] | None = None) -> dic
                "knows how most of them ended; `redkeep baseline` (E9) scores it beside the market's reading on those "
                "that resolved after its training data."),
         **({"e3_by_material": by_material(cases, p, material)} if material else {}),
+        "e11": joint.study(cases),
     }
 
 

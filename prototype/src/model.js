@@ -103,6 +103,15 @@ function contributions(ev, P) {
   if (ev.dir) for (const st in ev.dir) { const w = P.stockW[st] || 0; if (w > 0) out.push({ key: 'dir:' + st, name: (NAMES[st] || st) + ' (own line)', move: ev.dir[st], exp: w, c: w * ev.dir[st], direct: true }); }
   return out.sort((a, c) => Math.abs(c.c) - Math.abs(a.c));
 }
+// The jump's error bars, joint across factors: the backend's covariance of the fused jump (dc, in typical moves²,
+// null on a factor with no reading). On a portfolio the error is √(b'Σb), the factors' errors added with how they
+// move together, so a hedge's errors can cancel and a bet on co-moving factors piles them up.
+function jumpCov(ev) { return ev.dc ? ev.dc.map(row => row.map(v => (v == null ? 0 : v))) : null; }
+function quadForm(b, C) {
+  let s = 0;
+  for (let i = 0; i < b.length; i++) { if (!b[i]) continue; for (let j = 0; j < b.length; j++) s += b[i] * C[i][j] * b[j]; }
+  return Math.max(0, s);
+}
 // The exact direct move. contributions() leaves out negligible terms, which only matters for display.
 function eventDirect(ev, P) {
   let s = dot(P.b, ev.d);
@@ -132,10 +141,20 @@ function buildState(P, tw, live, whatIf) {
     }
     e.phEff = e.resolved ? e.qEff : clamp(e.ph0 + e.shift, 0.005, 0.995);
   });
-  evs.forEach(e => { e.contrib = contributions(e, P); e.dD = eventDirect(e, P); });
+  evs.forEach(e => { e.contrib = contributions(e, P); e.dD = eventDirect(e, P); const C = jumpCov(e); e.dDvar = C ? quadForm(P.b, C) : null; });
   [...order].reverse().forEach(e => {
     e.knock = e.children.map(c => { const ce = byId[c.id]; return { id: c.id, w: c.w, d: ce.resolved ? 0 : c.w * ce.dT }; });
     e.dT = e.dD + e.knock.reduce((s, k) => s + k.d, 0);
+    // Its variance, each event's jump measured apart from the others': every event the knock-ons reach adds its own
+    // jump's variance times its weight squared, the weight summed over all the paths that reach it (two paths to one
+    // event carry the same error, so their weights add before squaring).
+    e.reach = { [e.id]: 1 };
+    e.knock.forEach(k => {
+      const ce = byId[k.id]; if (ce.resolved) return;
+      for (const id in ce.reach) e.reach[id] = (e.reach[id] || 0) + k.w * ce.reach[id];
+    });
+    e.dTvar = e.dDvar == null ? null : Object.entries(e.reach).reduce((s, [id, w]) => s + w * w * (byId[id].dDvar || 0), 0);
+    e.sdT = e.dTvar == null ? null : Math.sqrt(e.dTvar);
   });
   const H = tw.horizon * 30.44;
   evs.forEach(e => {
@@ -274,15 +293,40 @@ function mapGeometry(evs, P, mode) {
     const raw = {}; evs.forEach(e => { raw[e.id] = [e.dT, dot(res[e.id], v1), dot(res[e.id], v2)]; });
     const mx = [0, 1, 2].map(i => Math.max(0.01, ...evs.map(e => Math.abs(raw[e.id][i]))));
     const pos = {}; evs.forEach(e => { const r = raw[e.id]; pos[e.id] = [r[0] / mx[0], r[1] / mx[1], r[2] / mx[2]]; });
-    return { pos, arrow: [1, 0, 0], ends: { x: ['You lose', 'You gain'], y: axisLabel(v1), z: axisLabel(v2) } };
+    // The map is linear in the jump: rows that take δ to a position (v1 and v2 are square to the arrow, so the
+    // residual's coordinates are δ's own).
+    const G = [P.b.map(v => v / mx[0]), v1.map(v => v / mx[1]), v2.map(v => v / mx[2])];
+    const lin = {}; evs.forEach(e => { lin[e.id] = G; });
+    // Across, the dot is the whole move, knock-ons included, which the jump's own covariance leaves out: their
+    // variance adds there alone (the other events' jumps are measured apart from this one's).
+    const xVar = {}; evs.forEach(e => { xVar[e.id] = e.dTvar == null || e.dDvar == null ? 0 : Math.max(0, e.dTvar - e.dDvar) / mx[0] ** 2; });
+    return { pos, lin, xVar, arrow: [1, 0, 0], ends: { x: ['You lose', 'You gain'], y: axisLabel(v1), z: axisLabel(v2) } };
   }
   const raw = {}; evs.forEach(e => { raw[e.id] = AXES3.map(a => dot(a.w, e.d)); });
   const norms = evs.map(e => Math.hypot(...raw[e.id])).sort((a, b) => a - b);
   const ref = Math.max(0.6, norms[Math.floor(norms.length * 0.85)] || 1);
-  const pos = {};
-  evs.forEach(e => { let p = raw[e.id].map(v => v / ref); const nm = Math.hypot(...p); if (nm > 1.2) p = p.map(v => v * 1.2 / nm); pos[e.id] = p; });
+  const pos = {}, lin = {};
+  evs.forEach(e => {
+    let p = raw[e.id].map(v => v / ref); const nm = Math.hypot(...p); const k = nm > 1.2 ? 1.2 / nm : 1;
+    pos[e.id] = p.map(v => v * k); lin[e.id] = AXES3.map(ax => ax.w.map(v => v * k / ref));
+  });
   const a = AXES3.map(ax => dot(ax.w, P.b)); const na = Math.hypot(...a) || 1;
-  return { pos, arrow: a.map(v => v / na), ends: { x: AXES3[0].ends, y: AXES3[1].ends, z: AXES3[2].ends } };
+  return { pos, lin, arrow: a.map(v => v / na), ends: { x: AXES3[0].ends, y: AXES3[1].ends, z: AXES3[2].ends } };
+}
+
+/* The covariance of an event's place on the map, G Σ G', from its jump's covariance, plus the knock-ons' variance
+   across where the map puts the whole move there ("Your portfolio" view); null without a covariance. */
+function mapCov(e, geo) {
+  const C = jumpCov(e), G = geo && geo.lin && geo.lin[e.id];
+  if (!C || !G) return null;
+  const M = G.map(gi => G.map(gj => { let s = 0; for (let f = 0; f < gi.length; f++) { if (!gi[f]) continue; for (let h = 0; h < gj.length; h++) s += gi[f] * C[f][h] * gj[h]; } return s; }));
+  if (geo.xVar && geo.xVar[e.id]) M[0][0] += geo.xVar[e.id];
+  return M;
+}
+/* An ellipse from a 2×2 covariance [[a, b], [b, c]]: its semi-axes at one standard deviation and its angle. */
+function ellipse2(a, b, c) {
+  const m = (a + c) / 2, d = Math.sqrt(Math.max(0, ((a - c) / 2) ** 2 + b * b));
+  return { rx: Math.sqrt(Math.max(0, m + d)), ry: Math.sqrt(Math.max(0, m - d)), angle: 0.5 * Math.atan2(2 * b, a - c) };
 }
 
 /* ---------- Odds history: the snapshot's daily closes, or an illustrative bridge in log-odds space ---------- */
@@ -325,23 +369,30 @@ function replayCompute(P, knock) {
   const linksAt = k => (knock ? (R.links || []).map(l => (Array.isArray(l) ? l : [l.p, l.c, l.w[k]])).filter(l => l[2] != null) : []);
   // At evening k: each event's jump on this portfolio, plus the knock-ons through its links to events still open (4.4),
   // along every path that doesn't revisit an event (the backend's total_jump does the same). Each comes with its
-  // variance, the knock-ons' scaled by their weights squared.
+  // variance: every event reached adds its own jump's variance times its weight squared, the weight summed over the
+  // paths that reach it (two paths to one event carry the same error); null if one of them has no error bars.
   const totals = k => {
     const L = linksAt(k);
     const tot = (id, path) => {
-      const e = R.events.find(z => z.id === id); let s = jumpAt(e, k), v = varAt(e, k);
+      const e = R.events.find(z => z.id === id); let s = jumpAt(e, k);
       if (s == null) return null;
+      const reach = new Map([[id, 1]]);
       const on = new Set(path).add(id);
       L.forEach(([p, c, w]) => {
         if (p !== id || on.has(c)) return;
         const ce = R.events.find(z => z.id === c), qc = ce ? qEve(ce, k) : null;
         if (qc == null || qc >= 1) return;
         const t = tot(c, on);
-        if (t != null) { s += w * t[0]; v = v == null || t[1] == null ? null : v + w * w * t[1]; }
+        if (t != null) { s += w * t[0]; t[1].forEach((wd, d) => reach.set(d, (reach.get(d) || 0) + w * wd)); }
       });
-      return [s, v];
+      return [s, reach];
     };
-    return id => tot(id, []);
+    return id => {
+      const t = tot(id, []); if (t == null) return null;
+      let v = 0;
+      for (const [d, w] of t[1]) { const x = varAt(R.events.find(z => z.id === d), k); if (x == null) { v = null; break; } v += w * w * x; }
+      return [t[0], v];
+    };
   };
   const sdOf = t => (t == null || t[1] == null ? null : Math.sqrt(t[1]));
   const states = R.days.map((day, i) => { const tot = totals(i + 1); return R.events.map(e => {

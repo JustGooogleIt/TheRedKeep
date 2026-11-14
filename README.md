@@ -79,6 +79,7 @@ uv run redkeep analyze --holdings "VTI:300000, TLT:400000, NVDA:120sh"   # any p
 - [Backend](backend/README.md): setup, keys, commands, and what the slice does and doesn't do yet.
 - [Research: Hyperliquid's non-crypto perps](docs/research/hyperliquid-noncrypto-perps.md): which markets are usable for weekend jump windows, and how to measure them.
 - [Research: Granger causality](docs/research/granger-causality.md): what lead and lag can and can't tell the engine, a literature review, and what eval E10 found on real data (an event's jump is its first day's move; the dollar was on a noon clock, now fixed).
+- [Research: uncertainty ellipsoids](docs/research/uncertainty-ellipsoids.md): how a jump's errors move together across the ten factors, how to estimate, fuse, test and draw them, and what eval E11 found on resolved markets (the measured correlations were too strong for now, so each factor's error counts on its own).
 - [Diagrams](docs/diagrams/): Mermaid sources and rendered figures.
 
 ## Status
